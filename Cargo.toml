@@ -5,5 +5,7 @@ edition = "2024"
 
 [dependencies]
 rand = "*"
+regex = "*"
 cli-table = "*"
+clap = {version = "*", features = ["derive"]}
 

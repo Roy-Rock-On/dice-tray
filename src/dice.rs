@@ -100,6 +100,25 @@ impl Die {
     }
 }
 
+/// Creates a vector of dice with a count equal to conunt and a number of faces equal to faces.
+pub fn new_dice_set(count : u32, faces : u32) -> Vec<Die>{
+    let mut new_die_vec = Vec::new();
+    for _i in 0..count{
+        let new_die = Die::new(None, None, faces);
+        new_die_vec.push(new_die);
+    }
+    new_die_vec
+}
+
+/// Creates a vector of dice from a given vector of u32. Each die has a face count equal each u32 in the count. 
+pub fn new_dice_from_vec(dice : Vec<u32>) -> Vec<Die>{
+    dice.iter().map(|f| Die::new(None, None, *f)).collect()
+}
+
+pub fn new_dice_from_vec_with_id(dice : Vec<(Option<String>, u32)>) -> Vec<Die>{
+    dice.iter().map(|i| Die::new(i.0.clone(), None, i.1)).collect()
+}
+
 /// Ordering for Die ignores RNG state and uses (current_face, faces, identity)
 impl PartialEq for Die {
     fn eq(&self, other: &Self) -> bool {

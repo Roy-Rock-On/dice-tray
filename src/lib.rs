@@ -1,3 +1,3 @@
 pub mod dice;
-mod tray;
-mod logger;
+pub mod tray;
+pub mod logger;

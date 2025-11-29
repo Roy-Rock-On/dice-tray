@@ -12,7 +12,7 @@ struct DiceState {
     result_string: String
 }
 
-
+/// Logs the current state of the tray to the console. In table format. Using cli-table crate.
 pub fn log_tray(tray: &Tray) {
     let dice_states: Vec<DiceState> = tray.get_dice().iter().enumerate().map(|(i, die)| {
         DiceState {
@@ -22,9 +22,10 @@ pub fn log_tray(tray: &Tray) {
         }
     }).collect();
 
-    print_stdout(dice_states.with_title()).is_ok();
+    print_stdout(dice_states.with_title()).unwrap();
 }
 
+/// Converts a DieResult to a String for logging.
 fn die_result_to_string(die: &Die) -> String {
     match die.get_result() {
         DieResult::Number(n) => n.to_string()
