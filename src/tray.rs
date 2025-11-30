@@ -33,6 +33,18 @@ impl Tray{
         }
     }
 
+    pub fn set_identity_at(&mut self, index: usize, identity: String) -> Result<(String, String), String> {
+        if index < self.dice.len() {
+            let die = &mut self.dice[index];
+            let old_id = die.get_id().to_string();
+            die.set_identity(identity);
+            let new_id = die.get_id().to_string();
+            Ok((old_id, new_id))
+        } else {
+            Err("Cannot set dice identity as provided index is out of bounds".to_string())
+        }
+    }
+
     /// Rolls all Dice in the tray.
     pub fn roll_all(&mut self) {
         for die in &mut self.dice {

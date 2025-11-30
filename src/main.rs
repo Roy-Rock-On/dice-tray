@@ -1,6 +1,6 @@
 use std::io;
 use clap::{arg, Parser};
-use dice_tray::tray::Tray;
+use dice_tray::tray::{self, Tray};
 use dice_tray::logger::log_tray;
 use regex::Regex;
 
@@ -21,15 +21,23 @@ struct TrayArgs {
 
     ///Exits the applicaiton.
     #[arg(short, long, default_value_t = false)]
-    exit : bool
+    exit : bool,
+
+    ///Names the die at the specified index. Or that have the specified identiy.
+    #[arg(short, long, num_args = 2)]
+    name : Vec<String> 
 }
 
 static DICE_NOTATION_REGEX: &str = r"(?i)^(?:(\d*)?[dD](\d+))$";
 
 fn main() {
     let mut active_tray = Tray::new();
+    let mut tray_iterations = 0;
+    println!("Welcome to Dice Tray!");
+    log_tray(&active_tray);
     loop {
-        println!("Enter command (or use --help for options):");
+        println!("Enter commands (or use --help for options):");
+
         let mut input = String::new();
         io::stdin().read_line(&mut input).expect("Failed to read line");
         let input_args: Vec<&str> = input.trim().split_whitespace().collect();
@@ -67,6 +75,8 @@ fn main() {
         }
 
         // Log the current state of the tray
+
+        println!("Count of dice in tray: {}", active_tray.get_dice().len());
         log_tray(&active_tray);
 
         // Handle exiting the application

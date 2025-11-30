@@ -78,6 +78,10 @@ impl Die {
         &self.identity
     }
 
+    pub fn set_identity(&mut self, identity: String) {
+        self.identity = identity;
+    }
+
     /// Returns true if the current face is the minimum value (1).
     pub fn is_min(&self) -> bool {
         self.current_face == 1
@@ -88,7 +92,7 @@ impl Die {
         self.current_face == self.faces
     }
 
-    /// When setting the face of a Die this will wrap the value to a the valid range, if required.
+    /// When setting the face of a Die this will clamp the value to a the valid range, if required.
     fn clamp_to_bounds(&self, value : u32) -> u32 {
         if value < 1 {
             1

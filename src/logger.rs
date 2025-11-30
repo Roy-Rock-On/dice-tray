@@ -8,6 +8,8 @@ struct DiceState {
     index: usize,
     #[table(title = "Identity", justify = "Justify::Center")]
     identity: String,
+    #[table(title = "Face", justify = "Justify::Center")]
+    face_string: String,
     #[table(title = "Result", justify = "Justify::Center")]
     result_string: String
 }
@@ -18,6 +20,7 @@ pub fn log_tray(tray: &Tray) {
         DiceState {
             index: i,
             identity: die.get_id().to_string(),
+            face_string: die.get_current_face().to_string(),
             result_string: die_result_to_string(die)
         }
     }).collect();
