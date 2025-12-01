@@ -33,6 +33,21 @@ impl Tray{
         }
     }
 
+    /// Removes all Dice with the specified identity from the tray.
+    pub fn remove_by_id(&mut self, identity: &str) -> Vec<Die> {
+        let mut removed_dice: Vec<Die> = Vec::new();
+        self.dice.retain(|die| {
+            if die.get_id() == identity {
+                removed_dice.push(die.clone());
+                false
+            } else {
+                true
+            }
+        });
+        removed_dice
+    }
+
+    /// Sets the identity of the Die at the specified index in the tray.
     pub fn set_identity_at(&mut self, index: usize, identity: String) -> Result<(String, String), String> {
         if index < self.dice.len() {
             let die = &mut self.dice[index];
@@ -53,13 +68,44 @@ impl Tray{
     }
 
     /// Rolls the Die at the specified index in the tray.
-    pub fn roll_at(&mut self, index: usize) -> Option<u32> {
+    pub fn roll_at(&mut self, index: usize) -> Result<(), String> {
         if index < self.dice.len() {
             let die = &mut self.dice[index];
             die.roll();
-            Some(die.get_current_face())
+            Ok(())
         } else {
-            None
+            Err("Index out of bounds".to_string())
+        }
+    }
+
+    /// Rolls all Dice in the tray with the specified identity
+    pub fn roll_by_id(&mut self, identity: &str) -> Result<(), String> {
+        let mut hit : bool = false;
+        for (die) in self.dice.iter_mut() {
+                if identity == die.get_id() {
+                    die.roll();
+                    hit = true;
+                }
+            }
+        if hit {
+            Ok(())
+        } else {
+            Err("No dice with the specified identity found".to_string())
+        }
+    }
+
+    pub fn roll_at_identities(&mut self, identity: &str, indices: &Vec<usize>) -> Result<(), String> {
+        let mut hit : bool = false;
+        for (i, die) in self.dice.iter_mut().enumerate() {
+                if identity == die.get_id() && indices.contains(&i) {
+                    die.roll();
+                    hit = true;
+                }
+            }
+        if hit {
+            Ok(())
+        } else {
+            Err("No dice with the specified identity found at the specified indices".to_string())
         }
     }
 

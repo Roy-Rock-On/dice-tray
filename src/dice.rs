@@ -6,13 +6,17 @@ use std::result;
 /// Used to request specific result types from a Die roll.
 #[derive(Debug, Clone)]
 pub enum DieResultType{
-    Number
+    Face,
+    Best,
+    Worst,
+    Sum
 }
 
 /// Used to return specific result types from a Die roll and wraps the returned value.
 #[derive(Debug, Clone)] 
 pub enum DieResult{
-    Number(u32)
+    Number(u32),
+    None
 }
 
 
@@ -23,7 +27,8 @@ pub struct Die{
     identity: String,
     faces: u32,
     current_face: u32,
-    result_type : DieResultType
+    result_type : DieResultType,
+    current_result: DieResult,
 }
 
 impl Die {
@@ -36,7 +41,8 @@ impl Die {
             identity: identity.unwrap_or_else(|| "d".to_string() + &faces.to_string()),
             faces,
             current_face: 1,
-            result_type: result_type.unwrap_or(DieResultType::Number)     
+            current_result: DieResult::None,
+            result_type: result_type.unwrap_or(DieResultType::Face)     
         };
         new_die.roll();
         new_die
@@ -48,20 +54,14 @@ impl Die {
     }
 
     /// Returns the result of the die roll based on the result type of the die.
-    pub fn get_result(&self) -> DieResult {
-        self.get_result_as(&self.result_type)
-    }
-
-    /// Returns the result of the die roll based on the provided result type.
-    pub fn get_result_as(&self, result_type : &DieResultType) -> DieResult{
-        match result_type{
-            DieResultType::Number => DieResult::Number(self.current_face)
-        }
+    pub fn get_result(&self) -> &DieResult {
+        &self.current_result
     }
 
     /// Rolls the dice to give it a random number between 1 and self.faces (inclusive).
     pub fn roll(&mut self) {
         self.current_face = self.rng.random_range(1..=self.faces);
+        self.update_result();
     }
 
     /// Rertuns the current face of the dice as a u32.
@@ -78,8 +78,21 @@ impl Die {
         &self.identity
     }
 
+    /// Sets the identity of the dice to the provided string.
     pub fn set_identity(&mut self, identity: String) {
-        self.identity = identity;
+        self.identity = identity;     
+    }
+
+    /// Returns the result type of the die.
+    pub fn get_result_type(&self) -> &DieResultType {
+        &self.result_type
+    }
+
+    /// Sets the result type of the die to the provided DieResultType and updates the current result accordingly.
+    pub fn set_result_type(&mut self, result_type: DieResultType) {
+        self.current_result = DieResult::None;
+        self.result_type = result_type;
+        self.update_result();
     }
 
     /// Returns true if the current face is the minimum value (1).
@@ -100,6 +113,39 @@ impl Die {
             self.faces
         } else {
             value
+        }
+    }
+
+    fn update_result(&mut self) {
+        match self.result_type {
+            DieResultType::Face => {
+                self.current_result = DieResult::Number(self.current_face);
+            }
+            DieResultType::Best => {
+                let last_result = match &self.current_result {
+                    DieResult::Number(n) => *n,
+                    DieResult::None => 0,
+                };
+                if self.current_face > last_result {
+                    self.current_result = DieResult::Number(self.current_face);
+                }
+            }
+            DieResultType::Worst => {
+                let last_result = match &self.current_result {
+                    DieResult::Number(n) => *n,
+                    DieResult::None => self.faces + 1,
+                };
+                if self.current_face < last_result {
+                    self.current_result = DieResult::Number(self.current_face);
+                }
+            }
+            DieResultType::Sum => {
+                let last_result = match &self.current_result {
+                    DieResult::Number(n) => *n,
+                    DieResult::None => 0,
+                };
+                self.current_result = DieResult::Number(last_result + self.current_face);
+            }
         }
     }
 }

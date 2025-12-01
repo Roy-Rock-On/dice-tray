@@ -1,98 +1,142 @@
 use std::io;
-use clap::{arg, Parser};
-use dice_tray::tray::{self, Tray};
+use dice_tray::tray::{Tray};
 use dice_tray::logger::log_tray;
-use regex::Regex;
+use dice_tray::cli_parser::{parse_dice_tray_commands, parse_add_command, parse_roll_command, parse_drop_command};
+use dice_tray::cli_parser::DiceTrayCommandType;
 
-#[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
-struct TrayArgs {
-    /// Rolls dice and adds them the tray.
-    #[arg(short, long, num_args = 1.., value_delimiter = ' ')]
-    roll : Vec<String>,
-
-    ///Clears the tray of all dice.
-    #[arg(short, long, default_value_t = false)]
-    clear : bool,
-
-    ///Shakes the tray to re-roll all dice.
-    #[arg(short, long, default_value_t = false)]
-    shake : bool,
-
-    ///Exits the applicaiton.
-    #[arg(short, long, default_value_t = false)]
-    exit : bool,
-
-    ///Names the die at the specified index. Or that have the specified identiy.
-    #[arg(short, long, num_args = 2)]
-    name : Vec<String> 
-}
-
-static DICE_NOTATION_REGEX: &str = r"(?i)^(?:(\d*)?[dD](\d+))$";
 
 fn main() {
     let mut active_tray = Tray::new();
-    let mut tray_iterations = 0;
     println!("Welcome to Dice Tray!");
     log_tray(&active_tray);
     loop {
-        println!("Enter commands (or use --help for options):");
+        println!("Enter commands (type \"help\" for options):");
 
         let mut input = String::new();
         io::stdin().read_line(&mut input).expect("Failed to read line");
-        let input_args: Vec<&str> = input.trim().split_whitespace().collect();
-        
-        let args = match TrayArgs::try_parse_from(std::iter::once("dice-tray").chain(input_args)) {
-            Ok(args) => args,
-            Err(err) => {
-                eprintln!("{}", err);
-                continue;
-            }
-        };
-        
-        // Handle clearing the tray
-        if args.clear {
-            println!("Clearing tray...");
-            active_tray.clear();
+
+        let dice_tray_commands = parse_dice_tray_commands(&input);
+        println!("count of commands parsed: {}", dice_tray_commands.len());
+        if (dice_tray_commands.is_empty()) {
+            println!("No valid commands found. Please try again.");
+            continue;
         }
 
-        // Handle rolling dice
-        if !args.roll.is_empty() {
-            for notation in args.roll {
-                if let Some((count, faces)) = parse_dice_notation(&notation) {
-                    let new_dice = dice_tray::dice::new_dice_set(count, faces);
-                    for mut die in new_dice {
-                        active_tray.add_die(die);
+        for command in dice_tray_commands {
+            match command.command_type {
+                DiceTrayCommandType::Add => {
+                    if let Some(command_string) = command.command_string {
+                        let new_dice = parse_add_command(Some(&command_string));
+                        match new_dice {
+                            Some(dice) => {
+                                println!("Adding {} dice to the tray.", dice.len());
+                                active_tray.add_dice(dice);
+                            }
+                            None => println!("No dice parsed from command: {}", command_string),
+                        }
                     }
+                },
+                DiceTrayCommandType::Roll => {
+                    if let Some(command_string) = command.command_string {
+                        let (identity_flags, index_flags) = parse_roll_command(Some(&command_string));
+                        match (identity_flags, index_flags) {
+                            (Some(ids), None) => {
+                                for id in ids {
+                                    println!("Rolling dice with identity: {}", id);
+                                    match active_tray.roll_by_id(&id) {
+                                        Ok(()) => println!("Rolled all dice with identity: {}", id),
+                                        Err(e) => println!("Error rolling dice with identity {}: {}", id, e),
+                                    }
+                                }
+                            },
+                            (None, Some(indices)) => {
+                                for index in indices {
+                                    match active_tray.roll_at(index) {
+                                        Ok(()) => println!("Rolled die at index: {}", index),
+                                        Err(e) => println!("Error rolling die at index {}: {}", index, e),
+                                    }
+                                }
+                            },
+                            (Some(ids), Some(indices)) => {
+                                for id in ids {
+                                    match active_tray.roll_at_identities(&id, &indices) {
+                                        Ok(()) => println!("Rolled dice with identity: {} at specified indices {:?}", id, indices),
+                                        Err(e) => println!("Error rolling dice with identity {} at specified indices: {}", id, e),
+                                    }
+                                }
+                            },
+                            (None, None) => {
+                                println!("Rolling all dice in the tray.");
+                                active_tray.roll_all();
+                            }
+                        }
+                    } else {
+                        println!("Rolling all dice in the tray.");
+                        active_tray.roll_all();
+                    }   
+                },
+
+                DiceTrayCommandType::Drop => {
+                    if let Some(command_string) = command.command_string {
+                        let (identity_flags, drop_indices) = parse_drop_command(Some(&command_string));
+                        match (identity_flags, drop_indices) {
+                            (Some(ids), None) => {
+                                for id in ids {
+                                    println!("Dropping all dice with identity: {}", id);
+                                    active_tray.remove_by_id(&id);
+                                }
+                            },
+                            (None, Some(indices)) => {
+                                for index in indices.iter().rev() {
+                                    match active_tray.remove_at(*index) {
+                                        Some(die) => println!("Dropped die at index {}: {}", index, die.get_id()),
+                                        None => println!("Error dropping die at index {}: Index out of bounds", index),
+                                    }
+                                }
+                            },
+                            (Some(ids), Some(indices)) => {
+                                for id in ids {
+                                    println!("Dropping dice with identity: {} at specified indices {:?}", id, indices);
+                                    for index in indices.iter().rev() {
+                                        match active_tray.get_dice().get(*index) {
+                                            Some(die) if die.get_id() == id => {
+                                                match active_tray.remove_at(*index) {
+                                                    Some(removed_die) => println!("Dropped die at index {}: {}", index, removed_die.get_id()),
+                                                    None => println!("Error dropping die at index {}: Index out of bounds", index),
+                                                }
+                                            },
+                                            _ => println!("No die with identity {} at index {}", id, index),
+                                        }
+                                    }
+                                }
+                            },
+                            (None, None) => {
+                                active_tray.clear();
+                                println!("Cleared all dice from the tray.");
+                            }
+                        }
+                    }
+                }
+                DiceTrayCommandType::Mod => {
+                   todo!("Modify dice functionality not yet implemented");
+                },
+                DiceTrayCommandType::Help => {
+                    println!("Available commands:");
+                    println!("-r(Roll): Add dice to the tray using standard dice notation (e.g., '2d6' for two six-sided dice).");
+                    println!("-c(Clear): Clear all dice from the tray.");
+                    println!("-m(Mod): Modify dice in the tray.");
+                    println!("-h(Help): Show this help message.");
+                    println!("-e(Exit): Exit the application.");
+                    println!("You can combine multiple commands in one line, separated by spaces.");
+                    println!("$<id> is used to refrence the id of a die.");
+                    println!("@<index1,index2> is used to refrence the index of dice in the tray.");
+                },
+                DiceTrayCommandType::Exit => {
+                    println!("Exiting Dice Tray. Goodbye!");
+                    return;
                 }
             }
         }
-
-        // Handle shaking the tray
-        if args.shake {
-            println!("Shaking tray...");
-            active_tray.roll_all();
-        }
-
-        // Log the current state of the tray
-
-        println!("Count of dice in tray: {}", active_tray.get_dice().len());
         log_tray(&active_tray);
-
-        // Handle exiting the application
-        if args.exit {
-            break;
-        }
-    }
-}
-
-fn parse_dice_notation(notation: &str) -> Option<(u32, u32)> {
-    let re = Regex::new(DICE_NOTATION_REGEX).unwrap();
-    if let Some(captures) = re.captures(notation) {
-        let count = captures.get(1).map_or("1", |m| m.as_str()).parse::<u32>().ok()?;
-        let faces = captures.get(2)?.as_str().parse::<u32>().ok()?;
-        Some((count, faces))
-    } else {
-        None
     }
 }

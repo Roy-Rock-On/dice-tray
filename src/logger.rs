@@ -10,6 +10,8 @@ struct DiceState {
     identity: String,
     #[table(title = "Face", justify = "Justify::Center")]
     face_string: String,
+    #[table(title = "Result Type", justify = "Justify::Center")]
+    result_type_string: String,
     #[table(title = "Result", justify = "Justify::Center")]
     result_string: String
 }
@@ -21,6 +23,7 @@ pub fn log_tray(tray: &Tray) {
             index: i,
             identity: die.get_id().to_string(),
             face_string: die.get_current_face().to_string(),
+            result_type_string: die_result_type_to_string(die),
             result_string: die_result_to_string(die)
         }
     }).collect();
@@ -31,7 +34,18 @@ pub fn log_tray(tray: &Tray) {
 /// Converts a DieResult to a String for logging.
 fn die_result_to_string(die: &Die) -> String {
     match die.get_result() {
-        DieResult::Number(n) => n.to_string()
+        DieResult::Number(n) => n.to_string(),
+        DieResult::None => "None".to_string(),
+    }
+}
+
+/// Converts a DieResultType to a String for logging.
+fn die_result_type_to_string(die: &Die) -> String {
+    match die.get_result_type() {
+        DieResultType::Face => "Face".to_string(),
+        DieResultType::Best => "Best".to_string(),
+        DieResultType::Worst => "Worst".to_string(),
+        DieResultType::Sum => "Sum".to_string(),
     }
 }
 
