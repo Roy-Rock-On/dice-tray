@@ -24,4 +24,6 @@ The CLI creates a dice tray that stores persistant dice structs, each with their
 
 - **-e | -exit** => Ends the program and returns you to your terminal. 
 
+The other crates featured in this project are (rand)[https://docs.rs/rand/latest/rand/] and (regex)[https://docs.rs/regex/latest/regex/].
+
 This is my first Rust project, and I'm still learning. Feedback from more experienced rustaceans is appreciated. More to come soon. 
