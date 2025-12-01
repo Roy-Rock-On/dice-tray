@@ -35,6 +35,7 @@ pub fn log_tray(tray: &Tray) {
 fn die_result_to_string(die: &Die) -> String {
     match die.get_result() {
         DieResult::Number(n) => n.to_string(),
+        DieResult::String(s) => s,
         DieResult::None => "None".to_string(),
     }
 }
@@ -46,6 +47,7 @@ fn die_result_type_to_string(die: &Die) -> String {
         DieResultType::Best => "Best".to_string(),
         DieResultType::Worst => "Worst".to_string(),
         DieResultType::Sum => "Sum".to_string(),
+        DieResultType::Table => "Table".to_string(),
     }
 }
 
@@ -56,8 +58,8 @@ mod tests {
     #[test]
     fn test_log_tray() {
         let mut tray = Tray::new();
-        let die1 = Die::new(Some("Die1".to_string()), None, 6);
-        let die2 = Die::new(Some("Die2".to_string()),None, 6);
+        let die1 = Die::new(Some("Die1".to_string()), 6);
+        let die2 = Die::new(Some("Die2".to_string()), 6);
         tray.add_die(die1);
         tray.add_die(die2); 
         log_tray(&tray);

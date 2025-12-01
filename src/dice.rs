@@ -1,6 +1,8 @@
 use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};
+use std::clone;
 use std::cmp::Ordering;
+use crate::settings::{DiceTraySettings, DICE_TRAY_SETTINGS};
 
 /// Used to request specific result types from a Die roll.
 #[derive(Debug, Clone)]
@@ -8,16 +10,17 @@ pub enum DieResultType{
     Face,
     Best,
     Worst,
-    Sum
+    Sum,
+    Table
 }
 
 /// Used to return specific result types from a Die roll and wraps the returned value.
 #[derive(Debug, Clone)] 
 pub enum DieResult{
     Number(u32),
+    String(String),
     None
 }
-
 
 /// Represents a physical dice. Includes a string identifier, it's own SmallRng seed, ability to roll and compare rolls. 
 #[derive(Debug, Clone)]
@@ -26,23 +29,38 @@ pub struct Die{
     identity: String,
     faces: u32,
     current_face: u32,
+    current_result_value: u32,
     result_type : DieResultType,
-    current_result: DieResult,
 }
 
 impl Die {
     /// Creates a new die, with an optional string identifier. 
     /// If no identity is provided will default to the dice notation number (e.g. 'd6', 'd100').
     /// The new dice is rolled on creation to give it a random self_current face. 
-    pub fn new(identity: Option<String>, result_type: Option<DieResultType>, faces: u32) -> Self {
+    pub fn new(identity: Option<String>, faces: u32) -> Self {
+        let result_type = {
+            if let Some(id) = identity.as_ref() {
+                if DICE_TRAY_SETTINGS.has_table(&id) {
+                    DieResultType::Table
+                }
+                else{
+                    DieResultType::Face
+                }
+            }
+            else{
+                DieResultType::Face
+            }
+        }; 
+        
         let mut new_die = Die {
             rng : SmallRng::from_rng(&mut rand::rng()),
             identity: identity.unwrap_or_else(|| "d".to_string() + &faces.to_string()),
             faces,
             current_face: 1,
-            current_result: DieResult::None,
-            result_type: result_type.unwrap_or(DieResultType::Face)     
+            current_result_value: 1,
+            result_type
         };
+
         new_die.roll();
         new_die
     }
@@ -53,10 +71,21 @@ impl Die {
     }
 
     /// Returns the result of the die roll based on the result type of the die.
-    pub fn get_result(&self) -> &DieResult {
-        &self.current_result
+    pub fn get_result(&self) -> DieResult {
+        match &self.result_type {
+            DieResultType::Face | DieResultType::Best | DieResultType::Worst | DieResultType::Sum => {
+                DieResult::Number(self.current_result_value)
+            }
+            DieResultType::Table => {
+                let result = DICE_TRAY_SETTINGS.dice_table_lookup(self.identity.as_str(), self.current_face);
+                match result {
+                    Ok(result_string) => DieResult::String(result_string),
+                    Err(_) => DieResult::String("No result found.".to_string()),
+                }
+            }
+        }
     }
-
+ 
     /// Rolls the dice to give it a random number between 1 and self.faces (inclusive).
     pub fn roll(&mut self) {
         self.current_face = self.rng.random_range(1..=self.faces);
@@ -89,7 +118,14 @@ impl Die {
 
     /// Sets the result type of the die to the provided DieResultType and updates the current result accordingly.
     pub fn set_result_type(&mut self, result_type: DieResultType) {
-        self.current_result = DieResult::None;
+        self.current_result_value = match result_type {
+            DieResultType::Table => 0,
+            DieResultType::Best => 1,
+            DieResultType::Worst => self.faces,
+            DieResultType::Sum => 0,
+            DieResultType::Face => 0,
+        };
+
         self.result_type = result_type;
         self.update_result();
     }
@@ -118,32 +154,25 @@ impl Die {
     fn update_result(&mut self) {
         match self.result_type {
             DieResultType::Face => {
-                self.current_result = DieResult::Number(self.current_face);
+                self.current_result_value = self.current_face;
             }
             DieResultType::Best => {
-                let last_result = match &self.current_result {
-                    DieResult::Number(n) => *n,
-                    DieResult::None => 0,
-                };
+                let last_result = self.current_result_value;
                 if self.current_face > last_result {
-                    self.current_result = DieResult::Number(self.current_face);
+                    self.current_result_value = self.current_face;
                 }
             }
             DieResultType::Worst => {
-                let last_result = match &self.current_result {
-                    DieResult::Number(n) => *n,
-                    DieResult::None => self.faces + 1,
-                };
+                let last_result = self.current_result_value;
                 if self.current_face < last_result {
-                    self.current_result = DieResult::Number(self.current_face);
+                    self.current_result_value = self.current_face;
                 }
             }
             DieResultType::Sum => {
-                let last_result = match &self.current_result {
-                    DieResult::Number(n) => *n,
-                    DieResult::None => 0,
-                };
-                self.current_result = DieResult::Number(last_result + self.current_face);
+                self.current_result_value += self.current_face;
+            }
+            DieResultType::Table => {
+                self.current_result_value = self.current_face;
             }
         }
     }
@@ -153,7 +182,7 @@ impl Die {
 pub fn new_dice_set(count : u32, faces : u32) -> Vec<Die>{
     let mut new_die_vec = Vec::new();
     for _i in 0..count{
-        let new_die = Die::new(None, None, faces);
+        let new_die = Die::new(None, faces);
         new_die_vec.push(new_die);
     }
     new_die_vec
@@ -161,11 +190,11 @@ pub fn new_dice_set(count : u32, faces : u32) -> Vec<Die>{
 
 /// Creates a vector of dice from a given vector of u32. Each die has a face count equal each u32 in the count. 
 pub fn new_dice_from_vec(dice : Vec<u32>) -> Vec<Die>{
-    dice.iter().map(|f| Die::new(None, None, *f)).collect()
+    dice.iter().map(|f| Die::new(None, *f)).collect()
 }
 
 pub fn new_dice_from_vec_with_id(dice : Vec<(Option<String>, u32)>) -> Vec<Die>{
-    dice.iter().map(|i| Die::new(i.0.clone(), None, i.1)).collect()
+    dice.iter().map(|i| Die::new(i.0.clone(), i.1)).collect()
 }
 
 /// Ordering for Die ignores RNG state and uses (current_face, faces, identity)
@@ -198,7 +227,7 @@ mod tests {
     #[test]
     fn test_die_creation_and_roll() {
         let faces = 20;
-        let mut die = Die::new(Some("TestDie".to_string()), None, faces);
+        let mut die = Die::new(Some("TestDie".to_string()), faces);
         assert_eq!(die.get_identity(), "TestDie");
         assert!(die.get_current_face() >= 1 && die.get_current_face() <= faces);
         let first_roll = die.get_current_face();
@@ -208,12 +237,12 @@ mod tests {
 
     #[test]
     fn dice_ordering() {
-        let die1 = Die::new(None, None, 6);
-        let die2 = Die::new(None, None, 6);
-        let die3 = Die::new(None, None, 6);
-        let die4 = Die::new(None, None, 6);
-        let die5 = Die::new(None, None, 6);
-        let die6 = Die::new(None, None, 6);
+        let die1 = Die::new(None, 6);
+        let die2 = Die::new(None, 6);
+        let die3 = Die::new(None, 6);
+        let die4 = Die::new(None, 6);
+        let die5 = Die::new(None, 6);
+        let die6 = Die::new(None, 6);
         
         let mut dice = Vec::new();
         dice.push(die1);

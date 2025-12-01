@@ -97,7 +97,7 @@ pub fn parse_add_command(command: Option<&str>) -> Option<Vec<Die>> {
                                 _ => None
                             };
                             println!("Adding die with {} faces and identity {:?} ", faces, identity_flag);
-                            let die = Die::new(identity, None, faces);
+                            let die = Die::new(identity, faces);
                             dice_to_add.push(die);
                         }
                     }

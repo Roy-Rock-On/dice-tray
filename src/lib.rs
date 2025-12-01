@@ -13,3 +13,9 @@ pub mod logger;
 
 ///Library for parsing commands passed from the CLI.
 pub mod cli_parser;
+
+/// Library for creating roll tables and looking up dice results on said tables. 
+pub mod tables;
+
+/// Library for managing user settings including result tables, dice profiles, and more.
+pub mod settings;

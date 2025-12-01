@@ -3,11 +3,13 @@ use dice_tray::tray::{Tray};
 use dice_tray::logger::log_tray;
 use dice_tray::cli_parser::{parse_dice_tray_commands, parse_add_command, parse_roll_command, parse_drop_command};
 use dice_tray::cli_parser::DiceTrayCommandType;
+use dice_tray::settings::{self, DiceTraySettings};
 
 
 fn main() {
     let mut active_tray = Tray::new();
     println!("Welcome to Dice Tray!");
+
     log_tray(&active_tray);
     loop {
         println!("Enter commands (type \"help\" for options):");
