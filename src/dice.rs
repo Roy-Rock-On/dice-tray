@@ -1,8 +1,7 @@
 use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};
-use std::clone;
 use std::cmp::Ordering;
-use crate::settings::{DiceTraySettings, DICE_TRAY_SETTINGS};
+use crate::settings::{DICE_TRAY_SETTINGS};
 
 /// Used to request specific result types from a Die roll.
 #[derive(Debug, Clone, PartialEq)]
