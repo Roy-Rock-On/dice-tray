@@ -8,5 +8,4 @@ edition = "2024"
 rand = "*"
 regex = "*"
 cli-table = "*"
-clap = {version = "*", features = ["derive"]}
 
