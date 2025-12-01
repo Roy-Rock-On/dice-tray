@@ -10,10 +10,48 @@ static DICE_NOTATION_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?i)
 pub enum DiceTrayCommandType{
     Add,
     Roll,
+    ReRollBest,
+    ReRollWorst,
+    Explode,
     Drop,    
-    Mod,
     Help,
     Exit
+}
+
+pub struct Targets{
+    identity_flags: Option<Vec<String>>,
+    index_flags: Option<Vec<usize>>,
+}
+
+impl Targets{
+    /// Creates a new Targets struct that can be used to .
+    pub fn new(identity_flags: Option<Vec<String>>, index_flags: Option<Vec<usize>>) -> Self {
+        Targets {
+            identity_flags,
+            index_flags
+        }
+    }
+
+    /// Checks if any identity flags are present.
+    pub fn get_identity_flags(&self) -> Option<&Vec<String>> {
+        match &self.identity_flags {
+            Some(ids) if !ids.is_empty() => Some(ids),
+            _ => None
+        }
+    }
+
+    /// Checks if any index flags are present.
+    pub fn get_index_flags(&self) -> Option<&Vec<usize>> {
+        match &self.index_flags {
+            Some(indices) if !indices.is_empty() => Some(indices),
+            _ => None
+        }
+    }
+
+    /// Checks if no flags are present.
+    pub fn is_empty(&self) -> bool {
+        self.identity_flags.is_none() && self.index_flags.is_none()
+    }
 }
 
 /// Struct representing a parsed command from the CLI, including its type and associated string.
@@ -56,9 +94,11 @@ pub fn parse_dice_tray_commands(command: &str) -> Vec<ParsedDiceTrayCommand> {
                 "-a" | "-add" => DiceTrayCommandType::Add,
                 "-r" | "-roll" => DiceTrayCommandType::Roll,
                 "-d" | "-drop" => DiceTrayCommandType::Drop,
-                "-m" | "-mod" => DiceTrayCommandType::Mod,
+                "-rb" | "-rerollbest" => DiceTrayCommandType::ReRollBest,
+                "-rw" | "-rerollworst" => DiceTrayCommandType::ReRollWorst,
+                "-e" | "-explode" => DiceTrayCommandType::Explode,
                 "-h" | "-help" => DiceTrayCommandType::Help,
-                "-e" | "-exit" => DiceTrayCommandType::Exit,
+                "-x" | "-exit" => DiceTrayCommandType::Exit,
                 _ => DiceTrayCommandType::Roll, // default for unknown flags
             };
         } else {
@@ -110,7 +150,7 @@ pub fn parse_add_command(command: Option<&str>) -> Option<Vec<Die>> {
 }
 
 /// Parses a roll command, checking for identity and index flags. If none are found, returns None and all dice in the tray are rolled.
-pub fn parse_roll_command(roll_command: Option<&str>) -> (Option<Vec<String>>, Option<Vec<usize>>) {
+pub fn parse_roll_command(roll_command: Option<&str>) -> Targets {
     match roll_command {
         Some(cmd) => {
             let mut identity_flags: Option<Vec<String>> = None;
@@ -124,9 +164,9 @@ pub fn parse_roll_command(roll_command: Option<&str>) -> (Option<Vec<String>>, O
                     index_flags = parse_index_flag(&captured_index_flag);
                 }
             }
-            (identity_flags, index_flags)
+            Targets::new(identity_flags, index_flags)
         }
-        None => (None, None)
+        None => Targets::new(None, None)
     }
 }
 
@@ -171,7 +211,7 @@ fn parse_dice_notation(captures: &Captures) -> Option<(u32, u32)> {
 }
 
 /// Parses a drop command, checking for identity and index flags. Returns the parsed flags.
-pub fn parse_drop_command(drop_command: Option<&str>) -> (Option<Vec<String>>, Option<Vec<usize>>) {
+pub fn parse_drop_command(drop_command: Option<&str>) -> Targets {
     match drop_command {
         Some(cmd) => {
             let mut identity_flags: Option<Vec<String>> = None;
@@ -185,8 +225,8 @@ pub fn parse_drop_command(drop_command: Option<&str>) -> (Option<Vec<String>>, O
                     index_flags = parse_index_flag(&captured_index_flag);
                 }
             }
-            (identity_flags, index_flags)
+            Targets::new(identity_flags, index_flags)
         }
-        None => (None, None)
+        None => Targets::new(None, None)
     }
 }

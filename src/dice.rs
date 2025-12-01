@@ -5,7 +5,7 @@ use std::cmp::Ordering;
 use crate::settings::{DiceTraySettings, DICE_TRAY_SETTINGS};
 
 /// Used to request specific result types from a Die roll.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum DieResultType{
     Face,
     Best,
@@ -123,6 +123,13 @@ impl Die {
 
     /// Sets the result type of the die to the provided DieResultType and updates the current result accordingly.
     pub fn set_result_type(&mut self, result_type: DieResultType) {
+        
+        //Don't do anything if we don't have too.
+        if self.result_type == result_type {
+            println!("Result type is already {:?}, no change made.", result_type);
+            return;
+        }
+
         self.current_result_value = match result_type {
             DieResultType::Table => None,
             DieResultType::Best => Some(1),

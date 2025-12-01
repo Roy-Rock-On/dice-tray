@@ -144,6 +144,40 @@ impl Tray{
         }
     }
 
+    /// Sets the result type of the Die with the specified identity in the tray.
+    pub fn set_result_type_at(&mut self, index: usize, result_type: super::dice::DieResultType) -> Result<(), String> {
+        if index < self.dice.len() {
+            let die = &mut self.dice[index];
+            die.set_result_type(result_type);
+            Ok(())
+        } else {
+            Err("Index out of bounds".to_string())
+        }
+    }
+
+    /// Sets the result type of the Die with the specified identity in the tray.
+    pub fn set_result_type_by_id(&mut self, identity: &str, result_type: super::dice::DieResultType) -> Result<(), String> {
+        let mut hit : bool = false;
+        for die in self.dice.iter_mut() {
+                if identity == die.get_id() {
+                    die.set_result_type(result_type.clone());
+                    hit = true;
+                }
+            }
+        if hit {
+            Ok(())
+        } else {
+            Err("No dice with the specified identity found".to_string())
+        }
+    }
+
+    /// Sets the result type of the Die at the specified index in the tray.
+    pub fn set_all_result_type(&mut self, result_type: super::dice::DieResultType) {
+        for die in &mut self.dice {
+            die.set_result_type(result_type.clone());
+        }
+    }
+
     /// Clears all Dice from the tray.
     pub fn clear(&mut self) {
         self.dice.clear();
