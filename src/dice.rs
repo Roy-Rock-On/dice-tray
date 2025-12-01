@@ -35,6 +35,8 @@ pub struct Die{
 impl Die {
     /// Creates a new die, with an optional string identifier. 
     /// If no identity is provided will default to the dice notation number (e.g. 'd6', 'd100').
+    /// If a identity is provided, the dice will check the settings for a result table with that name.
+    /// This lets you setup dice that automatically lookup results in a table allowing for custom dice faces.
     /// The new dice is rolled on creation to give it a random self_current face. 
     pub fn new(identity: Option<String>, faces: u32) -> Self {
         let result_type = {
