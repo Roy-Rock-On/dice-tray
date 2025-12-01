@@ -1,14 +1,49 @@
 use super::dice::Die;
 
 pub struct Tray {
-    dice: Vec<Die>
+    dice: Vec<Die>,
+    tray_result_type: TrayResultType,
 }
+
+pub enum TrayResultType {
+    Sum,
+    Best,
+    Worst,
+}
+
+impl TrayResultType {
+    pub fn to_string(&self) -> String {
+        match self {
+            TrayResultType::Sum => "Tray sum".to_string(),
+            TrayResultType::Best => "High roll in tray".to_string(),
+            TrayResultType::Worst => "Worst roll in tray".to_string(),
+        }
+    }
+}
+
+pub enum TrayResult{
+    Number(u32),
+    String(String),
+    None
+}
+
+impl TrayResult {
+    pub fn to_string(&self) -> String {
+        match self {
+            TrayResult::Number(n) =>  n.to_string(),
+            TrayResult::String(s) => s.clone(),
+            TrayResult::None => "None".to_string(),
+        }
+    }
+}
+
 
 impl Tray{
     /// Creates a new, empty Tray.
     pub fn new() -> Self {
         Tray {
-            dice: Vec::new()
+            dice: Vec::new(),
+            tray_result_type: TrayResultType::Sum, // default result type
         }
     }
 
@@ -117,5 +152,32 @@ impl Tray{
     /// Returns a reference to the Dice in the tray.
     pub fn get_dice(&self) -> &Vec<Die> {
         &self.dice
+    }
+
+    pub fn get_tray_result_type(&self) -> &TrayResultType {
+        &self.tray_result_type
+    }
+
+    pub fn get_tray_result(&self) -> TrayResult {
+        match self.tray_result_type {
+            TrayResultType::Sum => {
+                let sum: u32 = self.dice.iter().map(|die| die.get_result_value().unwrap_or(0)).sum();
+                TrayResult::Number(sum)
+            },
+            TrayResultType::Best => {
+                let best = self.dice.iter().map(|die| die.get_result_value().unwrap_or(0)).max();
+                match best {
+                    Some(value) => TrayResult::Number(value),
+                    None => TrayResult::None,
+                }
+            },
+            TrayResultType::Worst => {
+                let worst = self.dice.iter().map(|die| die.get_result_value().unwrap_or(0)).min();
+                match worst {
+                    Some(value) => TrayResult::Number(value),
+                    None => TrayResult::None,
+                }
+            },
+        }
     }
 }

@@ -4,7 +4,6 @@ pub struct DiceResultTable{
     pub table: HashMap<u32, String>
 }
 
-
 pub fn implement_test_table() -> DiceResultTable{
     DiceResultTable{
         table: HashMap::from([

@@ -29,6 +29,7 @@ pub fn log_tray(tray: &Tray) {
     }).collect();
 
     print_stdout(dice_states.with_title()).unwrap();
+    println!("{} = {}", tray.get_tray_result_type().to_string(), tray.get_tray_result().to_string());
 }
 
 /// Converts a DieResult to a String for logging.

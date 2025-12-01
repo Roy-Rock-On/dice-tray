@@ -29,7 +29,7 @@ pub struct Die{
     identity: String,
     faces: u32,
     current_face: u32,
-    current_result_value: u32,
+    current_result_value: Option<u32>,
     result_type : DieResultType,
 }
 
@@ -57,7 +57,7 @@ impl Die {
             identity: identity.unwrap_or_else(|| "d".to_string() + &faces.to_string()),
             faces,
             current_face: 1,
-            current_result_value: 1,
+            current_result_value: Some(1),
             result_type
         };
 
@@ -74,7 +74,7 @@ impl Die {
     pub fn get_result(&self) -> DieResult {
         match &self.result_type {
             DieResultType::Face | DieResultType::Best | DieResultType::Worst | DieResultType::Sum => {
-                DieResult::Number(self.current_result_value)
+                DieResult::Number(self.current_result_value.unwrap_or(0))
             }
             DieResultType::Table => {
                 let result = DICE_TRAY_SETTINGS.dice_table_lookup(self.identity.as_str(), self.current_face);
@@ -111,6 +111,11 @@ impl Die {
         self.identity = identity;     
     }
 
+    /// Used to get the current result value of the die.
+    pub fn get_result_value(&self) -> Option<u32> {
+        self.current_result_value
+    }
+
     /// Returns the result type of the die.
     pub fn get_result_type(&self) -> &DieResultType {
         &self.result_type
@@ -119,11 +124,11 @@ impl Die {
     /// Sets the result type of the die to the provided DieResultType and updates the current result accordingly.
     pub fn set_result_type(&mut self, result_type: DieResultType) {
         self.current_result_value = match result_type {
-            DieResultType::Table => 0,
-            DieResultType::Best => 1,
-            DieResultType::Worst => self.faces,
-            DieResultType::Sum => 0,
-            DieResultType::Face => 0,
+            DieResultType::Table => None,
+            DieResultType::Best => Some(1),
+            DieResultType::Worst => Some(self.faces),
+            DieResultType::Sum => Some(0),
+            DieResultType::Face => Some(0),
         };
 
         self.result_type = result_type;
@@ -154,25 +159,25 @@ impl Die {
     fn update_result(&mut self) {
         match self.result_type {
             DieResultType::Face => {
-                self.current_result_value = self.current_face;
+                self.current_result_value = Some(self.current_face);
             }
             DieResultType::Best => {
-                let last_result = self.current_result_value;
+                let last_result = self.current_result_value.unwrap_or(1);
                 if self.current_face > last_result {
-                    self.current_result_value = self.current_face;
+                    self.current_result_value = Some(self.current_face);
                 }
             }
             DieResultType::Worst => {
-                let last_result = self.current_result_value;
+                let last_result = self.current_result_value.unwrap_or(self.faces);
                 if self.current_face < last_result {
-                    self.current_result_value = self.current_face;
+                    self.current_result_value = Some(self.current_face);
                 }
             }
             DieResultType::Sum => {
-                self.current_result_value += self.current_face;
+                self.current_result_value = Some(self.current_result_value.unwrap_or(0) + self.current_face);
             }
             DieResultType::Table => {
-                self.current_result_value = self.current_face;
+                self.current_result_value = None; // Table results are handled separately, a result value of 0 means table results won't impact
             }
         }
     }
