@@ -17,7 +17,7 @@ fn main() {
 
         let dice_tray_commands = parse_dice_tray_commands(&input);
         println!("count of commands parsed: {}", dice_tray_commands.len());
-        if (dice_tray_commands.is_empty()) {
+        if dice_tray_commands.is_empty() {
             println!("No valid commands found. Please try again.");
             continue;
         }

@@ -81,7 +81,7 @@ impl Tray{
     /// Rolls all Dice in the tray with the specified identity
     pub fn roll_by_id(&mut self, identity: &str) -> Result<(), String> {
         let mut hit : bool = false;
-        for (die) in self.dice.iter_mut() {
+        for die in self.dice.iter_mut() {
                 if identity == die.get_id() {
                     die.roll();
                     hit = true;

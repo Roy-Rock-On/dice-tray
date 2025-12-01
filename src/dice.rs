@@ -1,7 +1,6 @@
 use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};
 use std::cmp::Ordering;
-use std::result;
 
 /// Used to request specific result types from a Die roll.
 #[derive(Debug, Clone)]

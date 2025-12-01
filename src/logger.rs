@@ -1,4 +1,4 @@
-use cli_table::{format::Justify, print_stdout, Cell, Style, Table, WithTitle};
+use cli_table::{format::Justify, print_stdout, Table, WithTitle};
 use super::tray::Tray;
 use super::dice::{Die, DieResult, DieResultType};
 
