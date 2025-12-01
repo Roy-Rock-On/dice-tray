@@ -2,7 +2,7 @@ use crate::dice::Die;
 use regex::{Regex, Captures};
 use std::sync::LazyLock;
 
-static IDENTITY_FLAG_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?i)^\$(\S+(,\S+)*)?").unwrap());
+static IDENTITY_FLAG_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?i)^\$(\w+(,\w+)*)?").unwrap());
 static INDEX_FLAG_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?i)^@(\d+(,\d+)*)$").unwrap());
 static DICE_NOTATION_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?i)^(\d*)?[d](\d+)$").unwrap());
 
@@ -53,12 +53,12 @@ pub fn parse_dice_tray_commands(command: &str) -> Vec<ParsedDiceTrayCommand> {
 
             // Parse the new command flag
             current_command_type = match word {
-                "-a" | "--add" => DiceTrayCommandType::Add,
-                "-r" | "--roll" => DiceTrayCommandType::Roll,
-                "-d" | "--drop" => DiceTrayCommandType::Drop,
-                "-m" | "--mod" => DiceTrayCommandType::Mod,
-                "-h" | "--help" => DiceTrayCommandType::Help,
-                "-e" | "--exit" => DiceTrayCommandType::Exit,
+                "-a" | "-add" => DiceTrayCommandType::Add,
+                "-r" | "-roll" => DiceTrayCommandType::Roll,
+                "-d" | "-drop" => DiceTrayCommandType::Drop,
+                "-m" | "-mod" => DiceTrayCommandType::Mod,
+                "-h" | "-help" => DiceTrayCommandType::Help,
+                "-e" | "-exit" => DiceTrayCommandType::Exit,
                 _ => DiceTrayCommandType::Roll, // default for unknown flags
             };
         } else {

@@ -14,7 +14,7 @@ The CLI creates a dice tray that stores persistant dice structs, each with their
 
 
 # Commands
-- **-a | -add** => adds dice to the tray based on the following dice expressions. (e.g "-a d6 2d4" would add a six-sided dice and two four-sided dice to the tray.) Dice can be given identities by using a $ followed by the dice name (e.g -a $FIREBALL 8d6 would add eight six-sided dice to the tray with the identity FIREBALL.) The add flag is the default behaviour if no command flags are provided (e.g. typing "2d10" alone would add 2 ten sided dice to the tray.) 
+- **-a | -add** => adds dice to the tray based on the following dice expressions. (e.g "-a d6 2d4" would add a six-sided dice and two four-sided dice to the tray.) Dice can be given identities by using a $ followed by the dice name (e.g "-a $FIREBALL 8d6" would add eight six-sided dice to the tray with the identity FIREBALL.) The add flag is the default behaviour if no command flags are provided (e.g. typing "2d10" alone would add 2 ten sided dice to the tray.) 
 
 - **-r | -roll** => Rolls dice at the provided target. If no targets are provided, rolls all dice in the tray.
 
