@@ -1,4 +1,4 @@
-use crate::dice::Die;
+use dice_tray::dice::Die;
 use regex::{Regex, Captures};
 use std::sync::LazyLock;
 
@@ -69,7 +69,10 @@ pub fn parse_dice_tray_commands(command: &str) -> Vec<ParsedDiceTrayCommand> {
 
     while let Some(word) = words.next() {
         if word.starts_with('-') {
+            //Force the command flags to lowercase.
+            let check_word = word.to_lowercase();
             // If we have accumulated a command, save it
+
             if !current_command.is_empty() {
                 commands.push(ParsedDiceTrayCommand {
                     command_type: current_command_type,
@@ -85,12 +88,11 @@ pub fn parse_dice_tray_commands(command: &str) -> Vec<ParsedDiceTrayCommand> {
             }
 
             if !current_command.is_empty() {
-
                 current_command.clear();
             }
 
             // Parse the new command flag
-            current_command_type = match word {
+            current_command_type = match check_word.as_str() {
                 "-a" | "-add" => DiceTrayCommandType::Add,
                 "-r" | "-roll" => DiceTrayCommandType::Roll,
                 "-d" | "-drop" => DiceTrayCommandType::Drop,

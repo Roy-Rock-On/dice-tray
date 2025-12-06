@@ -4,7 +4,7 @@ use std::cmp::Ordering;
 use crate::settings::{DICE_TRAY_SETTINGS};
 
 /// Used to request specific result types from a Die roll.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Copy)]
 pub enum DieResultType{
     Face,
     Best,
@@ -59,10 +59,10 @@ impl Die {
             faces,
             current_face: 1,
             current_result_value: Some(1),
-            result_type
+            result_type: DieResultType::Face
         };
 
-        new_die.roll();
+        new_die.roll(result_type);
         new_die
     }
 
@@ -80,7 +80,7 @@ impl Die {
             DieResultType::Table => {
                 let result = DICE_TRAY_SETTINGS.dice_table_lookup(self.identity.as_str(), self.current_face);
                 match result {
-                    Ok(result_string) => DieResult::String(result_string),
+                    Ok(result_str) => DieResult::String(result_str.to_string()),
                     Err(_) => DieResult::String("No result found.".to_string()),
                 }
             }
@@ -88,7 +88,8 @@ impl Die {
     }
  
     /// Rolls the dice to give it a random number between 1 and self.faces (inclusive).
-    pub fn roll(&mut self) {
+    pub fn roll(&mut self, result_type: DieResultType) {
+        self.set_result_type(result_type);
         self.current_face = self.rng.random_range(1..=self.faces);
         self.update_result();
     }
@@ -122,27 +123,6 @@ impl Die {
         &self.result_type
     }
 
-    /// Sets the result type of the die to the provided DieResultType and updates the current result accordingly.
-    pub fn set_result_type(&mut self, result_type: DieResultType) {
-        
-        //Don't do anything if we don't have too.
-        if self.result_type == result_type {
-            println!("Result type is already {:?}, no change made.", result_type);
-            return;
-        }
-
-        self.current_result_value = match result_type {
-            DieResultType::Table => None,
-            DieResultType::Best => Some(1),
-            DieResultType::Worst => Some(self.faces),
-            DieResultType::Sum => Some(0),
-            DieResultType::Face => Some(0),
-        };
-
-        self.result_type = result_type;
-        self.update_result();
-    }
-
     /// Returns true if the current face is the minimum value (1).
     pub fn is_min(&self) -> bool {
         self.current_face == 1
@@ -162,6 +142,25 @@ impl Die {
         } else {
             value
         }
+    }
+
+    /// Sets the result type of the die to the provided DieResultType and updates the current result accordingly.
+    fn set_result_type(&mut self, result_type: DieResultType) {
+        //Don't do anything if we don't have too.
+        if self.result_type == result_type {
+            return;
+        }
+
+        self.current_result_value = match result_type {
+            DieResultType::Table => None,
+            DieResultType::Best => Some(1),
+            DieResultType::Worst => Some(self.faces),
+            DieResultType::Sum => Some(0),
+            DieResultType::Face => Some(0),
+        };
+
+        self.result_type = result_type;
+        self.update_result();
     }
 
     fn update_result(&mut self) {
@@ -244,7 +243,7 @@ mod tests {
         assert_eq!(die.get_identity(), "TestDie");
         assert!(die.get_current_face() >= 1 && die.get_current_face() <= faces);
         let first_roll = die.get_current_face();
-        die.roll();
+        die.roll(DieResultType::Face);
         println!("First roll: {}, Second roll: {}", first_roll, die.get_current_face());
     }
 

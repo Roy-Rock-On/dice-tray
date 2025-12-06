@@ -6,17 +6,20 @@ The CLI creates a dice tray that stores persistant dice structs, each with their
 # Features
 - **Table Display** => Your dice tray displays in a table that shows all your dice and relevent information about them. Thank to the fantastic crate [cli_table](https://docs.rs/cli-table/latest/cli_table/index.html).
 
-- **Dice Identity** => using the $ in a command will allow you to refer to dice by identities. Allowing you to apply behaviour to all dice that share an identity. Syntax for dice identities sould look like this "$DiceID". Commands are case insensative, but dice identities are case sensative and can only contain alphanumeric characters. Dice IDs can also be chained using commas (e.g "$DiceName1,DiceName2,DiceName3").
+- **Dice Identity** => using the $ in a command will allow you to refer to dice by identities. Allowing you to apply behaviour to all dice that share an identity. Syntax for dice identities sould look like this "$DiceID". Commands are case insensitive, but dice identities are case sensitive and can only contain alphanumeric characters. Dice IDs can also be chained using commas (e.g "$DiceName1,DiceName2,DiceName3").
 
 - **Dice Index** => using the @ in a command will allow you to refer to dice by a specific index. Allowing you to apply behaviour seclectively in your tray. For example "@2" would target the dice at index of 2 in the tray. Like identiy, index can be chained using commas (e.g "@1,3,5" would target dice at indexs one three and five.) The dice tray indexes from 0.
-
-- **Combined Targeting** => Using both dice identity(s) and index(s) in a command will target dice that are both at one of the listed indexs and have one of the listed identities.
-
 
 # Commands
 - **-a | -add** => adds dice to the tray based on the following dice expressions. (e.g "-a d6 2d4" would add a six-sided dice and two four-sided dice to the tray.) Dice can be given identities by using a $ followed by the dice name (e.g "-a $FIREBALL 8d6" would add eight six-sided dice to the tray with the identity FIREBALL.) The add flag is the default behaviour if no command flags are provided (e.g. typing "2d10" alone would add 2 ten sided dice to the tray.) 
 
 - **-r | -roll** => Rolls dice at the provided target. If no targets are provided, rolls all dice in the tray.
+
+- **-rb | -rerollbest** => Re-rolls the dice at the provided target and updates the result if it is higher than the current result. If no targets are provided, re-rolls all dice in the tray.
+
+- **-rw | -rerollworst** => Re-rolls the dice at the provided target and updates the result if it is lower than the current result. If no targets are provided, re-rolls all dice in the tray.
+
+- **-e | -explode** => Re-rolls the dice at the provided target and adds the new result to the previous result. If no targets are provided, explodes all dice in the tray.
 
 - **-d | -drop** => Drops the dice at the provided target, removing them from the tray. If no targets are provides, clears the tray of all dice.
 

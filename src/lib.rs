@@ -9,10 +9,10 @@ pub mod dice;
 pub mod tray;
 
 ///Library for logging the state of a tray/dice to the console.
-pub mod logger;
+//pub mod logger;
 
 ///Library for parsing commands passed from the CLI.
-pub mod cli_parser;
+//pub mod cli_parser;
 
 /// Library for creating roll tables and looking up dice results on said tables. 
 pub mod tables;

@@ -1,16 +1,30 @@
-use std::io;
-use dice_tray::tray::{Tray};
-use dice_tray::logger::log_tray;
-use dice_tray::cli_parser::{parse_dice_tray_commands, parse_add_command, parse_roll_command, parse_drop_command};
-use dice_tray::cli_parser::{DiceTrayCommandType, Targets};
-use dice_tray::dice::DieResultType;
+mod cli_parser;
+mod logger;
 
+use std::io;
+use dice_tray::settings::DICE_TRAY_SETTINGS;
+use logger::log_tray;
+use cli_parser::{parse_dice_tray_commands, parse_add_command, parse_roll_command, parse_drop_command, DiceTrayCommandType, Targets};
+
+use dice_tray::dice::DieResultType;
+use dice_tray::tray::Tray;
 
 fn main() {
     let mut active_tray = Tray::new();
     println!("Welcome to Dice Tray!");
 
+    DICE_TRAY_SETTINGS.load();
+
     log_tray(&active_tray);
+    dice_loop(active_tray);
+
+    match DICE_TRAY_SETTINGS.save() {
+        Ok(_) => println!("Tray Settings saved. Goodbye."),
+        Err(error_string) => println!("Failed to save tray settings. Error: {}" , error_string)
+    }
+}
+
+fn dice_loop(mut active_tray :Tray){
     loop {
         println!("Enter commands (type \"help\" for options):");
 
@@ -18,7 +32,6 @@ fn main() {
         io::stdin().read_line(&mut input).expect("Failed to read line");
 
         let dice_tray_commands = parse_dice_tray_commands(&input);
-        println!("count of commands parsed: {}", dice_tray_commands.len());
         if dice_tray_commands.is_empty() {
             println!("No valid commands found. Please try again.");
             continue;
@@ -43,38 +56,25 @@ fn main() {
                         let targets: Targets = parse_roll_command(Some(&command_string));
                         if let Some(identity_flags) = targets.get_identity_flags() {
                             identity_flags.iter().for_each(|id| {
-                                println!("Rolling dice with identity: {}", id);
-                                match active_tray.set_result_type_by_id(&id, DieResultType::Face) {
-                                    Ok(()) => {
-                                        match active_tray.roll_by_id(&id) {
-                                            Ok(()) => println!("Rolled all dice with identity: {}", id),
-                                            Err(e) => println!("Error rolling dice with identity {}: {}", id, e),
-                                        }
-                                    },
-                                    Err(e) => println!("Error setting result type for dice with identity {}: {}", id, e),
+                                match active_tray.roll_by_id(&id, DieResultType::Face) {
+                                    Ok(()) => println!("Rolled all dice with identity {}", id),
+                                    Err(e) => println!("Error rolling dice with identity {}: {}", id, e),
                                 }
                             });
                         }
 
                         if let Some(index_flags) = targets.get_index_flags() {
                             index_flags.iter().for_each(|index| {
-                                println!("Rolling die at index: {}", index);
-                                match active_tray.set_result_type_at(*index, DieResultType::Face) {
-                                    Ok(()) => {
-                                        match active_tray.roll_at(*index) {
-                                            Ok(()) => println!("Rolled die at index: {}", index),
-                                            Err(e) => println!("Error rolling die at index {}: {}", index, e),
-                                        }
-                                    },
-                                    Err(e) => println!("Error setting result type for die at index {}: {}", index, e),
+                                match active_tray.roll_at(*index, DieResultType::Face) {
+                                    Ok(()) => println!("Rolled die at index {}", index),
+                                    Err(e) => println!("Error rolling die at index {}: {}", index, e),
                                 }
                             });
                         }
 
                         if targets.is_empty(){
                             println!("Rolling all dice in the tray.");
-                            active_tray.set_all_result_type(DieResultType::Face);
-                            active_tray.roll_all();
+                            active_tray.roll_all(DieResultType::Face);
                         }
                     }  
                 },
@@ -83,38 +83,25 @@ fn main() {
                         let targets: Targets = parse_roll_command(Some(&command_string));
                         if let Some(identity_flags) = targets.get_identity_flags() {
                             identity_flags.iter().for_each(|id| {
-                                println!("Re-rolling dice with identity for best result: {}", id);
-                                match active_tray.set_result_type_by_id(&id, DieResultType::Best) {
-                                    Ok(()) => {
-                                        match active_tray.roll_by_id(&id) {
-                                            Ok(()) => println!("Re-rolled all dice with identity for best result: {}", id),
-                                            Err(e) => println!("Error rolling dice with identity {}: {}", id, e),
-                                        }
-                                    },
-                                    Err(e) => println!("Error setting result type for dice with identity {}: {}", id, e),
+                                match active_tray.roll_by_id(&id, DieResultType::Best) {
+                                    Ok(()) => println!("Re-rolled all dice with identity {}, keeping the best result.", id),
+                                    Err(e) => println!("Error rolling dice with identity {}: {}", id, e),
                                 }
                             });
                         }
 
                         if let Some(index_flags) = targets.get_index_flags() {
                             index_flags.iter().for_each(|index| {
-                                println!("Re-rolling die at index for best result: {}", index);
-                                match active_tray.set_result_type_at(*index, DieResultType::Best) {
-                                    Ok(()) => {
-                                        match active_tray.roll_at(*index) {
-                                            Ok(()) => println!("Re-rolled die at index for best result: {}", index),
-                                            Err(e) => println!("Error rolling die at index {}: {}", index, e),
-                                        }
-                                    },
-                                    Err(e) => println!("Error setting result type for die at index {}: {}", index, e),
+                                match active_tray.roll_at(*index, DieResultType::Best) {
+                                    Ok(()) => println!("Re-rolled die at index {}, keeping the best result.", index),
+                                    Err(e) => println!("Error rolling die at index {}: {}", index, e),
                                 }
                             });
                         }
 
                         if targets.is_empty(){
-                            println!("Re-rolling all dice in the tray for best results.");
-                            active_tray.set_all_result_type(DieResultType::Best);
-                            active_tray.roll_all();
+                            println!("Re-rolling all dice in the tray, keeping the best results.");
+                            active_tray.roll_all(DieResultType::Best);
                         }
                     }
                 },
@@ -123,38 +110,25 @@ fn main() {
                         let targets: Targets = parse_roll_command(Some(&command_string));
                         if let Some(identity_flags) = targets.get_identity_flags() {
                             identity_flags.iter().for_each(|id| {
-                                println!("Re-rolling dice with identity for worst result: {}", id);
-                                match active_tray.set_result_type_by_id(&id, DieResultType::Worst) {
-                                    Ok(()) => {
-                                        match active_tray.roll_by_id(&id) {
-                                            Ok(()) => println!("Re-rolled all dice with identity for worst result: {}", id),
-                                            Err(e) => println!("Error rolling dice with identity {}: {}", id, e),
-                                        }
-                                    },
-                                    Err(e) => println!("Error setting result type for dice with identity {}: {}", id, e),
+                                match active_tray.roll_by_id(&id, DieResultType::Worst) {
+                                    Ok(()) => println!("Re-rolled all dice with identity {}, keeping the worst result.", id),
+                                    Err(e) => println!("Error rolling dice with identity {}: {}", id, e),
                                 }
                             });
                         }
 
                         if let Some(index_flags) = targets.get_index_flags() {
                             index_flags.iter().for_each(|index| {
-                                println!("Re-rolling die at index for worst result: {}", index);
-                                match active_tray.set_result_type_at(*index, DieResultType::Worst) {
-                                    Ok(()) => {
-                                        match active_tray.roll_at(*index) {
-                                            Ok(()) => println!("Re-rolled die at index for worst result: {}", index),
-                                            Err(e) => println!("Error rolling die at index {}: {}", index, e),
-                                        }
-                                    },
-                                    Err(e) => println!("Error setting result type for die at index {}: {}", index, e),
+                                match active_tray.roll_at(*index, DieResultType::Worst) {
+                                    Ok(()) => println!("Re-rolled die at index {}, keeping the worst result.", index),
+                                    Err(e) => println!("Error rolling die at index {}: {}", index, e),
                                 }
                             });
                         }
 
                         if targets.is_empty(){
-                            println!("Re-rolling all dice in the tray for worst results.");
-                            active_tray.set_all_result_type(DieResultType::Worst);
-                            active_tray.roll_all();
+                            println!("Re-rolling all dice in the tray, keeping the worst results.");
+                            active_tray.roll_all(DieResultType::Worst);
                         }
                     }
                 },
@@ -163,38 +137,25 @@ fn main() {
                         let targets: Targets = parse_roll_command(Some(&command_string));
                         if let Some(identity_flags) = targets.get_identity_flags() {
                             identity_flags.iter().for_each(|id| {
-                                println!("Exploding dice with identity: {}", id);
-                                match active_tray.set_result_type_by_id(&id, DieResultType::Sum) {
-                                    Ok(()) => {
-                                        match active_tray.roll_by_id(&id) {
-                                            Ok(()) => println!("Exploded all dice with identity: {}", id),
-                                            Err(e) => println!("Error rolling dice with identity {}: {}", id, e),
-                                        }
-                                    },
-                                    Err(e) => println!("Error setting result type for dice with identity {}: {}", id, e),
+                                match active_tray.roll_by_id(&id, DieResultType::Sum) {
+                                    Ok(()) => println!("Exploded all dice with identity {}.", id),
+                                    Err(e) => println!("Error rolling dice with identity {}: {}", id, e),
                                 }
                             });
                         }
 
                         if let Some(index_flags) = targets.get_index_flags() {
                             index_flags.iter().for_each(|index| {
-                                println!("Exploding die at index: {}", index);
-                                match active_tray.set_result_type_at(*index, DieResultType::Sum) {
-                                    Ok(()) => {
-                                        match active_tray.roll_at(*index) {
-                                            Ok(()) => println!("Exploded die at index: {}", index),
-                                            Err(e) => println!("Error rolling die at index {}: {}", index, e),
-                                        }
-                                    },
-                                    Err(e) => println!("Error setting result type for die at index {}: {}", index, e),
+                                match active_tray.roll_at(*index, DieResultType::Sum) {
+                                    Ok(()) => println!("Exploded die at index {}.", index),
+                                    Err(e) => println!("Error rolling die at index {}: {}", index, e),
                                 }
                             });
                         }
 
                         if targets.is_empty(){
                             println!("Exploding all dice in the tray.");
-                            active_tray.set_all_result_type(DieResultType::Sum);
-                            active_tray.roll_all();
+                            active_tray.roll_all(DieResultType::Sum);
                         }
                     }
                 },
@@ -229,6 +190,7 @@ fn main() {
                     println!("-r(Roll): Roll dice in the tray by targeting them using $DieID or @<dieIndex>. If no target is provided, all dice will be rolled.");
                     println!("-rb(Re-roll Best): Re-rolls the targeted dice and keeps the best result.");
                     println!("-rw(Re-roll Worst): Re-rolls the targeted dice and keeps the worst result.");
+                    println!("-e(Explode): Re-rolls the targeted dice and adds the new result to the previous result.");
                     println!("-d(Drop): Remove dice from the tray by targeting them using $DieID or @<dieIndex>. If no target is provided, all dice will be removed.");
                     println!("-h(Help): Show this help message.");
                     println!("-e(Exit): Exit the application.");

@@ -1,4 +1,4 @@
-use super::dice::Die;
+use super::dice::{Die, DieResultType};
 
 pub struct Tray {
     dice: Vec<Die>,
@@ -96,17 +96,17 @@ impl Tray{
     }
 
     /// Rolls all Dice in the tray.
-    pub fn roll_all(&mut self) {
+    pub fn roll_all(&mut self, result_type : DieResultType) {
         for die in &mut self.dice {
-            die.roll();
+            die.roll(result_type);
         }
     }
 
     /// Rolls the Die at the specified index in the tray.
-    pub fn roll_at(&mut self, index: usize) -> Result<(), String> {
+    pub fn roll_at(&mut self, index: usize, result_type : DieResultType) -> Result<(), String> {
         if index < self.dice.len() {
             let die = &mut self.dice[index];
-            die.roll();
+            die.roll(result_type);
             Ok(())
         } else {
             Err("Index out of bounds".to_string())
@@ -114,11 +114,11 @@ impl Tray{
     }
 
     /// Rolls all Dice in the tray with the specified identity
-    pub fn roll_by_id(&mut self, identity: &str) -> Result<(), String> {
+    pub fn roll_by_id(&mut self, identity: &str, result_type : DieResultType) -> Result<(), String> {
         let mut hit : bool = false;
         for die in self.dice.iter_mut() {
                 if identity == die.get_id() {
-                    die.roll();
+                    die.roll(result_type);
                     hit = true;
                 }
             }
@@ -129,11 +129,11 @@ impl Tray{
         }
     }
 
-    pub fn roll_at_identities(&mut self, identity: &str, indices: &Vec<usize>) -> Result<(), String> {
+    pub fn roll_at_identities(&mut self, identity: &str, indices: &Vec<usize>, result_type : DieResultType) -> Result<(), String> {
         let mut hit : bool = false;
         for (i, die) in self.dice.iter_mut().enumerate() {
                 if identity == die.get_id() && indices.contains(&i) {
-                    die.roll();
+                    die.roll(result_type);
                     hit = true;
                 }
             }
@@ -141,40 +141,6 @@ impl Tray{
             Ok(())
         } else {
             Err("No dice with the specified identity found at the specified indices".to_string())
-        }
-    }
-
-    /// Sets the result type of the Die with the specified identity in the tray.
-    pub fn set_result_type_at(&mut self, index: usize, result_type: super::dice::DieResultType) -> Result<(), String> {
-        if index < self.dice.len() {
-            let die = &mut self.dice[index];
-            die.set_result_type(result_type);
-            Ok(())
-        } else {
-            Err("Index out of bounds".to_string())
-        }
-    }
-
-    /// Sets the result type of the Die with the specified identity in the tray.
-    pub fn set_result_type_by_id(&mut self, identity: &str, result_type: super::dice::DieResultType) -> Result<(), String> {
-        let mut hit : bool = false;
-        for die in self.dice.iter_mut() {
-                if identity == die.get_id() {
-                    die.set_result_type(result_type.clone());
-                    hit = true;
-                }
-            }
-        if hit {
-            Ok(())
-        } else {
-            Err("No dice with the specified identity found".to_string())
-        }
-    }
-
-    /// Sets the result type of the Die at the specified index in the tray.
-    pub fn set_all_result_type(&mut self, result_type: super::dice::DieResultType) {
-        for die in &mut self.dice {
-            die.set_result_type(result_type.clone());
         }
     }
 
