@@ -40,6 +40,11 @@ impl DiceResultTable{
             None => Err(format!["No result found at {} in table {} ", face, self.name])
         }
     } 
+
+    ///Returns the name of the table. 
+    pub fn get_name(&self) -> &str {
+        &self.name
+    }
 }
 
 pub fn implement_test_table() -> DiceResultTable{

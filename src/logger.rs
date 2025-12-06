@@ -48,7 +48,7 @@ fn die_result_type_to_string(die: &Die) -> String {
         DieResultType::Best => "Best".to_string(),
         DieResultType::Worst => "Worst".to_string(),
         DieResultType::Sum => "Sum".to_string(),
-        DieResultType::Table => "Table".to_string(),
+        DieResultType::Table => "Custom".to_string(),
     }
 }
 

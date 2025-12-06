@@ -1,4 +1,5 @@
 use dice_tray::dice::Die;
+use dice_tray::tables::DiceResultTable;
 use regex::{Regex, Captures};
 use std::sync::LazyLock;
 
@@ -13,6 +14,7 @@ pub enum DiceTrayCommandType{
     ReRollBest,
     ReRollWorst,
     Explode,
+    Custom,
     Drop,    
     Help,
     Exit
@@ -99,6 +101,7 @@ pub fn parse_dice_tray_commands(command: &str) -> Vec<ParsedDiceTrayCommand> {
                 "-rb" | "-rerollbest" => DiceTrayCommandType::ReRollBest,
                 "-rw" | "-rerollworst" => DiceTrayCommandType::ReRollWorst,
                 "-e" | "-explode" => DiceTrayCommandType::Explode,
+                "-c" | "-custom" => DiceTrayCommandType::Custom,
                 "-h" | "-help" => DiceTrayCommandType::Help,
                 "-x" | "-exit" => DiceTrayCommandType::Exit,
                 _ => DiceTrayCommandType::Roll, // default for unknown flags
@@ -169,6 +172,35 @@ pub fn parse_roll_command(roll_command: Option<&str>) -> Targets {
             Targets::new(identity_flags, index_flags)
         }
         None => Targets::new(None, None)
+    }
+}
+
+/// Parses a command to create a custom dice table. Returns the dice table as a result.
+pub fn parse_custom_command(custom_command: &str) -> Result<DiceResultTable, String> {
+    let mut identity_flags : Option<Vec<String>> = None;
+    let mut captured_strings = Vec::new();
+    let mut split_command = custom_command.split_whitespace();
+    while let Some(command) = split_command.next() {
+        if let Some(captured_id_flag) = IDENTITY_FLAG_REGEX.captures(command){
+            identity_flags = parse_identity_flag(&captured_id_flag);
+        }
+        else if !command.is_empty(){
+            captured_strings.push(command.to_string());
+        }
+    }
+
+    match identity_flags{
+        Some(flags) =>{
+            if flags.is_empty() {
+                return Err(format!["No identity provided. Cannot create custom dice without an identity."])
+            }
+            let custom_id = &flags[0];
+            if captured_strings.is_empty() {
+                return Err(format!["No identity provided. Cannot create a custom dice without at least one option for their face."])
+            }
+            Ok(DiceResultTable::new(custom_id.to_string(), captured_strings))
+        },
+        None => return Err(format!["No identity provided. Cannot create custom dice without an identity."])
     }
 }
 

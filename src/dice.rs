@@ -48,7 +48,8 @@ impl Die {
     pub fn new(identity: Option<String>, faces: u32) -> Self {
         let result_type = {
             if let Some(id) = identity.as_ref() {
-                if DICE_TRAY_SETTINGS.has_table(&id) {
+                let settings = DICE_TRAY_SETTINGS.lock().unwrap();
+                if settings.has_table(&id) {
                     println!("Found a table for {}", id);
                     DieResultType::Table
                 }
@@ -86,7 +87,8 @@ impl Die {
                 DieResult::Number(self.current_result_value.unwrap_or(0))
             }
             DieResultType::Table => {
-                let result = DICE_TRAY_SETTINGS.dice_table_lookup(self.identity.as_str(), self.current_face);
+                let settings = DICE_TRAY_SETTINGS.lock().unwrap();
+                let result = settings.dice_table_lookup(self.identity.as_str(), self.current_face);
                 match result {
                     Ok(result_str) => DieResult::String(result_str.to_string()),
                     Err(_) => DieResult::String("No result found.".to_string()),

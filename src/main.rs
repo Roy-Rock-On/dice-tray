@@ -2,23 +2,27 @@ mod cli_parser;
 mod logger;
 
 use std::io;
-use dice_tray::settings::DICE_TRAY_SETTINGS;
+use dice_tray::settings::{DICE_TRAY_SETTINGS, DiceTraySettings};
+use dice_tray::tables::DiceResultTable;
 use logger::log_tray;
 use cli_parser::{parse_dice_tray_commands, parse_add_command, parse_roll_command, parse_drop_command, DiceTrayCommandType, Targets};
 
 use dice_tray::dice::DieResultType;
 use dice_tray::tray::Tray;
 
+use crate::cli_parser::parse_custom_command;
+
 fn main() {
     let active_tray = Tray::new();
     println!("Welcome to Dice Tray!");
 
-    DICE_TRAY_SETTINGS.load();
+    let settings = DICE_TRAY_SETTINGS.lock().unwrap();
+    settings.load();
 
     log_tray(&active_tray);
     dice_loop(active_tray);
 
-    match DICE_TRAY_SETTINGS.save() {
+    match settings.save() {
         Ok(_) => println!("Tray Settings saved. Goodbye."),
         Err(error_string) => println!("Failed to save tray settings. Error: {}" , error_string)
     }
@@ -184,6 +188,17 @@ fn dice_loop(mut active_tray :Tray){
                         }
                     }
                 },
+                DiceTrayCommandType::Custom => {
+                    if let Some(command_string) = &command.command_string {
+                        match parse_custom_command(command_string){
+                            Ok(result_table) => {
+                                let mut settings = DICE_TRAY_SETTINGS.lock().unwrap();
+                                settings.add_result_table(result_table);
+                            }
+                            Err(error) => {println!("Error creating custom dice table: {}", error)}
+                        }
+                    }
+                },
                 DiceTrayCommandType::Help => {
                     println!("Available commands:");
                     println!("-a(Add): Add dice to the tray using standard dice notation (e.g., '2d6' for two six-sided dice).");
@@ -192,6 +207,7 @@ fn dice_loop(mut active_tray :Tray){
                     println!("-rw(Re-roll Worst): Re-rolls the targeted dice and keeps the worst result.");
                     println!("-e(Explode): Re-rolls the targeted dice and adds the new result to the previous result.");
                     println!("-d(Drop): Remove dice from the tray by targeting them using $DieID or @<dieIndex>. If no target is provided, all dice will be removed.");
+                    println!("-c(Custom): Creates a new dice lookup table that can be used for custom dice types. Requires an identity flag (e.g \"$DICENAME\") and a set of strings seperated with whitespace.");
                     println!("-h(Help): Show this help message.");
                     println!("-e(Exit): Exit the application.");
                     println!("You can combine multiple commands in one line, separated by spaces.");

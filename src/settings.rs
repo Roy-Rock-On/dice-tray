@@ -4,11 +4,12 @@ use std::path::PathBuf;
 use std::fs;
 use serde::{Deserialize, Serialize};
 use super::tables::{DiceResultTable, implement_test_table};
+use std::sync::Mutex;
 
-pub static DICE_TRAY_SETTINGS : LazyLock<DiceTraySettings> = LazyLock::new(|| {
+pub static DICE_TRAY_SETTINGS: LazyLock<Mutex<DiceTraySettings>> = LazyLock::new(|| {
     let mut settings = DiceTraySettings::new();
-    settings.add_result_table("test".to_string(), implement_test_table());
-    settings
+    settings.add_result_table(implement_test_table());
+    Mutex::new(settings)
 });
 
 #[derive(Serialize, Deserialize)]
@@ -25,10 +26,12 @@ impl DiceTraySettings {
     }
 
     /// Adds a new result table to the settings.
-    pub fn add_result_table(&mut self, name: String, table: DiceResultTable) {
-        self.result_tables.insert(name, table);
+    pub fn add_result_table(&mut self, table: DiceResultTable) {
+        let key = table.get_name().to_string();
+        self.result_tables.insert(key, table);
     }
 
+    /// Looks up a dice result from a table. 
     pub fn dice_table_lookup(&self, table_name: &str, dice_result: u32) -> Result<&str, String> {
         match self.result_tables.get(table_name) {
             Some(table) => {
