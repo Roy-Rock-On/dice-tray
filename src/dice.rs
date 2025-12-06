@@ -1,16 +1,23 @@
 use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};
 use std::cmp::Ordering;
+use std::mem::discriminant;
 use crate::settings::{DICE_TRAY_SETTINGS};
 
 /// Used to request specific result types from a Die roll.
-#[derive(Debug, Clone, PartialEq, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub enum DieResultType{
     Face,
     Best,
     Worst,
     Sum,
     Table
+}
+
+impl PartialEq for DieResultType{
+    fn eq(&self, other: &Self) -> bool {
+        discriminant(self) == discriminant(other)
+    }
 }
 
 /// Used to return specific result types from a Die roll and wraps the returned value.
@@ -42,6 +49,7 @@ impl Die {
         let result_type = {
             if let Some(id) = identity.as_ref() {
                 if DICE_TRAY_SETTINGS.has_table(&id) {
+                    println!("Found a table for {}", id);
                     DieResultType::Table
                 }
                 else{
@@ -59,7 +67,7 @@ impl Die {
             faces,
             current_face: 1,
             current_result_value: Some(1),
-            result_type: DieResultType::Face
+            result_type
         };
 
         new_die.roll(result_type);
@@ -145,13 +153,15 @@ impl Die {
     }
 
     /// Sets the result type of the die to the provided DieResultType and updates the current result accordingly.
-    fn set_result_type(&mut self, result_type: DieResultType) {
+    fn set_result_type(&mut self, new_result_type: DieResultType) {
+        
         //Don't do anything if we don't have too.
-        if self.result_type == result_type {
+        if self.result_type == new_result_type || self.result_type == DieResultType::Table {
+            println!("Die {} is already set, or the die is tied to a lookup table.", self.identity);
             return;
         }
 
-        self.current_result_value = match result_type {
+        self.current_result_value = match new_result_type {
             DieResultType::Table => None,
             DieResultType::Best => Some(1),
             DieResultType::Worst => Some(self.faces),
@@ -159,7 +169,7 @@ impl Die {
             DieResultType::Face => Some(0),
         };
 
-        self.result_type = result_type;
+        self.result_type = new_result_type;
         self.update_result();
     }
 

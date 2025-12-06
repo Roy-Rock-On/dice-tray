@@ -10,7 +10,7 @@ use dice_tray::dice::DieResultType;
 use dice_tray::tray::Tray;
 
 fn main() {
-    let mut active_tray = Tray::new();
+    let active_tray = Tray::new();
     println!("Welcome to Dice Tray!");
 
     DICE_TRAY_SETTINGS.load();
