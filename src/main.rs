@@ -207,7 +207,7 @@ fn dice_loop(mut active_tray :Tray){
                     println!("-rw(Re-roll Worst): Re-rolls the targeted dice and keeps the worst result.");
                     println!("-e(Explode): Re-rolls the targeted dice and adds the new result to the previous result.");
                     println!("-d(Drop): Remove dice from the tray by targeting them using $DieID or @<dieIndex>. If no target is provided, all dice will be removed.");
-                    println!("-c(Custom): Creates a new dice lookup table that can be used for custom dice types. Requires an identity flag (e.g \"$DICENAME\") and a set of strings seperated with whitespace.");
+                    //println!("-c(Custom): Creates a new dice lookup table that can be used for custom dice types. Requires an identity flag (e.g \"$DICENAME\") and a set of strings seperated with whitespace.");
                     println!("-h(Help): Show this help message.");
                     println!("-e(Exit): Exit the application.");
                     println!("You can combine multiple commands in one line, separated by spaces.");

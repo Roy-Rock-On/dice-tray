@@ -101,7 +101,7 @@ pub fn parse_dice_tray_commands(command: &str) -> Vec<ParsedDiceTrayCommand> {
                 "-rb" | "-rerollbest" => DiceTrayCommandType::ReRollBest,
                 "-rw" | "-rerollworst" => DiceTrayCommandType::ReRollWorst,
                 "-e" | "-explode" => DiceTrayCommandType::Explode,
-                "-c" | "-custom" => DiceTrayCommandType::Custom,
+                //"-c" | "-custom" => DiceTrayCommandType::Custom,
                 "-h" | "-help" => DiceTrayCommandType::Help,
                 "-x" | "-exit" => DiceTrayCommandType::Exit,
                 _ => DiceTrayCommandType::Roll, // default for unknown flags
