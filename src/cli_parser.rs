@@ -3,9 +3,10 @@ use dice_tray::tables::DiceResultTable;
 use regex::{Regex, Captures};
 use std::sync::LazyLock;
 
-static IDENTITY_FLAG_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?i)^\$(\w+(,\w+)*)?").unwrap());
+static IDENTITY_FLAG_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^\$(\w+(,\w+)*)").unwrap());
 static INDEX_FLAG_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?i)^@(\d+(,\d+)*)$").unwrap());
 static DICE_NOTATION_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?i)^(\d*)?[d](\d+)$").unwrap());
+static CUSTOM_DICE_NOTATION: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"").unwrap());
 
 /// Enum representing the different types of commands that can be parsed from the CLI.
 pub enum DiceTrayCommandType{
