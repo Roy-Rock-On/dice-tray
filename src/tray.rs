@@ -21,24 +21,23 @@ impl TrayResultType {
     }
 }
 
-pub enum TrayResult{
+pub enum TrayResult {
     Number(u32),
     String(String),
-    None
+    None,
 }
 
 impl TrayResult {
     pub fn to_string(&self) -> String {
         match self {
-            TrayResult::Number(n) =>  n.to_string(),
+            TrayResult::Number(n) => n.to_string(),
             TrayResult::String(s) => s.clone(),
             TrayResult::None => "None".to_string(),
         }
     }
 }
 
-
-impl Tray{
+impl Tray {
     /// Creates a new, empty Tray.
     pub fn new() -> Self {
         Tray {
@@ -62,7 +61,7 @@ impl Tray{
     /// Removes a Die at the specified index from the tray.
     pub fn remove_at(&mut self, index: usize) -> Option<Die> {
         if index < self.dice.len() {
-            Some(self.dice.remove(index)) 
+            Some(self.dice.remove(index))
         } else {
             None
         }
@@ -83,7 +82,11 @@ impl Tray{
     }
 
     /// Sets the identity of the Die at the specified index in the tray.
-    pub fn set_identity_at(&mut self, index: usize, identity: String) -> Result<(String, String), String> {
+    pub fn set_identity_at(
+        &mut self,
+        index: usize,
+        identity: String,
+    ) -> Result<(String, String), String> {
         if index < self.dice.len() {
             let die = &mut self.dice[index];
             let old_id = die.get_id().to_string();
@@ -96,14 +99,14 @@ impl Tray{
     }
 
     /// Rolls all Dice in the tray.
-    pub fn roll_all(&mut self, result_type : DieResultType) {
+    pub fn roll_all(&mut self, result_type: DieResultType) {
         for die in &mut self.dice {
             die.roll(result_type);
         }
     }
 
     /// Rolls the Die at the specified index in the tray.
-    pub fn roll_at(&mut self, index: usize, result_type : DieResultType) -> Result<(), String> {
+    pub fn roll_at(&mut self, index: usize, result_type: DieResultType) -> Result<(), String> {
         if index < self.dice.len() {
             let die = &mut self.dice[index];
             die.roll(result_type);
@@ -114,14 +117,14 @@ impl Tray{
     }
 
     /// Rolls all Dice in the tray with the specified identity
-    pub fn roll_by_id(&mut self, identity: &str, result_type : DieResultType) -> Result<(), String> {
-        let mut hit : bool = false;
+    pub fn roll_by_id(&mut self, identity: &str, result_type: DieResultType) -> Result<(), String> {
+        let mut hit: bool = false;
         for die in self.dice.iter_mut() {
-                if identity == die.get_id() {
-                    die.roll(result_type);
-                    hit = true;
-                }
+            if identity == die.get_id() {
+                die.roll(result_type);
+                hit = true;
             }
+        }
         if hit {
             Ok(())
         } else {
@@ -129,14 +132,19 @@ impl Tray{
         }
     }
 
-    pub fn roll_at_identities(&mut self, identity: &str, indices: &Vec<usize>, result_type : DieResultType) -> Result<(), String> {
-        let mut hit : bool = false;
+    pub fn roll_at_identities(
+        &mut self,
+        identity: &str,
+        indices: &Vec<usize>,
+        result_type: DieResultType,
+    ) -> Result<(), String> {
+        let mut hit: bool = false;
         for (i, die) in self.dice.iter_mut().enumerate() {
-                if identity == die.get_id() && indices.contains(&i) {
-                    die.roll(result_type);
-                    hit = true;
-                }
+            if identity == die.get_id() && indices.contains(&i) {
+                die.roll(result_type);
+                hit = true;
             }
+        }
         if hit {
             Ok(())
         } else {
@@ -161,23 +169,35 @@ impl Tray{
     pub fn get_tray_result(&self) -> TrayResult {
         match self.tray_result_type {
             TrayResultType::Sum => {
-                let sum: u32 = self.dice.iter().map(|die| die.get_result_value().unwrap_or(0)).sum();
+                let sum: u32 = self
+                    .dice
+                    .iter()
+                    .map(|die| die.get_result_value().unwrap_or(0))
+                    .sum();
                 TrayResult::Number(sum)
-            },
+            }
             TrayResultType::Best => {
-                let best = self.dice.iter().map(|die| die.get_result_value().unwrap_or(0)).max();
+                let best = self
+                    .dice
+                    .iter()
+                    .map(|die| die.get_result_value().unwrap_or(0))
+                    .max();
                 match best {
                     Some(value) => TrayResult::Number(value),
                     None => TrayResult::None,
                 }
-            },
+            }
             TrayResultType::Worst => {
-                let worst = self.dice.iter().map(|die| die.get_result_value().unwrap_or(0)).min();
+                let worst = self
+                    .dice
+                    .iter()
+                    .map(|die| die.get_result_value().unwrap_or(0))
+                    .min();
                 match worst {
                     Some(value) => TrayResult::Number(value),
                     None => TrayResult::None,
                 }
-            },
+            }
         }
     }
 }

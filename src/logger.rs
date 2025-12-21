@@ -1,6 +1,6 @@
-use cli_table::{format::Justify, print_stdout, Table, WithTitle};
-use dice_tray::tray::Tray;
+use cli_table::{Table, WithTitle, format::Justify, print_stdout};
 use dice_tray::dice::{Die, DieResult, DieResultType};
+use dice_tray::tray::Tray;
 
 #[derive(Table)]
 struct DiceState {
@@ -13,23 +13,30 @@ struct DiceState {
     #[table(title = "Result Type", justify = "Justify::Center")]
     result_type_string: String,
     #[table(title = "Result", justify = "Justify::Center")]
-    result_string: String
+    result_string: String,
 }
 
 /// Logs the current state of the tray to the console. In table format. Using cli-table crate.
 pub fn log_tray(tray: &Tray) {
-    let dice_states: Vec<DiceState> = tray.get_dice().iter().enumerate().map(|(i, die)| {
-        DiceState {
+    let dice_states: Vec<DiceState> = tray
+        .get_dice()
+        .iter()
+        .enumerate()
+        .map(|(i, die)| DiceState {
             index: i,
             identity: die.get_id().to_string(),
             face_string: die.get_current_face().to_string(),
             result_type_string: die_result_type_to_string(die),
-            result_string: die_result_to_string(die)
-        }
-    }).collect();
+            result_string: die_result_to_string(die),
+        })
+        .collect();
 
     print_stdout(dice_states.with_title()).unwrap();
-    println!("{} = {}", tray.get_tray_result_type().to_string(), tray.get_tray_result().to_string());
+    println!(
+        "{} = {}",
+        tray.get_tray_result_type().to_string(),
+        tray.get_tray_result().to_string()
+    );
 }
 
 /// Converts a DieResult to a String for logging.
@@ -62,7 +69,7 @@ mod tests {
         let die1 = Die::new(Some("Die1".to_string()), 6);
         let die2 = Die::new(Some("Die2".to_string()), 6);
         tray.add_die(die1);
-        tray.add_die(die2); 
+        tray.add_die(die2);
         log_tray(&tray);
     }
 }

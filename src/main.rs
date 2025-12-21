@@ -1,11 +1,14 @@
 mod cli_parser;
 mod logger;
 
-use std::io;
+use cli_parser::{
+    DiceTrayCommandType, Targets, parse_add_command, parse_dice_tray_commands, parse_drop_command,
+    parse_roll_command,
+};
 use dice_tray::settings::{DICE_TRAY_SETTINGS, DiceTraySettings};
 use dice_tray::tables::DiceResultTable;
 use logger::log_tray;
-use cli_parser::{parse_dice_tray_commands, parse_add_command, parse_roll_command, parse_drop_command, DiceTrayCommandType, Targets};
+use std::io;
 
 use dice_tray::dice::DieResultType;
 use dice_tray::tray::Tray;
@@ -24,16 +27,18 @@ fn main() {
 
     match settings.save() {
         Ok(_) => println!("Tray Settings saved. Goodbye."),
-        Err(error_string) => println!("Failed to save tray settings. Error: {}" , error_string)
+        Err(error_string) => println!("Failed to save tray settings. Error: {}", error_string),
     }
 }
 
-fn dice_loop(mut active_tray :Tray){
+fn dice_loop(mut active_tray: Tray) {
     loop {
         println!("Enter commands (type \"help\" for options):");
 
         let mut input = String::new();
-        io::stdin().read_line(&mut input).expect("Failed to read line");
+        io::stdin()
+            .read_line(&mut input)
+            .expect("Failed to read line");
 
         let dice_tray_commands = parse_dice_tray_commands(&input);
         if dice_tray_commands.is_empty() {
@@ -54,7 +59,7 @@ fn dice_loop(mut active_tray :Tray){
                             None => println!("No dice parsed from command: {}", command_string),
                         }
                     }
-                },
+                }
                 DiceTrayCommandType::Roll => {
                     if let Some(command_string) = command.command_string {
                         let targets: Targets = parse_roll_command(Some(&command_string));
@@ -62,7 +67,9 @@ fn dice_loop(mut active_tray :Tray){
                             identity_flags.iter().for_each(|id| {
                                 match active_tray.roll_by_id(&id, DieResultType::Face) {
                                     Ok(()) => println!("Rolled all dice with identity {}", id),
-                                    Err(e) => println!("Error rolling dice with identity {}: {}", id, e),
+                                    Err(e) => {
+                                        println!("Error rolling dice with identity {}: {}", id, e)
+                                    }
                                 }
                             });
                         }
@@ -71,17 +78,19 @@ fn dice_loop(mut active_tray :Tray){
                             index_flags.iter().for_each(|index| {
                                 match active_tray.roll_at(*index, DieResultType::Face) {
                                     Ok(()) => println!("Rolled die at index {}", index),
-                                    Err(e) => println!("Error rolling die at index {}: {}", index, e),
+                                    Err(e) => {
+                                        println!("Error rolling die at index {}: {}", index, e)
+                                    }
                                 }
                             });
                         }
 
-                        if targets.is_empty(){
+                        if targets.is_empty() {
                             println!("Rolling all dice in the tray.");
                             active_tray.roll_all(DieResultType::Face);
                         }
-                    }  
-                },
+                    }
+                }
                 DiceTrayCommandType::ReRollBest => {
                     if let Some(command_string) = command.command_string {
                         let targets: Targets = parse_roll_command(Some(&command_string));
@@ -97,18 +106,23 @@ fn dice_loop(mut active_tray :Tray){
                         if let Some(index_flags) = targets.get_index_flags() {
                             index_flags.iter().for_each(|index| {
                                 match active_tray.roll_at(*index, DieResultType::Best) {
-                                    Ok(()) => println!("Re-rolled die at index {}, keeping the best result.", index),
-                                    Err(e) => println!("Error rolling die at index {}: {}", index, e),
+                                    Ok(()) => println!(
+                                        "Re-rolled die at index {}, keeping the best result.",
+                                        index
+                                    ),
+                                    Err(e) => {
+                                        println!("Error rolling die at index {}: {}", index, e)
+                                    }
                                 }
                             });
                         }
 
-                        if targets.is_empty(){
+                        if targets.is_empty() {
                             println!("Re-rolling all dice in the tray, keeping the best results.");
                             active_tray.roll_all(DieResultType::Best);
                         }
                     }
-                },
+                }
                 DiceTrayCommandType::ReRollWorst => {
                     if let Some(command_string) = command.command_string {
                         let targets: Targets = parse_roll_command(Some(&command_string));
@@ -124,18 +138,23 @@ fn dice_loop(mut active_tray :Tray){
                         if let Some(index_flags) = targets.get_index_flags() {
                             index_flags.iter().for_each(|index| {
                                 match active_tray.roll_at(*index, DieResultType::Worst) {
-                                    Ok(()) => println!("Re-rolled die at index {}, keeping the worst result.", index),
-                                    Err(e) => println!("Error rolling die at index {}: {}", index, e),
+                                    Ok(()) => println!(
+                                        "Re-rolled die at index {}, keeping the worst result.",
+                                        index
+                                    ),
+                                    Err(e) => {
+                                        println!("Error rolling die at index {}: {}", index, e)
+                                    }
                                 }
                             });
                         }
 
-                        if targets.is_empty(){
+                        if targets.is_empty() {
                             println!("Re-rolling all dice in the tray, keeping the worst results.");
                             active_tray.roll_all(DieResultType::Worst);
                         }
                     }
-                },
+                }
                 DiceTrayCommandType::Explode => {
                     if let Some(command_string) = command.command_string {
                         let targets: Targets = parse_roll_command(Some(&command_string));
@@ -143,7 +162,9 @@ fn dice_loop(mut active_tray :Tray){
                             identity_flags.iter().for_each(|id| {
                                 match active_tray.roll_by_id(&id, DieResultType::Sum) {
                                     Ok(()) => println!("Exploded all dice with identity {}.", id),
-                                    Err(e) => println!("Error rolling dice with identity {}: {}", id, e),
+                                    Err(e) => {
+                                        println!("Error rolling dice with identity {}: {}", id, e)
+                                    }
                                 }
                             });
                         }
@@ -152,17 +173,19 @@ fn dice_loop(mut active_tray :Tray){
                             index_flags.iter().for_each(|index| {
                                 match active_tray.roll_at(*index, DieResultType::Sum) {
                                     Ok(()) => println!("Exploded die at index {}.", index),
-                                    Err(e) => println!("Error rolling die at index {}: {}", index, e),
+                                    Err(e) => {
+                                        println!("Error rolling die at index {}: {}", index, e)
+                                    }
                                 }
                             });
                         }
 
-                        if targets.is_empty(){
+                        if targets.is_empty() {
                             println!("Exploding all dice in the tray.");
                             active_tray.roll_all(DieResultType::Sum);
                         }
                     }
-                },
+                }
                 DiceTrayCommandType::Drop => {
                     if let Some(command_string) = command.command_string {
                         let targets: Targets = parse_drop_command(Some(&command_string));
@@ -176,44 +199,63 @@ fn dice_loop(mut active_tray :Tray){
                         if let Some(index_flags) = targets.get_index_flags() {
                             index_flags.iter().rev().for_each(|index| {
                                 match active_tray.remove_at(*index) {
-                                    Some(die) => println!("Dropped die at index {}: {}", index, die.get_id()),
-                                    None => println!("Error dropping die at index {}: Index out of bounds", index),
+                                    Some(die) => {
+                                        println!("Dropped die at index {}: {}", index, die.get_id())
+                                    }
+                                    None => println!(
+                                        "Error dropping die at index {}: Index out of bounds",
+                                        index
+                                    ),
                                 }
                             });
                         }
 
-                        if targets.is_empty(){
+                        if targets.is_empty() {
                             active_tray.clear();
                             println!("Cleared all dice from the tray.");
                         }
                     }
-                },
+                }
                 DiceTrayCommandType::Custom => {
                     if let Some(command_string) = &command.command_string {
-                        match parse_custom_command(command_string){
+                        match parse_custom_command(command_string) {
                             Ok(result_table) => {
                                 let mut settings = DICE_TRAY_SETTINGS.lock().unwrap();
                                 settings.add_result_table(result_table);
                             }
-                            Err(error) => {println!("Error creating custom dice table: {}", error)}
+                            Err(error) => {
+                                println!("Error creating custom dice table: {}", error)
+                            }
                         }
                     }
-                },
+                }
                 DiceTrayCommandType::Help => {
                     println!("Available commands:");
-                    println!("-a(Add): Add dice to the tray using standard dice notation (e.g., '2d6' for two six-sided dice).");
-                    println!("-r(Roll): Roll dice in the tray by targeting them using $DieID or @<dieIndex>. If no target is provided, all dice will be rolled.");
-                    println!("-rb(Re-roll Best): Re-rolls the targeted dice and keeps the best result.");
-                    println!("-rw(Re-roll Worst): Re-rolls the targeted dice and keeps the worst result.");
-                    println!("-e(Explode): Re-rolls the targeted dice and adds the new result to the previous result.");
-                    println!("-d(Drop): Remove dice from the tray by targeting them using $DieID or @<dieIndex>. If no target is provided, all dice will be removed.");
+                    println!(
+                        "-a(Add): Add dice to the tray using standard dice notation (e.g., '2d6' for two six-sided dice)."
+                    );
+                    println!(
+                        "-r(Roll): Roll dice in the tray by targeting them using $DieID or @<dieIndex>. If no target is provided, all dice will be rolled."
+                    );
+                    println!(
+                        "-rb(Re-roll Best): Re-rolls the targeted dice and keeps the best result."
+                    );
+                    println!(
+                        "-rw(Re-roll Worst): Re-rolls the targeted dice and keeps the worst result."
+                    );
+                    println!(
+                        "-e(Explode): Re-rolls the targeted dice and adds the new result to the previous result."
+                    );
+                    println!(
+                        "-d(Drop): Remove dice from the tray by targeting them using $DieID or @<dieIndex>. If no target is provided, all dice will be removed."
+                    );
                     //println!("-c(Custom): Creates a new dice lookup table that can be used for custom dice types. Requires an identity flag (e.g \"$DICENAME\") and a set of strings seperated with whitespace.");
                     println!("-h(Help): Show this help message.");
                     println!("-e(Exit): Exit the application.");
                     println!("You can combine multiple commands in one line, separated by spaces.");
                     println!("$<id> is used to refrence the id of a die.");
                     println!("@<index1,index2> is used to refrence the index of dice in the tray.");
-                },
+                }
                 DiceTrayCommandType::Exit => {
                     println!("Exiting Dice Tray. Goodbye!");
                     return;
