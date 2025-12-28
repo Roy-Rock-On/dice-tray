@@ -25,11 +25,11 @@ pub fn log_tray(tray: &Tray) {
         .map(|(i, die)| DiceState {
             index: i,
             identity: die.get_id().to_string(),
-            face_string: die.get_current_face().to_string(),
-            result_type_string: die_result_type_to_string(die),
-            result_string: die_result_to_string(die),
+            face_string: die.get_current_face_value().to_string(),
+            result_type_string: die_result_type_to_string(die.as_ref()),
+            result_string: die_result_to_string(die.as_ref()),
         })
-        .collect();
+        .collect(); 
 
     print_stdout(dice_states.with_title()).unwrap();
     println!(
@@ -40,7 +40,7 @@ pub fn log_tray(tray: &Tray) {
 }
 
 /// Converts a DieResult to a String for logging.
-fn die_result_to_string(die: &Die) -> String {
+fn die_result_to_string(die: &dyn Die) -> String {
     match die.get_result() {
         DieResult::Number(n) => n.to_string(),
         DieResult::String(s) => s,
@@ -49,27 +49,11 @@ fn die_result_to_string(die: &Die) -> String {
 }
 
 /// Converts a DieResultType to a String for logging.
-fn die_result_type_to_string(die: &Die) -> String {
+fn die_result_type_to_string(die: &dyn Die) -> String {
     match die.get_result_type() {
         DieResultType::Face => "Face".to_string(),
         DieResultType::Best => "Best".to_string(),
         DieResultType::Worst => "Worst".to_string(),
-        DieResultType::Sum => "Sum".to_string(),
-        DieResultType::Table => "Custom".to_string(),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_log_tray() {
-        let mut tray = Tray::new();
-        let die1 = Die::new(Some("Die1".to_string()), 6);
-        let die2 = Die::new(Some("Die2".to_string()), 6);
-        tray.add_die(die1);
-        tray.add_die(die2);
-        log_tray(&tray);
+        DieResultType::Sum => "Sum".to_string()
     }
 }

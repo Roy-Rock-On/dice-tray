@@ -68,7 +68,7 @@ fn dice_loop(mut active_tray: Tray) {
                         let targets: Targets = parse_roll_command(Some(&command_string));
                         if let Some(identity_flags) = targets.get_identity_flags() {
                             identity_flags.iter().for_each(|id| {
-                                match active_tray.roll_by_id(&id, DieResultType::Face) {
+                                match active_tray.roll_by_label(&id, DieResultType::Face) {
                                     Ok(()) => println!("Rolled all dice with identity {}", id),
                                     Err(e) => {
                                         println!("Error rolling dice with identity {}: {}", id, e)
@@ -99,7 +99,7 @@ fn dice_loop(mut active_tray: Tray) {
                         let targets: Targets = parse_roll_command(Some(&command_string));
                         if let Some(identity_flags) = targets.get_identity_flags() {
                             identity_flags.iter().for_each(|id| {
-                                match active_tray.roll_by_id(&id, DieResultType::Best) {
+                                match active_tray.roll_by_label(&id, DieResultType::Best) {
                                     Ok(()) => println!("Re-rolled all dice with identity {}, keeping the best result.", id),
                                     Err(e) => println!("Error rolling dice with identity {}: {}", id, e),
                                 }
@@ -131,7 +131,7 @@ fn dice_loop(mut active_tray: Tray) {
                         let targets: Targets = parse_roll_command(Some(&command_string));
                         if let Some(identity_flags) = targets.get_identity_flags() {
                             identity_flags.iter().for_each(|id| {
-                                match active_tray.roll_by_id(&id, DieResultType::Worst) {
+                                match active_tray.roll_by_label(&id, DieResultType::Worst) {
                                     Ok(()) => println!("Re-rolled all dice with identity {}, keeping the worst result.", id),
                                     Err(e) => println!("Error rolling dice with identity {}: {}", id, e),
                                 }
@@ -163,7 +163,7 @@ fn dice_loop(mut active_tray: Tray) {
                         let targets: Targets = parse_roll_command(Some(&command_string));
                         if let Some(identity_flags) = targets.get_identity_flags() {
                             identity_flags.iter().for_each(|id| {
-                                match active_tray.roll_by_id(&id, DieResultType::Sum) {
+                                match active_tray.roll_by_label(&id, DieResultType::Sum) {
                                     Ok(()) => println!("Exploded all dice with identity {}.", id),
                                     Err(e) => {
                                         println!("Error rolling dice with identity {}: {}", id, e)
@@ -195,7 +195,7 @@ fn dice_loop(mut active_tray: Tray) {
                         if let Some(identity_flags) = targets.get_identity_flags() {
                             identity_flags.iter().for_each(|id| {
                                 println!("Dropping all dice with identity: {}", id);
-                                active_tray.remove_by_id(&id);
+                                active_tray.remove_by_label(&id);
                             });
                         }
 

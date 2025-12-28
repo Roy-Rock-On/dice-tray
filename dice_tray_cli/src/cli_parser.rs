@@ -1,5 +1,6 @@
 use rust_dice::dice::Die;
 use rust_dice::tables::DiceResultTable;
+use rust_dice::dice_builders::{new_die, new_num_die};
 use regex::{Captures, Regex};
 use std::sync::LazyLock;
 
@@ -126,12 +127,12 @@ pub fn parse_dice_tray_commands(command: &str) -> Vec<ParsedDiceTrayCommand> {
 }
 
 /// Parses a roll command. Checking for identity flags and dice notation. Then returns a vector of dice to be added to the tray.
-pub fn parse_add_command(command: Option<&str>) -> Option<Vec<Die>> {
+pub fn parse_add_command(command: Option<&str>) -> Option<Vec<Box<dyn Die>>> {
     match command {
         Some(cmd) => {
             let mut identity_flag: Option<Vec<String>> = None;
             let mut split_command = cmd.split_whitespace();
-            let mut dice_to_add: Vec<Die> = Vec::new();
+            let mut dice_to_add: Vec<Box<dyn Die>> = Vec::new();
 
             while let Some(command) = split_command.next() {
                 if let Some(captured_id_flag) = IDENTITY_FLAG_REGEX.captures(command) {
@@ -139,7 +140,7 @@ pub fn parse_add_command(command: Option<&str>) -> Option<Vec<Die>> {
                 } else if let Some(captured_dice_expression) = DICE_NOTATION_REGEX.captures(command)
                 {
                     if let Some((count, faces)) = parse_dice_notation(&captured_dice_expression) {
-                        for _ in 0..count {
+                        for i in 0..count {
                             let identity = match &identity_flag {
                                 Some(ids) if ids.len() > 0 => Some(ids[0].clone()), // Use the first identity if multiple provided
                                 _ => None,
@@ -148,7 +149,7 @@ pub fn parse_add_command(command: Option<&str>) -> Option<Vec<Die>> {
                                 "Adding die with {} faces and identity {:?} ",
                                 faces, identity_flag
                             );
-                            let die = Die::new(identity, faces);
+                            let die =  new_num_die(i.try_into().unwrap(), identity, faces);
                             dice_to_add.push(die);
                         }
                     }

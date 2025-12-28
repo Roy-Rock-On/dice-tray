@@ -1,7 +1,8 @@
 use super::dice::{Die, DieResultType};
 
 pub struct Tray {
-    dice: Vec<Die>,
+    next_id : usize,
+    dice: Vec<Box<dyn Die>>, 
     tray_result_type: TrayResultType,
 }
 
@@ -41,25 +42,33 @@ impl Tray {
     /// Creates a new, empty Tray.
     pub fn new() -> Self {
         Tray {
+            next_id : 0,
             dice: Vec::new(),
             tray_result_type: TrayResultType::Sum, // default result type
         }
     }
 
+    /// This will have the be replaced by a better system to manage die IDs. But this might work fo now.
+    pub fn get_next_die_id(&mut self) -> usize {
+        let die_id = self.next_id;
+        self.next_id += 1;
+        die_id
+    }
+
     /// Adds a Die to the tray.
-    pub fn add_die(&mut self, die: Die) {
+    pub fn add_die(&mut self, die: Box<dyn Die>) {
         self.dice.push(die);
     }
 
     /// Adds multiple Dice to the tray.
-    pub fn add_dice(&mut self, dice: Vec<Die>) {
+    pub fn add_dice(&mut self, dice: Vec<Box<dyn Die>>) {
         for die in dice {
             self.dice.push(die);
         }
     }
 
     /// Removes a Die at the specified index from the tray.
-    pub fn remove_at(&mut self, index: usize) -> Option<Die> {
+    pub fn remove_at(&mut self, index: usize) -> Option<Box<dyn Die>> {
         if index < self.dice.len() {
             Some(self.dice.remove(index))
         } else {
@@ -67,35 +76,20 @@ impl Tray {
         }
     }
 
-    /// Removes all Dice with the specified identity from the tray.
-    pub fn remove_by_id(&mut self, identity: &str) -> Vec<Die> {
-        let mut removed_dice: Vec<Die> = Vec::new();
-        self.dice.retain(|die| {
-            if die.get_id() == identity {
-                removed_dice.push(die.clone());
-                false
+    /// Removes all Dice with the specified label from the tray. Returns all Dice removed.
+    pub fn remove_by_label(&mut self, label: &str) -> Vec<Box<dyn Die>> {
+        let mut removed_dice: Vec<Box<dyn Die>> = Vec::new();
+        let mut i = 0;
+        
+        while i < self.dice.len() {
+            if self.dice[i].get_label() == label {
+                removed_dice.push(self.dice.remove(i));
             } else {
-                true
+                i += 1;
             }
-        });
-        removed_dice
-    }
-
-    /// Sets the identity of the Die at the specified index in the tray.
-    pub fn set_identity_at(
-        &mut self,
-        index: usize,
-        identity: String,
-    ) -> Result<(String, String), String> {
-        if index < self.dice.len() {
-            let die = &mut self.dice[index];
-            let old_id = die.get_id().to_string();
-            die.set_identity(identity);
-            let new_id = die.get_id().to_string();
-            Ok((old_id, new_id))
-        } else {
-            Err("Cannot set dice identity as provided index is out of bounds".to_string())
         }
+        
+        removed_dice
     }
 
     /// Rolls all Dice in the tray.
@@ -116,11 +110,11 @@ impl Tray {
         }
     }
 
-    /// Rolls all Dice in the tray with the specified identity
-    pub fn roll_by_id(&mut self, identity: &str, result_type: DieResultType) -> Result<(), String> {
+    /// Rolls all Dice in the tray with the specified label
+    pub fn roll_by_label(&mut self, label: &str, result_type: DieResultType) -> Result<(), String> {
         let mut hit: bool = false;
         for die in self.dice.iter_mut() {
-            if identity == die.get_id() {
+            if label == die.get_label() {
                 die.roll(result_type);
                 hit = true;
             }
@@ -132,33 +126,13 @@ impl Tray {
         }
     }
 
-    pub fn roll_at_identities(
-        &mut self,
-        identity: &str,
-        indices: &Vec<usize>,
-        result_type: DieResultType,
-    ) -> Result<(), String> {
-        let mut hit: bool = false;
-        for (i, die) in self.dice.iter_mut().enumerate() {
-            if identity == die.get_id() && indices.contains(&i) {
-                die.roll(result_type);
-                hit = true;
-            }
-        }
-        if hit {
-            Ok(())
-        } else {
-            Err("No dice with the specified identity found at the specified indices".to_string())
-        }
-    }
-
     /// Clears all Dice from the tray.
     pub fn clear(&mut self) {
         self.dice.clear();
     }
 
     /// Returns a reference to the Dice in the tray.
-    pub fn get_dice(&self) -> &Vec<Die> {
+    pub fn get_dice(&self) -> &Vec<Box<dyn Die>> {
         &self.dice
     }
 
@@ -172,7 +146,7 @@ impl Tray {
                 let sum: u32 = self
                     .dice
                     .iter()
-                    .map(|die| die.get_result_value().unwrap_or(0))
+                    .map(|die| die.get_result().is_num_or(0))
                     .sum();
                 TrayResult::Number(sum)
             }
@@ -180,7 +154,7 @@ impl Tray {
                 let best = self
                     .dice
                     .iter()
-                    .map(|die| die.get_result_value().unwrap_or(0))
+                    .map(|die| die.get_result().is_num_or(0))
                     .max();
                 match best {
                     Some(value) => TrayResult::Number(value),
@@ -191,7 +165,7 @@ impl Tray {
                 let worst = self
                     .dice
                     .iter()
-                    .map(|die| die.get_result_value().unwrap_or(0))
+                    .map(|die| die.get_result().is_num_or(0))
                     .min();
                 match worst {
                     Some(value) => TrayResult::Number(value),
