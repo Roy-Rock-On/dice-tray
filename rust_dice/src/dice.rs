@@ -1,10 +1,6 @@
-use crate::dice_profile::{DieProfile, DieType};
-
 use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};
-use serde_json::Number;
 use std::cmp::Ordering;
-use std::default;
 use std::mem::discriminant;
 
 
@@ -223,6 +219,7 @@ impl DieResult {
 mod tests {
     use super::*;
     use crate::dice_builders::*;
+    use crate::dice_profile::{DieProfile, DieType};
 
     #[test]
     fn test_die_creation_and_roll() {
