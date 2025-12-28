@@ -2,16 +2,19 @@ mod cli_parser;
 mod logger;
 
 use cli_parser::{
-    DiceTrayCommandType, Targets, parse_add_command, parse_dice_tray_commands, parse_drop_command,
+    DiceTrayCommandType, 
+    Targets, 
+    parse_add_command,
+    parse_dice_tray_commands,
+    parse_drop_command,
     parse_roll_command,
 };
-use dice_tray::settings::{DICE_TRAY_SETTINGS, DiceTraySettings};
-use dice_tray::tables::DiceResultTable;
+
+use rust_dice::settings::{DICE_TRAY_SETTINGS};
 use logger::log_tray;
 use std::io;
-
-use dice_tray::dice::DieResultType;
-use dice_tray::tray::Tray;
+use rust_dice::dice::DieResultType;
+use rust_dice::tray::Tray;
 
 use crate::cli_parser::parse_custom_command;
 

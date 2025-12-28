@@ -1,5 +1,5 @@
-use dice_tray::dice::Die;
-use dice_tray::tables::DiceResultTable;
+use rust_dice::dice::Die;
+use rust_dice::tables::DiceResultTable;
 use regex::{Captures, Regex};
 use std::sync::LazyLock;
 

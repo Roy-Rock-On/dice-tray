@@ -1,16 +1,6 @@
-[package]
-name = "dice-tray"
-description = "A CLI dice roller, that uses persistant structs with internal RNG to modle physical dice. Work in progress."
-version = "0.0.1"
-edition = "2024"
+[workspace]
+resolver = "3"
+members = ["rust_dice","dice_tray_cli"]
 
-[dependencies]
-rand = "*"
-regex = "*"
-cli-table = "*"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-dirs = "5.0"
-leptos = { version = "0.8.14", features = ["csr"] }
 
 

@@ -1,0 +1,11 @@
+[package]
+name = "dice_tray_cli"
+description = "A CLI dice roller, that uses persistant structs with internal RNG to modle physical dice. Work in progress."
+version = "0.0.1"
+edition = "2024"
+
+
+[dependencies]
+rust_dice = {path = "../rust_dice"}
+cli-table = "*"
+regex = "*"
