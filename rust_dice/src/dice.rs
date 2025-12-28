@@ -3,8 +3,6 @@ use rand::{Rng, SeedableRng};
 use std::cmp::Ordering;
 use std::mem::discriminant;
 
-
-
 /// The die trait alows for extending this library with custom dice types.
 pub trait Die {
     ///Gets the die ID- which should be a unique key that allows for reactivity in leptos.
