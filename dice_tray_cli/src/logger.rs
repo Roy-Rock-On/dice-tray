@@ -25,7 +25,7 @@ pub fn log_tray(tray: &Tray) {
         .map(|(i, die)| DiceState {
             index: i,
             identity: die.get_id().to_string(),
-            face_string: die.get_current_face_value().to_string(),
+            face_string: die.get_current_face().to_string(),
             result_type_string: die_result_type_to_string(die.as_ref()),
             result_string: die_result_to_string(die.as_ref()),
         })

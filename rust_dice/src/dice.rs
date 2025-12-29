@@ -5,16 +5,19 @@ use std::mem::discriminant;
 
 /// The die trait alows for extending this library with custom dice types.
 pub trait Die {
-    ///Gets the die ID- which should be a unique key that allows for reactivity in leptos.
+    ///Gets the die ID- which should be a unique key that allows for reactivity in leptos, key/value stores, etc.
     fn get_id(&self) -> usize;
 
     ///Gets a label used to identify the die. Unlike ID many dice can share the same label. Lables can be used to identify dice in a group.
     fn get_label(&self) -> &str;
 
-    ///Gets the current face value of the die.
-    fn get_current_face_value(&self) -> u32;
+    ///Gets the current face of the die.
+    fn get_current_face(&self) -> i32;
 
-    ///Returns the current result of the die as a DieResult. This is dependatn on both the die and result type.
+    ///Gets the value of the face. Normally this is the same as the current face, but custom dice can define their own values to assing to the die faces. 
+    fn get_face_value(&self) -> i32;
+
+    ///Returns the current result of the die as a DieResult. This is dependent on both the die and result type.
     fn get_result(&self) -> DieResult;
 
     ///Used to get a reffrence to the current result type of the die.
@@ -28,6 +31,16 @@ pub trait Die {
 
     ///Returns true if thr die's current face is the face with the lowest value.
     fn is_min(&self) -> bool;
+
+    ///Increments the face on the die by one, if face is maxed wrap the die around to one.
+    fn increment(&mut self);
+
+    ///Decrements the face of the die, if the die face is 1 wraps up to the max face.
+    fn decrement(&mut self);
+    
+    ///Sets the face of the die to the new_face value. Clamps the value within the range of the die's faces. 
+    fn set_face(&mut self, new_face: i32);
+
 }
 
 /// Represents a physical dice. Includes a string identifier, it's own SmallRng seed, ability to roll and compare rolls.
@@ -51,8 +64,12 @@ impl Die for Die32{
         &self.label
     }
 
-    fn get_current_face_value(&self) -> u32 {
-        self.current_face
+    fn get_current_face(&self) -> i32 {
+        self.current_face as i32
+    }
+
+    fn get_face_value(&self) -> i32 {
+        self.get_current_face()
     }
 
     fn get_result(&self) -> DieResult {
@@ -75,6 +92,31 @@ impl Die for Die32{
 
     fn is_min(&self) -> bool {
         self.current_face == 1
+    }
+
+    fn increment(&mut self){
+        self.current_face += 1;
+        if (self.current_face > self.faces){
+            self.current_face = 1;
+        }
+    }
+
+    fn decrement(&mut self) {
+        self.current_face -= 1;
+        if self.current_face < 1 {
+            self.current_face = self.faces
+        }
+    }
+
+    fn set_face(&mut self, face: i32) {
+        let mut new_face = face as u32;
+        if new_face < 1 {
+            new_face = 1;
+        }
+        else if new_face > self.faces{
+            new_face = self.faces
+        }
+        self.current_face = new_face;
     }
 }
 
@@ -116,6 +158,9 @@ impl Die32 {
 
     /// Sets the result type of the die to the provided DieResultType and updates the current result accordingly.
     fn set_result_type(&mut self, new_result_type: DieResultType) {
+        //gaurd against changeing the result type if we don't have to.
+        if self.result_type == new_result_type {return;}
+        
         self.current_result_value = match new_result_type {
             DieResultType::Best => Some(1),
             DieResultType::Worst => Some(self.faces),
@@ -224,13 +269,13 @@ mod tests {
         let faces = 20;
         let mut die = new_die(0, &DieProfile::new(None, DieType::Numerical(faces)));
         assert_eq!(die.get_label(), "TestDie");
-        assert!(die.get_current_face_value() >= 1 && die.get_current_face_value() <= faces);
-        let first_roll = die.get_current_face_value();
+        assert!(die.get_current_face() >= 1 && die.get_current_face() as u32 <= faces);
+        let first_roll = die.get_current_face();
         die.roll(DieResultType::Face);
         println!(
             "First roll: {}, Second roll: {}",
             first_roll,
-            die.get_current_face_value()
+            die.get_current_face()
         );
     }
 
@@ -251,14 +296,14 @@ mod tests {
         dice.push(Box::new(die5));
         dice.push(Box::new(die6));
 
-        let dice_results: Vec<u32> = dice.iter().map(|d| d.get_current_face_value()).collect();
+        let dice_results: Vec<u32> = dice.iter().map(|d| d.get_current_face() as u32).collect();
         println!("Dice in inserted order: {:?}", dice_results);
         
         // Note: Can't sort Vec<Box<dyn Die>> directly since trait objects don't implement Ord
         // You would need to sort by a specific field or implement a custom comparison
         let dice_results = dice
             .iter()
-            .map(|d| d.get_current_face_value())
+            .map(|d| d.get_current_face() as u32)
             .collect::<Vec<u32>>();
         println!("Dice results: {:?}", dice_results);
     }
