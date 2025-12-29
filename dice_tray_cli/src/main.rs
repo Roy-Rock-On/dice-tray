@@ -1,5 +1,8 @@
 mod cli_parser;
+mod cli_dice_tray;
 mod logger;
+
+use cli_dice_tray::CliTray;
 
 use cli_parser::{
     DiceTrayCommandType, 
@@ -19,7 +22,7 @@ use rust_dice::tray::Tray;
 use crate::cli_parser::parse_custom_command;
 
 fn main() {
-    let active_tray = Tray::new();
+    let active_tray = CliTray::new(0, "test tray".to_string());
     println!("Welcome to Dice Tray!");
 
     let settings = DICE_TRAY_SETTINGS.lock().unwrap();
@@ -34,7 +37,7 @@ fn main() {
     }
 }
 
-fn dice_loop(mut active_tray: Tray) {
+fn dice_loop(mut active_tray: impl Tray) {
     loop {
         println!("Enter commands (type \"help\" for options):");
 
@@ -194,18 +197,24 @@ fn dice_loop(mut active_tray: Tray) {
                         let targets: Targets = parse_drop_command(Some(&command_string));
                         if let Some(identity_flags) = targets.get_identity_flags() {
                             identity_flags.iter().for_each(|id| {
-                                println!("Dropping all dice with identity: {}", id);
-                                active_tray.remove_by_label(&id);
+                                match active_tray.remove_dice_by_label(&id){
+                                    Ok(_dice) => {
+                                        println!("Dropping all dice with label: {}", id);
+                                    }
+                                    Err(e) => {
+                                        println!("Failed to drop dice with label: {}. Error: {}", id, e)
+                                    }
+                                };
                             });
                         }
 
                         if let Some(index_flags) = targets.get_index_flags() {
                             index_flags.iter().rev().for_each(|index| {
-                                match active_tray.remove_at(*index) {
-                                    Some(die) => {
+                                match active_tray.remove_die_at(*index) {
+                                    Ok(die) => {
                                         println!("Dropped die at index {}: {}", index, die.get_id())
                                     }
-                                    None => println!(
+                                    Err(_) => println!(
                                         "Error dropping die at index {}: Index out of bounds",
                                         index
                                     ),
@@ -216,19 +225,6 @@ fn dice_loop(mut active_tray: Tray) {
                         if targets.is_empty() {
                             active_tray.clear();
                             println!("Cleared all dice from the tray.");
-                        }
-                    }
-                }
-                DiceTrayCommandType::Custom => {
-                    if let Some(command_string) = &command.command_string {
-                        match parse_custom_command(command_string) {
-                            Ok(result_table) => {
-                                let mut settings = DICE_TRAY_SETTINGS.lock().unwrap();
-                                settings.add_result_table(result_table);
-                            }
-                            Err(error) => {
-                                println!("Error creating custom dice table: {}", error)
-                            }
                         }
                     }
                 }

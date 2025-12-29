@@ -1,6 +1,6 @@
 use rust_dice::dice::Die;
 use rust_dice::tables::DiceResultTable;
-use rust_dice::dice_builders::{new_die, new_num_die};
+use rust_dice::dice_builders::{new_num_die};
 use regex::{Captures, Regex};
 use std::sync::LazyLock;
 
@@ -10,7 +10,6 @@ static INDEX_FLAG_REGEX: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(?i)^@(\d+(,\d+)*)$").unwrap());
 static DICE_NOTATION_REGEX: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(?i)^(\d*)?[d](\d+)$").unwrap());
-static CUSTOM_DICE_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"").unwrap());
 
 /// Enum representing the different types of commands that can be parsed from the CLI.
 pub enum DiceTrayCommandType {
@@ -19,7 +18,6 @@ pub enum DiceTrayCommandType {
     ReRollBest,
     ReRollWorst,
     Explode,
-    Custom,
     Drop,
     Help,
     Exit,

@@ -17,7 +17,7 @@ struct DiceState {
 }
 
 /// Logs the current state of the tray to the console. In table format. Using cli-table crate.
-pub fn log_tray(tray: &Tray) {
+pub fn log_tray(tray: &dyn Tray) {
     let dice_states: Vec<DiceState> = tray
         .get_dice()
         .iter()
@@ -34,8 +34,8 @@ pub fn log_tray(tray: &Tray) {
     print_stdout(dice_states.with_title()).unwrap();
     println!(
         "{} = {}",
-        tray.get_tray_result_type().to_string(),
-        tray.get_tray_result().to_string()
+        tray.get_result_type().to_string(),
+        tray.get_result().to_string()
     );
 }
 
