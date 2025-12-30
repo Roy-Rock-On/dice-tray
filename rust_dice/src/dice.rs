@@ -1,15 +1,27 @@
 use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};
+use std::clone;
 use std::cmp::Ordering;
 use std::mem::discriminant;
 use serde::{Serialize, Deserialize};
 
-pub trait DieData: Serialize + for<'a> Deserialize<'a> {
-    fn from_die(die: impl Die) -> impl DieData;
+use crate::tray::TypedDieData;
+
+pub trait DieData: Sized + Serialize + for<'a> Deserialize<'a> {
+    fn from_die(die: &dyn Die) -> TypedDieData;
+}
+
+/// Used to type dice for serilization/deserilization. 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub enum DieType{
+    Die32
 }
 
 /// The die trait alows for extending this library with custom dice types.
 pub trait Die {
+    ///Returns the die type, handled by the constructor of the die struct. Used to serialize and deserialize dice.
+    fn get_die_type(&self) -> &DieType;
+
     ///Gets the die ID- which should be a unique key that allows for reactivity in leptos, key/value stores, etc.
     fn get_id(&self) -> usize;
 
@@ -50,7 +62,7 @@ pub trait Die {
     fn set_face(&mut self, new_face: i32);
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct DieData32{
     label: String,
     faces: u32,
@@ -59,19 +71,22 @@ pub struct DieData32{
 }
 
 impl DieData for DieData32 {
-    fn from_die(die: impl Die) -> impl DieData {
-        DieData32{
-            label: die.get_label().to_string(),
-            faces: die.get_face_count(),
-            current_face: die.get_current_face() as u32,
-            current_result: die.get_result().clone()
-        }
+    fn from_die(die: &dyn Die) -> TypedDieData {
+        TypedDieData::Die32(
+            DieData32{
+                label: die.get_label().to_string(),
+                faces: die.get_face_count(),
+                current_face: die.get_current_face() as u32,
+                current_result: die.get_result().clone()
+            })
     }
 }
+
 
 /// Represents a physical dice. Includes a string identifier, it's own SmallRng seed, ability to roll and compare rolls.
 #[derive(Debug, Clone)]
 pub struct Die32 {
+    die_type : DieType,
     id: usize,
     rng: SmallRng,
     label: String,
@@ -82,6 +97,10 @@ pub struct Die32 {
 }
 
 impl Die for Die32{
+    fn get_die_type(&self) -> &DieType{
+        &self.die_type
+    }
+
     fn get_id(&self) -> usize {
         self.id
     }
@@ -158,6 +177,7 @@ impl Die32 {
     /// The new dice is rolled on creation to give it a random self_current face.
     pub fn new(id: usize, label: Option<String>, faces: u32) -> Self {
         let mut new_die = Die32 {
+            die_type : DieType::Die32,
             id,
             rng: SmallRng::from_rng(&mut rand::rng()),
             label: label.unwrap_or_else(|| "d".to_string() + &faces.to_string()),
@@ -173,14 +193,15 @@ impl Die32 {
 
     ///Creates a new Die32 from Die32 data - allows for saving dice between sessions as certian fields (i.e. RNG) can't be serialized with serde.
     ///ID must be provided by the dice allocator and the die will get a new RNG seed. 
-    pub fn from_data(id: usize, data : DieData32) -> Self{
+    pub fn from_data(id: usize, data : &DieData32) -> Self{
         Die32 { 
+            die_type : DieType::Die32,
             id,
             rng: SmallRng::from_rng(&mut rand::rng()),
-            label: data.label,
+            label: data.label.clone(),
             faces: data.faces,
             current_face: data.current_face,
-            current_result: data.current_result,
+            current_result: data.current_result.clone(),
             result_type: DieResultType::Face
         }
     }
@@ -290,7 +311,7 @@ pub enum DieResult {
     None,
 }
 
-impl DieResult {
+impl DieResult{
 /// Checks if the DieResult is a number type, otherwise defaults the die result to the provided default.
     pub fn is_num_or(&self, default_num : u32) -> u32{
         match self{

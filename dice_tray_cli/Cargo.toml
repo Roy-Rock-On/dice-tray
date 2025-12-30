@@ -10,3 +10,5 @@ rust_dice = {path = "../rust_dice"}
 cli-table = "*"
 regex = "*"
 clap = { version = "4.5.53", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0.148"

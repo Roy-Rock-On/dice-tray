@@ -1,4 +1,5 @@
 use crate::dice::Die;
+use crate::tray::Tray;
 use crate::dice_profile::{DieProfile};
 
 
@@ -8,6 +9,9 @@ pub trait DiceAllocator{
 
     ///Creates a new die from a die profile, assigning it an id, and rerunting it as a Box<dyn Die>
     fn new_die(&mut self, profile : &DieProfile) -> Box<dyn Die>; 
+
+    ///Creates a new dice tray with the given label and a unique ID.
+    fn new_tray(&mut self, label: String) -> Box<dyn Tray>;
 
     ///Called when wrapping up the program. Used to save settings and similar.
     fn close(&mut self);

@@ -1,11 +1,67 @@
-use rust_dice::dice::{Die, DieResultType};
-use rust_dice::tray::{Tray, TrayResult, TrayResultType};
+
+use rust_dice::dice::{Die, DieData, DieData32, DieResultType};
+use rust_dice::tray::{Tray, TrayData, TrayResult, TrayResultType, TypedDieData};
+
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct CliTrayData{
+    id: usize,
+    label: String,
+    dice_data: Vec<TypedDieData>
+}
+
+impl TrayData for CliTrayData{
+    fn from_tray(tray: impl Tray) -> impl TrayData {
+        let tray_dice = tray.get_dice();
+        let dice_data: Vec<TypedDieData> = tray_dice
+            .iter()
+            .map(|die| <DieData32 as DieData>::from_die(die.as_ref()))
+            .collect();
+        
+        CliTrayData{
+            id: tray.get_id(),
+            label: tray.get_label().to_string(),
+            dice_data
+        }
+    }
+}
+
+impl CliTrayData {
+    pub fn from_tray_ref(tray: &dyn Tray) -> Self {
+        let tray_dice = tray.get_dice();
+        let dice_data: Vec<TypedDieData> = tray_dice
+            .iter()
+            .map(|die| <DieData32 as DieData>::from_die(die.as_ref()))
+            .collect();
+        
+        CliTrayData{
+            id: tray.get_id(),
+            label: tray.get_label().to_string(),
+            dice_data
+        }
+    }
+
+    /// Get the ID of this tray data
+    pub fn get_id(&self) -> usize {
+        self.id
+    }
+
+    /// Get the label of this tray data
+    pub fn get_label(&self) -> &str {
+        &self.label
+    }
+
+    /// Get the dice data vector
+    pub fn get_dice_data(&self) -> Vec<TypedDieData> {
+        self.dice_data.clone()
+    }
+}
 
 pub struct CliTray {
     id : usize,
     label : String,
     dice: Vec<Box<dyn Die>>, 
-    tray_result_type: TrayResultType,
+    tray_result_type: TrayResultType, 
 }
 
 impl CliTray{
@@ -21,6 +77,15 @@ impl CliTray{
 }
 
 impl Tray for CliTray {
+    fn get_id(&self) -> usize {
+        self.id
+    }
+
+    fn get_label(&self) -> &str {
+        &self.label
+    }
+
+
     /// Adds a Die to the tray.
     fn add_die(&mut self, die: Box<dyn Die>) {
         self.dice.push(die);
@@ -108,7 +173,7 @@ impl Tray for CliTray {
         }
     }
 
-    fn sort(&mut self, sort_by : rust_dice::tray::TraySortType) {
+    fn sort(&mut self, _sort_by : rust_dice::tray::TraySortType) {
         todo!("Must implement sort for cli_dice_tray.");
     }
 

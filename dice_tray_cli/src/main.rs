@@ -3,6 +3,8 @@ mod cli_dice_tray;
 mod cli_dice_allocator;
 mod logger;
 
+use cli_dice_allocator::CliDiceAllocator;
+use rust_dice::dice_allocator::DiceAllocator;
 /* 
 use cli_dice_tray::CliTray;
 
@@ -25,7 +27,21 @@ use rust_dice::tray::Tray;
 
 
 fn main(){
-
+    let mut app = CliDiceAllocator::new();
+    app.init();
+    app.test_add_dice();
+        app.test_add_dice();
+            app.test_add_dice();
+                app.test_add_dice();
+                    app.test_add_dice();
+                        app.test_add_dice();
+                            app.test_add_dice();
+                                app.test_add_dice();
+                                    app.test_add_dice();
+                                        app.test_add_dice();
+                                            app.test_add_dice();
+                                                app.test_add_dice();
+    app.close();
 }
 
 /*

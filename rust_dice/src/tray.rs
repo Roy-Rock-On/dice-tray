@@ -1,4 +1,7 @@
-use super::dice::{Die, DieResultType};
+use crate::dice::Die32;
+use serde::{Serialize, Deserialize};
+
+use super::dice::{Die, DieResultType, DieData32};
 
 ///Result type for a dice tray.
 pub enum TrayResultType {
@@ -50,6 +53,12 @@ impl TraySortType{
 ///Trait for a dice tray. Tray's own the refrences to the dice in them.
 ///This trait provides fuinctions for adding and removing dice from the tray and for getting information about the tray state. 
 pub trait Tray{
+    ///Gets the id nuymber assinged to the tray.
+    fn get_id(&self) -> usize;
+
+    ///Get the label assinged to the tray 
+    fn get_label(&self) -> &str;
+
     ///Adds a single die to the tray.
     fn add_die(&mut self, die: Box<dyn Die>);
 
@@ -94,6 +103,30 @@ pub trait Tray{
     /// Gets the current tray result as a TrayResult enum.
     fn get_result(&self) -> TrayResult;
 }
+
+pub trait TrayData{
+    //Converts a dice tray into tray data. 
+    fn from_tray(tray: impl Tray) -> impl TrayData;
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub enum TypedDieData {
+    Die32(DieData32),
+}
+
+impl TypedDieData{
+    ///Converts typed die data into a die. With the given ID.
+    pub fn to_die(self, id: usize) -> Box<dyn Die>{
+        match self{
+            TypedDieData::Die32(data) => {
+                Box::new(Die32::from_data(id, &data))
+            }
+        }
+    }
+}
+
+
+
 
 
 

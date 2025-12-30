@@ -46,7 +46,7 @@ pub fn detailed_log_tray(tray: &dyn Tray) {
 fn die_result_to_string(die: &dyn Die) -> String {
     match die.get_result() {
         DieResult::Number(n) => n.to_string(),
-        DieResult::String(s) => s,
+        DieResult::String(s) => s.clone(),
         DieResult::None => "None".to_string(),
     }
 }

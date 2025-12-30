@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use std::sync::LazyLock;
 use std::sync::Mutex;
 
+/* 
 pub static DICE_TRAY_SETTINGS: LazyLock<Mutex<DiceTraySettings>> = LazyLock::new(|| {
     let mut settings = DiceTraySettings::new();
     settings.add_result_table(implement_test_table());
@@ -86,3 +87,4 @@ impl DiceTraySettings {
         })
     }
 }
+*/
