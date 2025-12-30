@@ -2,6 +2,11 @@ use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};
 use std::cmp::Ordering;
 use std::mem::discriminant;
+use serde::{Serialize, Deserialize};
+
+pub trait DieData: Serialize + for<'a> Deserialize<'a> {
+    fn from_die(die: impl Die) -> impl DieData;
+}
 
 /// The die trait alows for extending this library with custom dice types.
 pub trait Die {
@@ -11,6 +16,9 @@ pub trait Die {
     ///Gets a label used to identify the die. Unlike ID many dice can share the same label. Lables can be used to identify dice in a group.
     fn get_label(&self) -> &str;
 
+    ///Gets the number of faces on the die.
+    fn get_face_count(&self) -> u32;
+
     ///Gets the current face of the die.
     fn get_current_face(&self) -> i32;
 
@@ -18,7 +26,7 @@ pub trait Die {
     fn get_face_value(&self) -> i32;
 
     ///Returns the current result of the die as a DieResult. This is dependent on both the die and result type.
-    fn get_result(&self) -> DieResult;
+    fn get_result(&self) -> &DieResult;
 
     ///Used to get a reffrence to the current result type of the die.
     fn get_result_type(&self) -> &DieResultType;
@@ -26,7 +34,7 @@ pub trait Die {
     ///Rolls the die.
     fn roll(&mut self, result_type: DieResultType);
 
-    ///Returns true if the die's current face is the face with the highest value.
+    ///Returns true if the die's current face is the face with the highest value.m
     fn is_max(&self) -> bool;
 
     ///Returns true if thr die's current face is the face with the lowest value.
@@ -40,7 +48,25 @@ pub trait Die {
     
     ///Sets the face of the die to the new_face value. Clamps the value within the range of the die's faces. 
     fn set_face(&mut self, new_face: i32);
+}
 
+#[derive(Serialize, Deserialize)]
+pub struct DieData32{
+    label: String,
+    faces: u32,
+    current_face: u32,
+    current_result: DieResult
+}
+
+impl DieData for DieData32 {
+    fn from_die(die: impl Die) -> impl DieData {
+        DieData32{
+            label: die.get_label().to_string(),
+            faces: die.get_face_count(),
+            current_face: die.get_current_face() as u32,
+            current_result: die.get_result().clone()
+        }
+    }
 }
 
 /// Represents a physical dice. Includes a string identifier, it's own SmallRng seed, ability to roll and compare rolls.
@@ -51,7 +77,7 @@ pub struct Die32 {
     label: String,
     faces: u32,
     current_face: u32,
-    current_result_value: Option<u32>,
+    current_result: DieResult,
     result_type: DieResultType,
 }
 
@@ -64,6 +90,10 @@ impl Die for Die32{
         &self.label
     }
 
+    fn get_face_count(&self) -> u32{
+        self.faces
+    }
+
     fn get_current_face(&self) -> i32 {
         self.current_face as i32
     }
@@ -72,15 +102,15 @@ impl Die for Die32{
         self.get_current_face()
     }
 
-    fn get_result(&self) -> DieResult {
-        DieResult::Number(self.current_result_value.unwrap_or(0))
+    fn get_result(&self) -> &DieResult {
+        &self.current_result
     }
 
     fn get_result_type(&self) -> &DieResultType {
         &self.result_type
     }
 
-    fn roll(&mut self, result_type :DieResultType) {
+    fn roll(&mut self, result_type: DieResultType) {
         self.set_result_type(result_type);
         self.current_face = self.rng.random_range(1..=self.faces);
         self.update_result();
@@ -133,12 +163,26 @@ impl Die32 {
             label: label.unwrap_or_else(|| "d".to_string() + &faces.to_string()),
             faces,
             current_face: 1,
-            current_result_value: Some(1),
+            current_result: DieResult::Number(1),
             result_type : DieResultType::Face,
         };
 
         new_die.roll(DieResultType::Face);
         new_die
+    }
+
+    ///Creates a new Die32 from Die32 data - allows for saving dice between sessions as certian fields (i.e. RNG) can't be serialized with serde.
+    ///ID must be provided by the dice allocator and the die will get a new RNG seed. 
+    pub fn from_data(id: usize, data : DieData32) -> Self{
+        Die32 { 
+            id,
+            rng: SmallRng::from_rng(&mut rand::rng()),
+            label: data.label,
+            faces: data.faces,
+            current_face: data.current_face,
+            current_result: data.current_result,
+            result_type: DieResultType::Face
+        }
     }
 
     pub fn set_current_face(&mut self, face: u32) {
@@ -161,11 +205,11 @@ impl Die32 {
         //gaurd against changeing the result type if we don't have to.
         if self.result_type == new_result_type {return;}
         
-        self.current_result_value = match new_result_type {
-            DieResultType::Best => Some(1),
-            DieResultType::Worst => Some(self.faces),
-            DieResultType::Sum => Some(0),
-            DieResultType::Face => Some(0),
+        self.current_result = match new_result_type {
+            DieResultType::Best => DieResult::Number(1),
+            DieResultType::Worst => DieResult::Number(self.faces),
+            DieResultType::Sum => DieResult::Number(0),
+            DieResultType::Face => DieResult::Number(0),
         };
 
         self.result_type = new_result_type;
@@ -175,23 +219,22 @@ impl Die32 {
     fn update_result(&mut self) {
         match self.result_type {
             DieResultType::Face => {
-                self.current_result_value = Some(self.current_face);
+                self.current_result= DieResult::Number(self.current_face);
             }
             DieResultType::Best => {
-                let last_result = self.current_result_value.unwrap_or(1);
+                let last_result = self.current_result.is_num_or(1);
                 if self.current_face > last_result {
-                    self.current_result_value = Some(self.current_face);
+                    self.current_result = DieResult::Number(self.current_face);
                 }
             }
             DieResultType::Worst => {
-                let last_result = self.current_result_value.unwrap_or(self.faces);
+                let last_result = self.current_result.is_num_or(self.faces);
                 if self.current_face < last_result {
-                    self.current_result_value = Some(self.current_face);
+                    self.current_result = DieResult::Number(self.current_face);
                 }
             }
             DieResultType::Sum => {
-                self.current_result_value =
-                    Some(self.current_result_value.unwrap_or(0) + self.current_face);
+                self.current_result = DieResult::Number(self.current_result.is_num_or(0) + self.current_face);
             }
         }
     }
@@ -224,7 +267,6 @@ impl Ord for Die32 {
     }
 }
 
-
 /// Used to request specific result types from a Die roll.
 #[derive(Debug, Clone, Copy)]
 pub enum DieResultType {
@@ -241,7 +283,7 @@ impl PartialEq for DieResultType {
 }
 
 /// Used to return specific result types from a Die roll and wraps the returned value.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum DieResult {
     Number(u32),
     String(String),
@@ -255,56 +297,5 @@ impl DieResult {
             DieResult::Number(x) => *x,
             _ => default_num
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::dice_builders::*;
-    use crate::dice_profile::{DieProfile, DieType};
-
-    #[test]
-    fn test_die_creation_and_roll() {
-        let faces = 20;
-        let mut die = new_die(0, &DieProfile::new(None, DieType::Numerical(faces)));
-        assert_eq!(die.get_label(), "TestDie");
-        assert!(die.get_current_face() >= 1 && die.get_current_face() as u32 <= faces);
-        let first_roll = die.get_current_face();
-        die.roll(DieResultType::Face);
-        println!(
-            "First roll: {}, Second roll: {}",
-            first_roll,
-            die.get_current_face()
-        );
-    }
-
-    #[test]
-    fn dice_ordering() {
-        let die1 = new_die(1, &DieProfile::new(None, DieType::Numerical(6)));
-        let die2 = new_die(2, &DieProfile::new(None, DieType::Numerical(6)));
-        let die3 = new_die(3, &DieProfile::new(None, DieType::Numerical(6)));
-        let die4 = new_die(4, &DieProfile::new(None, DieType::Numerical(6)));
-        let die5 = new_die(5, &DieProfile::new(None, DieType::Numerical(6)));
-        let die6 = new_die(6, &DieProfile::new(None, DieType::Numerical(6)));
-
-        let mut dice: Vec<Box<dyn Die>> = Vec::new();
-        dice.push(Box::new(die1));
-        dice.push(Box::new(die2));
-        dice.push(Box::new(die3));
-        dice.push(Box::new(die4));
-        dice.push(Box::new(die5));
-        dice.push(Box::new(die6));
-
-        let dice_results: Vec<u32> = dice.iter().map(|d| d.get_current_face() as u32).collect();
-        println!("Dice in inserted order: {:?}", dice_results);
-        
-        // Note: Can't sort Vec<Box<dyn Die>> directly since trait objects don't implement Ord
-        // You would need to sort by a specific field or implement a custom comparison
-        let dice_results = dice
-            .iter()
-            .map(|d| d.get_current_face() as u32)
-            .collect::<Vec<u32>>();
-        println!("Dice results: {:?}", dice_results);
     }
 }

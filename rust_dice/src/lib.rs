@@ -5,6 +5,9 @@
 /// Library for dice and dice functions. Each die has its own rng seed and a set face count, determined at construction.
 pub mod dice;
 
+///Library used for allocating dice to an app. The DiceAllocator trait is used to assign dice unique ID numbers and connect settings to the dice tray.
+pub mod dice_allocator;
+
 /// Helper functions to quickly build sets of dice.
 pub mod dice_builders;
 

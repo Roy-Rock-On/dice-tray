@@ -44,8 +44,7 @@ impl TraySortType{
         match self {
             TraySortType::Face => "Sorting tray by die face.".to_string()          
         }
-    }
-    
+    }  
 }
 
 ///Trait for a dice tray. Tray's own the refrences to the dice in them.

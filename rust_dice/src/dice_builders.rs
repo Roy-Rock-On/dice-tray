@@ -1,11 +1,6 @@
 use crate::dice::{Die, Die32};
 use crate::dice_profile::{DieProfile, DieType};
 
-pub trait DiceAllocator{
-    ///Creates a new die from a die profile, assigning it an id, and rerunting it as a Box<dyn Die>
-    fn new_die(&mut self, profile : &DieProfile) -> Box<dyn Die>; 
-}
-
 ///Creates a new die from a die profile.
 pub fn new_die(id: usize, profile : &DieProfile) -> impl Die + use<> {
     match profile.die_type {

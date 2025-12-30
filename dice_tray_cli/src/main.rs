@@ -1,7 +1,9 @@
 mod cli_parser;
 mod cli_dice_tray;
+mod cli_dice_allocator;
 mod logger;
 
+/* 
 use cli_dice_tray::CliTray;
 
 use cli_parser::{
@@ -14,13 +16,19 @@ use cli_parser::{
 };
 
 use rust_dice::settings::{DICE_TRAY_SETTINGS};
-use logger::log_tray;
+use logger::detailed_log_tray;
 use std::io;
 use rust_dice::dice::DieResultType;
 use rust_dice::tray::Tray;
+*/
 
-use crate::cli_parser::parse_custom_command;
 
+
+fn main(){
+
+}
+
+/*
 fn main() {
     let active_tray = CliTray::new(0, "test tray".to_string());
     println!("Welcome to Dice Tray!");
@@ -28,7 +36,7 @@ fn main() {
     let settings = DICE_TRAY_SETTINGS.lock().unwrap();
     settings.load();
 
-    log_tray(&active_tray);
+    detailed_log_tray(&active_tray);
     dice_loop(active_tray);
 
     match settings.save() {
@@ -36,7 +44,9 @@ fn main() {
         Err(error_string) => println!("Failed to save tray settings. Error: {}", error_string),
     }
 }
+*/
 
+/*
 fn dice_loop(mut active_tray: impl Tray) {
     loop {
         println!("Enter commands (type \"help\" for options):");
@@ -261,6 +271,7 @@ fn dice_loop(mut active_tray: impl Tray) {
                 }
             }
         }
-        log_tray(&active_tray);
+        detailed_log_tray(&active_tray);
     }
 }
+*/
