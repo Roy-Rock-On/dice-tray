@@ -5,7 +5,7 @@ mod logger;
 
 use cli_dice_allocator::CliDiceAllocator;
 use rust_dice::dice_allocator::DiceAllocator;
-/* 
+
 use cli_dice_tray::CliTray;
 
 use cli_parser::{
@@ -17,30 +17,19 @@ use cli_parser::{
     parse_roll_command,
 };
 
-use rust_dice::settings::{DICE_TRAY_SETTINGS};
+//use rust_dice::settings::{DICE_TRAY_SETTINGS};
 use logger::detailed_log_tray;
 use std::io;
 use rust_dice::dice::DieResultType;
 use rust_dice::tray::Tray;
-*/
+
 
 
 
 fn main(){
     let mut app = CliDiceAllocator::new();
     app.init();
-    app.test_add_dice();
-        app.test_add_dice();
-            app.test_add_dice();
-                app.test_add_dice();
-                    app.test_add_dice();
-                        app.test_add_dice();
-                            app.test_add_dice();
-                                app.test_add_dice();
-                                    app.test_add_dice();
-                                        app.test_add_dice();
-                                            app.test_add_dice();
-                                                app.test_add_dice();
+    detailed_log_tray(app.get_tray_test().as_ref());
     app.close();
 }
 

@@ -41,6 +41,7 @@ pub struct CliDiceAllocator{
 }
 
 impl DiceAllocator for CliDiceAllocator{
+
     fn init(&mut self){
         // Try to load existing tray data from file
         if Path::new(&*DEFAULT_SAVE_PATH).exists() {
@@ -93,6 +94,10 @@ impl CliDiceAllocator{
             dice_trays: Vec::new(),
             id_gen : IdGenerator::new()
         }
+    }
+
+    pub fn get_tray_test(&self) -> &Box<dyn Tray>{
+        &self.dice_trays[0]
     }
 
     pub fn test_add_dice(&mut self){
