@@ -9,23 +9,6 @@ pub struct CliTrayData{
     dice_data: Vec<TypedDieData>
 }
 
-/*
-impl TrayData for CliTrayData{
-    fn from_tray(tray: &dyn Tray) -> impl TrayData {
-        let tray_dice = tray.get_dice();
-        let dice_data: Vec<TypedDieData> = tray_dice
-            .iter()
-            .map(|die| <DieData32 as DieData>::from_die(die.as_ref()))
-            .collect();
-        
-        CliTrayData{
-            label: tray.get_label().to_string(),
-            dice_data
-        }
-    }
-}
-*/
-
 impl From<&dyn Tray> for CliTrayData{
     fn from(tray: &dyn Tray) -> Self {
         let tray_dice = tray.get_dice();

@@ -2,36 +2,78 @@ mod cli_parser;
 mod cli_dice_tray;
 mod cli_dice_allocator;
 mod logger;
+mod app;
+
+use app::CliDiceTrayApp;
+
+use std::path::PathBuf;
 
 use cli_dice_allocator::CliDiceAllocator;
 use rust_dice::dice_allocator::DiceAllocator;
 
-use cli_dice_tray::CliTray;
-
-use cli_parser::{
-    DiceTrayCommandType, 
-    Targets, 
-    parse_add_command,
-    parse_dice_tray_commands,
-    parse_drop_command,
-    parse_roll_command,
-};
-
-//use rust_dice::settings::{DICE_TRAY_SETTINGS};
-use logger::detailed_log_tray;
-use std::io;
-use rust_dice::dice::DieResultType;
-use rust_dice::tray::Tray;
-
-
-
+use clap::{Parser, Subcommand};
 
 fn main(){
-    let mut app = CliDiceAllocator::new();
+    let mut app =  CliDiceTrayApp::new();
     app.init();
-    detailed_log_tray(app.get_tray_test().as_ref());
+
+    let cli = Cli::parse();
+
+    if cli.verbose{
+        println!("cli is verbose!");
+    }
+
+    match &cli.command {
+        Some(Commands::Add {
+            tray,
+            dice
+        }) => {
+            match tray{
+               Some(tray_string) => {println!("Found tray string {} on Add command.", tray_string)}
+               None => {println!("Found no tray string on add command.")} 
+            };
+            println!("Dice expression {} found for Add command", dice);
+        },
+        Some(Commands::Roll { 
+            tray,
+            targets 
+        }) => {
+            match tray{
+                Some(tray_string) => {println!("Found tray string {} on Roll command.", tray_string)}
+                None => {println!("Found no tray string on roll command.")} 
+            };
+            println!("Targets expression {} found for Roll command", targets);
+        },
+        None => {println!("No commands found!")}
+    };
+
     app.close();
 }
+
+#[derive(Parser)]
+#[command(version, about, long_about = None)]
+struct Cli{
+    #[arg(long, short)]
+    verbose: bool,
+
+    #[command(subcommand)]
+    command: Option<Commands>
+}
+
+#[derive(Subcommand)]
+enum Commands{
+    Add{
+        #[arg(short, long)]
+        tray: Option<String>,
+        dice: String
+    },
+    Roll {
+        #[arg(short, long)]
+        tray: Option<String>,
+        targets: String
+    }
+}
+
 
 /*
 fn main() {

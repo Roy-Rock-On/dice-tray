@@ -441,6 +441,7 @@ version = "0.0.1"
 dependencies = [
  "clap",
  "cli-table",
+ "dirs",
  "regex",
  "rust_dice",
  "serde",
@@ -1577,7 +1578,6 @@ dependencies = [
 name = "rust_dice"
 version = "0.1.0"
 dependencies = [
- "dirs",
  "rand",
  "serde",
 ]

@@ -16,7 +16,7 @@ pub mod dice_allocator;
 ///Helper functions to quickly build sets of dice.
 pub mod dice_builders;
 
-//Dice profiles are used to build new dice. Dice profiles can be saved/loaded from JSON (not yet implemented)
+///Dice profiles are used to build new dice. Dice profiles can be saved/loaded from JSON (not yet implemented)
 pub mod dice_profile;
 
 ///Module  for managing a tray of dice. A tray can hold multiple dice, roll them all, remove them, clear itself, and more.
@@ -25,6 +25,4 @@ pub mod tray;
 ///Module  for creating roll tables and looking up dice results on said tables.
 pub mod tables;
 
-///Module for managing user settings including result tables, dice profiles, and more.
-pub mod settings;
 

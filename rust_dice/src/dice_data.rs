@@ -4,7 +4,7 @@ use crate::dice::{Die, Die32, DieResult, DieResultType};
 use crate::tray::Tray;
 
 ///Trait ensures that DieData can be created by any type that implements the Die trait.
-pub trait DieData: Sized + Serialize + for<'a> Deserialize<'a> {
+pub trait DieData: Serialize + for<'a> Deserialize<'a> {
     fn from_die(die: &dyn Die) -> TypedDieData;
 }
 
