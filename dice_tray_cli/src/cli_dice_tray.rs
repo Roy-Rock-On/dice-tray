@@ -1,17 +1,17 @@
 
-use rust_dice::dice::{Die, DieData, DieData32, DieResultType};
-use rust_dice::tray::{Tray, TrayData, TrayResult, TrayResultType, TypedDieData};
-
+use rust_dice::dice::{Die, DieResultType};
+use rust_dice::tray::{Tray, TrayResult, TrayResultType};
+use rust_dice::dice_data::{DieData, DieData32, TrayData, TypedDieData};
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct CliTrayData{
-    id: usize,
     label: String,
     dice_data: Vec<TypedDieData>
 }
 
+/*
 impl TrayData for CliTrayData{
-    fn from_tray(tray: impl Tray) -> impl TrayData {
+    fn from_tray(tray: &dyn Tray) -> impl TrayData {
         let tray_dice = tray.get_dice();
         let dice_data: Vec<TypedDieData> = tray_dice
             .iter()
@@ -19,7 +19,22 @@ impl TrayData for CliTrayData{
             .collect();
         
         CliTrayData{
-            id: tray.get_id(),
+            label: tray.get_label().to_string(),
+            dice_data
+        }
+    }
+}
+*/
+
+impl From<&dyn Tray> for CliTrayData{
+    fn from(tray: &dyn Tray) -> Self {
+        let tray_dice = tray.get_dice();
+        let dice_data: Vec<TypedDieData> = tray_dice
+            .iter()
+            .map(|die| <DieData32 as DieData>::from_die(die.as_ref()))
+            .collect();
+        
+        CliTrayData {
             label: tray.get_label().to_string(),
             dice_data
         }
@@ -27,25 +42,6 @@ impl TrayData for CliTrayData{
 }
 
 impl CliTrayData {
-    pub fn from_tray_ref(tray: &dyn Tray) -> Self {
-        let tray_dice = tray.get_dice();
-        let dice_data: Vec<TypedDieData> = tray_dice
-            .iter()
-            .map(|die| <DieData32 as DieData>::from_die(die.as_ref()))
-            .collect();
-        
-        CliTrayData{
-            id: tray.get_id(),
-            label: tray.get_label().to_string(),
-            dice_data
-        }
-    }
-
-    /// Get the ID of this tray data
-    pub fn get_id(&self) -> usize {
-        self.id
-    }
-
     /// Get the label of this tray data
     pub fn get_label(&self) -> &str {
         &self.label

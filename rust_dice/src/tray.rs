@@ -1,7 +1,7 @@
 use crate::dice::Die32;
 use serde::{Serialize, Deserialize};
 
-use super::dice::{Die, DieResultType, DieData32};
+use super::dice::{Die, DieResultType};
 
 ///Result type for a dice tray.
 pub enum TrayResultType {
@@ -104,26 +104,9 @@ pub trait Tray{
     fn get_result(&self) -> TrayResult;
 }
 
-pub trait TrayData{
-    //Converts a dice tray into tray data. 
-    fn from_tray(tray: impl Tray) -> impl TrayData;
-}
 
-#[derive(Serialize, Deserialize, Clone)]
-pub enum TypedDieData {
-    Die32(DieData32),
-}
 
-impl TypedDieData{
-    ///Converts typed die data into a die. With the given ID.
-    pub fn to_die(self, id: usize) -> Box<dyn Die>{
-        match self{
-            TypedDieData::Die32(data) => {
-                Box::new(Die32::from_data(id, &data))
-            }
-        }
-    }
-}
+
 
 
 

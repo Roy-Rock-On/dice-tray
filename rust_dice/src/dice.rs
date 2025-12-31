@@ -1,15 +1,10 @@
 use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};
-use std::clone;
 use std::cmp::Ordering;
 use std::mem::discriminant;
 use serde::{Serialize, Deserialize};
 
-use crate::tray::TypedDieData;
-
-pub trait DieData: Sized + Serialize + for<'a> Deserialize<'a> {
-    fn from_die(die: &dyn Die) -> TypedDieData;
-}
+use crate::dice_data::{DieData, DieData32};
 
 /// Used to type dice for serilization/deserilization. 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -60,26 +55,6 @@ pub trait Die {
     
     ///Sets the face of the die to the new_face value. Clamps the value within the range of the die's faces. 
     fn set_face(&mut self, new_face: i32);
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct DieData32{
-    label: String,
-    faces: u32,
-    current_face: u32,
-    current_result: DieResult
-}
-
-impl DieData for DieData32 {
-    fn from_die(die: &dyn Die) -> TypedDieData {
-        TypedDieData::Die32(
-            DieData32{
-                label: die.get_label().to_string(),
-                faces: die.get_face_count(),
-                current_face: die.get_current_face() as u32,
-                current_result: die.get_result().clone()
-            })
-    }
 }
 
 
@@ -198,10 +173,10 @@ impl Die32 {
             die_type : DieType::Die32,
             id,
             rng: SmallRng::from_rng(&mut rand::rng()),
-            label: data.label.clone(),
-            faces: data.faces,
-            current_face: data.current_face,
-            current_result: data.current_result.clone(),
+            label: data.get_label().to_string(),
+            faces: data.get_faces(),
+            current_face: data.get_current_face(),
+            current_result: data.get_current_result().clone(),
             result_type: DieResultType::Face
         }
     }
@@ -289,7 +264,7 @@ impl Ord for Die32 {
 }
 
 /// Used to request specific result types from a Die roll.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum DieResultType {
     Face,
     Best,

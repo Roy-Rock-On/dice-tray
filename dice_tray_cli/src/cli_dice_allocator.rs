@@ -5,9 +5,11 @@ use rust_dice::dice_allocator::DiceAllocator;
 use rust_dice::dice_builders::new_die;
 use rust_dice::dice_profile::DieProfile;
 use rust_dice::dice::Die;
+use rust_dice::dice_data::{TrayData};
 use std::fs;
 use std::path::Path;
 use crate::cli_dice_tray::{CliTray, CliTrayData};
+
 use std::env;
 
 static DEFAULT_SAVE_PATH: LazyLock<std::path::PathBuf> = LazyLock::new(|| get_default_save_path());
@@ -116,7 +118,7 @@ impl CliDiceAllocator{
         let mut loaded_trays: Vec<Box<dyn Tray>> = Vec::new();
         for data in tray_data_vec {
             let dice_data = data.get_dice_data();
-            let mut tray = CliTray::new(data.get_id(), data.get_label().to_string());
+            let mut tray = CliTray::new(self.id_gen.get_tray_id(), data.get_label().to_string());
             let mut tray_dice: Vec<Box<dyn Die>> = Vec::new();
             for datum in dice_data {
                 tray_dice.push(datum.to_die(self.id_gen.get_die_id()))
@@ -137,7 +139,7 @@ impl CliDiceAllocator{
             // We need to work around the fact that from_tray takes ownership
             // For now, we'll create CliTrayData manually
             // TODO: Improve this when the TrayData trait is refined
-            let tray_data = CliTrayData::from_tray_ref(tray.as_ref());
+            let tray_data = CliTrayData::from(tray.as_ref());
             tray_data_vec.push(tray_data);
         }
         
