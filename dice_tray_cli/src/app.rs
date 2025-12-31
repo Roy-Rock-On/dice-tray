@@ -1,6 +1,6 @@
 use dirs::{data_local_dir};
 
-use rust_dice::dice::{Die, DieType};
+use rust_dice::dice::{Die, DieResultType};
 use rust_dice::dice_allocator::DiceAllocator;
 use rust_dice::dice_profile::{DieProfile, DieProfileType};
 use rust_dice::tray::{Tray};
@@ -14,7 +14,6 @@ use crate::cli_dice_tray::{CliTray, CliTrayData};
 use crate::logger::detailed_log_tray;
 
 pub struct CliDiceTrayApp{
-    active_tray_index: usize,
     dice_allocator : CliDiceAllocator,
     dice_trays : Vec<Box<dyn Tray>>
 }
@@ -22,7 +21,6 @@ pub struct CliDiceTrayApp{
 impl CliDiceTrayApp{
     pub fn new() -> Self{
         CliDiceTrayApp{
-            active_tray_index : 0,
             dice_allocator : CliDiceAllocator::new(),
             dice_trays : Vec::new()
         }
@@ -53,34 +51,36 @@ impl CliDiceTrayApp{
         }
     }
 
-    pub fn target_tray(&mut self, target : &str){
+    pub fn target_tray(&mut self, target : &str) -> usize{
         let tray_checker = self.dice_trays.iter().enumerate();
         for (index, tray) in tray_checker {
             if tray.get_label() == target {
-                self.active_tray_index = index;
-                break;
+                return index;
             }
         }
 
-        if self.dice_trays.iter().all(|tray| tray.get_label() != target) {
-            let new_tray = self.dice_allocator.new_tray(target.to_string());
-            self.dice_trays.push(new_tray);
-            self.active_tray_index = self.dice_trays.len() - 1;
-            println!("Created new tray: {}", target);
-        }
+        println!("Creating a new tray with label: {}", target);
+        let new_tray = self.dice_allocator.new_tray(target.to_string());
+        self.dice_trays.push(new_tray);
+        self.dice_trays.len() - 1
     }
 
-    pub fn add_dice_from_raw(&mut self, count : u32, faces : u32){
+    pub fn add_dice_from_raw(&mut self, tray_index : usize, count : u32, faces : u32){
         let profile = DieProfile::new(None, DieProfileType::Numerical(faces));
         for i in 0..count{
             let new_die = self.dice_allocator.new_die(&profile);
-            self.dice_trays[self.active_tray_index].as_mut().add_die(new_die);
+            self.dice_trays[tray_index].as_mut().add_die(new_die);
         }
     }
 
-    pub fn show_active_tray(&self){
-        let active_tray = &self.dice_trays[self.active_tray_index];
+    pub fn show_tray(&self, tray_index : usize){
+        let active_tray = &self.dice_trays[tray_index];
         detailed_log_tray(active_tray.as_ref());
+    }
+
+    pub fn roll_all(&mut self, tray_index : usize){
+        let active_tray = self.dice_trays[tray_index].as_mut();
+        active_tray.roll_all(rust_dice::dice::DieResultType::Face);
     }
 
     fn load_trays_from_file(&mut self) -> Result<Vec<Box<dyn Tray>>, Box<dyn Error>> {

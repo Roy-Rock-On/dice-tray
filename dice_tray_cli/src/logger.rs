@@ -34,7 +34,9 @@ pub fn detailed_log_tray(tray: &dyn Tray) {
         })
         .collect(); 
 
+    println!("Showing dice in tray: {}", tray.get_label());
     print_stdout(dice_states.with_title()).unwrap();
+
     println!(
         "{} = {}",
         tray.get_result_type().to_string(),
