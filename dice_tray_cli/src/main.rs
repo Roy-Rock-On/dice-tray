@@ -4,51 +4,11 @@ mod cli_dice_allocator;
 mod logger;
 mod app;
 
+use cli_parser::parse_dice_notation;
+
 use app::CliDiceTrayApp;
 
-use std::path::PathBuf;
-
-use cli_dice_allocator::CliDiceAllocator;
-use rust_dice::dice_allocator::DiceAllocator;
-
 use clap::{Parser, Subcommand};
-
-fn main(){
-    let mut app =  CliDiceTrayApp::new();
-    app.init();
-
-    let cli = Cli::parse();
-
-    if cli.verbose{
-        println!("cli is verbose!");
-    }
-
-    match &cli.command {
-        Some(Commands::Add {
-            tray,
-            dice
-        }) => {
-            match tray{
-               Some(tray_string) => {println!("Found tray string {} on Add command.", tray_string)}
-               None => {println!("Found no tray string on add command.")} 
-            };
-            println!("Dice expression {} found for Add command", dice);
-        },
-        Some(Commands::Roll { 
-            tray,
-            targets 
-        }) => {
-            match tray{
-                Some(tray_string) => {println!("Found tray string {} on Roll command.", tray_string)}
-                None => {println!("Found no tray string on roll command.")} 
-            };
-            println!("Targets expression {} found for Roll command", targets);
-        },
-        None => {println!("No commands found!")}
-    };
-
-    app.close();
-}
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -65,7 +25,7 @@ enum Commands{
     Add{
         #[arg(short, long)]
         tray: Option<String>,
-        dice: String
+        dice_command: String
     },
     Roll {
         #[arg(short, long)]
@@ -73,6 +33,51 @@ enum Commands{
         targets: String
     }
 }
+
+fn main(){
+    let mut app =  CliDiceTrayApp::new();
+    app.init();
+
+    let cli = Cli::parse();
+
+    if cli.verbose{
+        println!("cli is verbose!");
+    }
+
+    match &cli.command {
+        Some(Commands::Add {
+            tray,
+            dice_command
+        }) => {
+            match tray{
+               Some(tray_string) => {
+                    app.target_tray(&tray_string);
+                }
+               None => {} 
+            };
+            if let Ok(raw_dice) = parse_dice_notation(dice_command){
+                app.add_dice_from_raw(raw_dice.0, raw_dice.1);
+            }
+        },
+        Some(Commands::Roll { 
+            tray,
+            targets 
+        }) => {
+            match tray{
+                Some(tray_string) => {
+                    app.target_tray(&tray_string);
+                }
+                None => {} 
+            };
+            println!("Targets expression {} found for Roll command", targets);
+        },
+        None => {println!("No commands found!")}
+    };
+
+    app.show_active_tray();
+    app.close();
+}
+
 
 
 /*

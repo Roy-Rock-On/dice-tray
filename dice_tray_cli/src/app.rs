@@ -1,7 +1,8 @@
 use dirs::{data_local_dir};
 
-use rust_dice::dice::{Die};
+use rust_dice::dice::{Die, DieType};
 use rust_dice::dice_allocator::DiceAllocator;
+use rust_dice::dice_profile::{DieProfile, DieProfileType};
 use rust_dice::tray::{Tray};
 use rust_dice::dice_data::{DieData, DieData32, TypedDieData};
 
@@ -10,8 +11,10 @@ use std::error::{Error};
 
 use crate::cli_dice_allocator::{CliDiceAllocator};
 use crate::cli_dice_tray::{CliTray, CliTrayData};
+use crate::logger::detailed_log_tray;
 
 pub struct CliDiceTrayApp{
+    active_tray_index: usize,
     dice_allocator : CliDiceAllocator,
     dice_trays : Vec<Box<dyn Tray>>
 }
@@ -19,16 +22,26 @@ pub struct CliDiceTrayApp{
 impl CliDiceTrayApp{
     pub fn new() -> Self{
         CliDiceTrayApp{
+            active_tray_index : 0,
             dice_allocator : CliDiceAllocator::new(),
             dice_trays : Vec::new()
         }
     }
 
     pub fn init(&mut self){
-        if let Err(e) = self.load_trays_from_file() {
-            println!("Error loading trays from file: {}", e);
-        } else {
-            println!("Welcome to dice-tray cli. Your trays have loaded successfully!");
+        match self.load_trays_from_file(){
+            Ok(trays) => {
+                self.dice_trays = trays;
+                println!("Welcome to dice-tray cli. Your trays have loaded successfully!");
+            },
+            Err(e) => {
+                println!("Error loading trays from file: {}", e);
+            }
+        }
+
+        if self.dice_trays.is_empty(){
+            let new_tray = self.dice_allocator.new_tray("DiceTray".to_string());
+            self.dice_trays.push(new_tray);
         }
     }
 
@@ -38,6 +51,36 @@ impl CliDiceTrayApp{
         } else {
             println!("Trays saved successfully. Goodbye!");
         }
+    }
+
+    pub fn target_tray(&mut self, target : &str){
+        let tray_checker = self.dice_trays.iter().enumerate();
+        for (index, tray) in tray_checker {
+            if tray.get_label() == target {
+                self.active_tray_index = index;
+                break;
+            }
+        }
+
+        if self.dice_trays.iter().all(|tray| tray.get_label() != target) {
+            let new_tray = self.dice_allocator.new_tray(target.to_string());
+            self.dice_trays.push(new_tray);
+            self.active_tray_index = self.dice_trays.len() - 1;
+            println!("Created new tray: {}", target);
+        }
+    }
+
+    pub fn add_dice_from_raw(&mut self, count : u32, faces : u32){
+        let profile = DieProfile::new(None, DieProfileType::Numerical(faces));
+        for i in 0..count{
+            let new_die = self.dice_allocator.new_die(&profile);
+            self.dice_trays[self.active_tray_index].as_mut().add_die(new_die);
+        }
+    }
+
+    pub fn show_active_tray(&self){
+        let active_tray = &self.dice_trays[self.active_tray_index];
+        detailed_log_tray(active_tray.as_ref());
     }
 
     fn load_trays_from_file(&mut self) -> Result<Vec<Box<dyn Tray>>, Box<dyn Error>> {

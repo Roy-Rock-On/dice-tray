@@ -2,11 +2,11 @@
 
 pub struct DieProfile {
     pub label: Option<String>,
-    pub die_type: DieType
+    pub die_type: DieProfileType
 }
 
 /// DieType is used to specify what kind of die the die_profile should build. Can be extended with more die types later. 
-pub enum DieType{
+pub enum DieProfileType{
     Numerical(u32),
     Custom
 }
@@ -14,7 +14,7 @@ pub enum DieType{
 
 impl DieProfile{
     ///Creates and returns a new dice profile that can be used to create new dice. 
-    pub fn new(label: Option<String>, die_type : DieType) -> Self {
+    pub fn new(label: Option<String>, die_type : DieProfileType) -> Self {
         DieProfile{
             label,
             die_type   
