@@ -84,10 +84,11 @@ impl Tray for CliTray {
     ///Returns only the first die found. There shouldn't be multipule dice with the same ID active in the app if the DiceAllocator is being used properly.  
     fn remove_die_by_id(&mut self, id : usize) -> Result<Box<dyn Die>, String>{
         let mut i = self.dice.len();
-        while i >= 0 {
+        loop {
             if self.dice[i].get_id() == id {
                 return Ok(self.dice.remove(i))
             }
+            if i == 0 { break; }
             i -= 1;
         }
 
@@ -97,14 +98,14 @@ impl Tray for CliTray {
     /// Removes all Dice with the specified label from the tray. Returns all Dice removed.
     fn remove_dice_by_label(&mut self, label: &str) -> Result<Vec<Box<dyn Die>>, String> {
         let mut removed_dice: Vec<Box<dyn Die>> = Vec::new();
-        let mut i = self.dice.len();
+        let mut i = self.dice.len() - 1;
         
-        while i >= 0 {
+        loop {
             if self.dice[i].get_label() == label {
                 removed_dice.push(self.dice.remove(i));
-            } else {
-                i -= 1;
             }
+            if i == 0 { break; }
+            i -= 1;
         }
         if removed_dice.is_empty() {
             return Err("No dice with the specified label found".to_string());

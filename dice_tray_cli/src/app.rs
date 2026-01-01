@@ -2,7 +2,6 @@ use dirs::{data_local_dir};
 
 use rust_dice::dice::{Die, DieResultType};
 use rust_dice::dice_allocator::DiceAllocator;
-use rust_dice::dice_builders::new_die;
 use rust_dice::dice_profile::{DieProfile, DieProfileType};
 use rust_dice::tray::{Tray};
 use rust_dice::dice_data::{DieData, DieData32, TypedDieData};
@@ -13,6 +12,7 @@ use std::error::{Error};
 
 use crate::cli_dice_allocator::{CliDiceAllocator};
 use crate::cli_dice_tray::{CliTray, CliTrayData};
+use crate::cli_parser::DiceTargets;
 use crate::logger::detailed_log_tray;
 
 pub struct CliDiceTrayApp{
@@ -54,11 +54,6 @@ impl CliDiceTrayApp{
             Err(e) => {
                 println!("Error loading trays from file: {}", e);
             }
-        }
-
-        if self.dice_trays.is_empty(){
-            let new_tray = self.dice_allocator.new_tray("DiceTray".to_string());
-            self.dice_trays.insert(new_tray.get_id().to_string(), new_tray);
         }
     }
 
@@ -107,7 +102,7 @@ impl CliDiceTrayApp{
              Ok(active_tray) => {
                 detailed_log_tray(active_tray);
              }
-             Err(e) => println!("Show Tray failed with error {}", e)
+             Err(_e) => println!("No trays to show.")
         }
     }
 
@@ -116,6 +111,54 @@ impl CliDiceTrayApp{
             Ok(active_tray) => active_tray.roll_all(rust_dice::dice::DieResultType::Face),
             Err(e) => println!("Roll all failed with error {}", e)
         }
+    }
+
+    pub fn roll_at_targets(&mut self, targets: Vec<DiceTargets>) -> Result<(), String>{
+        if let Ok(active_tray) = self.get_active_tray_mut(){
+            targets.iter().for_each(|target| {
+                match target{
+                    DiceTargets::Index(indecies) => {
+                        for i in indecies.iter() { 
+                            let _ = active_tray.roll_at(*i, DieResultType::Face);
+                        }
+                    },
+                    DiceTargets::Label(label) =>{
+                        match active_tray.roll_by_label(label, DieResultType::Face){
+                            Ok(_) => {},
+                            Err(_) => {}
+                        }
+                    }
+                }
+            });
+        }
+        Ok(())
+    }
+
+    pub fn remove_at_targets(&mut self, targets: Vec<DiceTargets>) -> Result<(), String>{
+        if let Ok(active_tray) = self.get_active_tray_mut(){
+            targets.iter().for_each(|target| {
+                match target{
+                    DiceTargets::Index(indices) => {
+                        for i in indices.iter().rev() { 
+                            let _ = active_tray.remove_die_at(*i);
+                        }
+                    },
+                    DiceTargets::Label(label) =>{
+                        match active_tray.remove_dice_by_label(label){
+                            Ok(_) => {},
+                            Err(_) => {}
+                        }
+                    }
+                }
+            });
+        }
+        Ok(())
+    }
+
+    ///Resets the whole application by clearning all trays and dice. 
+    pub fn reset(&mut self){
+        println!("Resetting dice-tray by deleting all trays and dice and trays.");
+        self.dice_trays.clear();
     }
 
     fn get_active_tray(&self) -> Result<&dyn Tray, String>{

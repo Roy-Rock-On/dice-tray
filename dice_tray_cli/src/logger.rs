@@ -6,8 +6,8 @@ use rust_dice::tray::Tray;
 struct DetailedDiceState {
     #[table(title = "Index", justify = "Justify::Center")]
     index: usize,
-    #[table(title = "Identity", justify = "Justify::Center")]
-    identity: String,
+    #[table(title = "Label", justify = "Justify::Center")]
+    label: String,
     #[table(title = "Face Count", justify = "Justify::Center")]
     faces_string: String,
     #[table(title = "Current Face", justify = "Justify::Center")]
@@ -26,7 +26,7 @@ pub fn detailed_log_tray(tray: &dyn Tray) {
         .enumerate()
         .map(|(i, die)| DetailedDiceState {
             index: i,
-            identity: die.get_id().to_string(),
+            label: die.get_label().to_string(),
             faces_string : die.get_face_count().to_string(), 
             current_face_string: die.get_current_face().to_string(),
             result_type_string: die_result_type_to_string(die.as_ref()),
