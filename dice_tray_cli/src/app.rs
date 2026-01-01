@@ -115,10 +115,10 @@ impl CliDiceTrayApp{
         Ok(loaded_trays)
     }
 
-        fn save_trays_to_file(&self) -> Result<(), Box<dyn Error>> {
+        fn save_trays_to_file(&mut self) -> Result<(), Box<dyn Error>> {
             let mut tray_data_vec: Vec<CliTrayData> = Vec::new();
-            
-            for tray in &self.dice_trays {
+
+            for tray in self.dice_trays.iter() {
                 let tray_data = CliTrayData::from(tray.as_ref());
                 tray_data_vec.push(tray_data);
             }

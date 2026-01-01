@@ -1,5 +1,5 @@
 use rand::rngs::SmallRng;
-use rand::{Rng, SeedableRng};
+use rand::{Rng, RngCore, SeedableRng};
 use std::cmp::Ordering;
 use std::mem::discriminant;
 use serde::{Serialize, Deserialize};
@@ -14,6 +14,11 @@ pub enum DieType{
 
 /// The die trait alows for extending this library with custom dice types.
 pub trait Die {
+    //&self
+
+    ///Returns a u64 that can be used to generate new RNG the next time the die is instantiated.
+    fn get_rng_seed(&self) -> u64;
+
     ///Returns the die type, handled by the constructor of the die struct. Used to serialize and deserialize dice.
     fn get_die_type(&self) -> &DieType;
 
@@ -38,14 +43,16 @@ pub trait Die {
     ///Used to get a reffrence to the current result type of the die.
     fn get_result_type(&self) -> &DieResultType;
 
-    ///Rolls the die.
-    fn roll(&mut self, result_type: DieResultType);
-
     ///Returns true if the die's current face is the face with the highest value.m
     fn is_max(&self) -> bool;
 
     ///Returns true if thr die's current face is the face with the lowest value.
     fn is_min(&self) -> bool;
+
+    //&mut self
+
+    ///Rolls the die.
+    fn roll(&mut self, result_type: DieResultType);
 
     ///Increments the face on the die by one, if face is maxed wrap the die around to one.
     fn increment(&mut self);
@@ -74,6 +81,10 @@ pub struct Die32 {
 impl Die for Die32{
     fn get_die_type(&self) -> &DieType{
         &self.die_type
+    }
+
+    fn get_rng_seed(&self) -> u64 {
+        self.rng.clone().next_u64()
     }
 
     fn get_id(&self) -> usize {
@@ -172,7 +183,7 @@ impl Die32 {
         Die32 { 
             die_type : DieType::Die32,
             id,
-            rng: SmallRng::from_rng(&mut rand::rng()),
+            rng: SmallRng::seed_from_u64(data.get_seed()),
             label: data.get_label().to_string(),
             faces: data.get_faces(),
             current_face: data.get_current_face(),

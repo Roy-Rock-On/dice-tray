@@ -27,6 +27,7 @@ impl TypedDieData{
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct DieData32{
+    rng_seed: u64,
     label: String,
     faces: u32,
     current_face: u32,
@@ -38,6 +39,7 @@ impl DieData for DieData32 {
     fn from_die(die: &dyn Die) -> TypedDieData {
         TypedDieData::Die32(
             DieData32{
+                rng_seed: die.get_rng_seed(),
                 label: die.get_label().to_string(),
                 faces: die.get_face_count(),
                 current_face: die.get_current_face() as u32,
@@ -48,6 +50,11 @@ impl DieData for DieData32 {
 }
 
 impl DieData32{
+    ///Gets the rng seed form the data- making the dice consistant across sessions (sort of).
+    pub fn get_seed(&self) -> u64 {
+        self.rng_seed
+    }
+
     ///Gets the dice data label as a string slice.
     pub fn get_label(&self) -> &str{
         &self.label
@@ -73,8 +80,6 @@ impl DieData32{
         &self.current_result_type
     }
 }
-
-
 
 /// Tray data is used to save/load dice trays using the serde crate. 
 /// Enforces that TrayData Types must implement From<&dyn Tray>

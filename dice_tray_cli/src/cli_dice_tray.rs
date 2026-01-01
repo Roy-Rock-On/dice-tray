@@ -64,7 +64,6 @@ impl Tray for CliTray {
         &self.label
     }
 
-
     /// Adds a Die to the tray.
     fn add_die(&mut self, die: Box<dyn Die>) {
         self.dice.push(die);
