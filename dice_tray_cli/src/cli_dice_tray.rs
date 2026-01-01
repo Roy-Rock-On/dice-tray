@@ -18,7 +18,7 @@ impl From<&dyn Tray> for CliTrayData{
             .collect();
         
         CliTrayData {
-            label: tray.get_label().to_string(),
+            label: tray.get_id().to_string(),
             dice_data
         }
     }
@@ -37,18 +37,16 @@ impl CliTrayData {
 }
 
 pub struct CliTray {
-    id : usize,
-    label : String,
+    id : String,
     dice: Vec<Box<dyn Die>>, 
     tray_result_type: TrayResultType, 
 }
 
 impl CliTray{
     /// Creates a new, empty Tray.
-    pub fn new(id : usize, label : String) -> Self {
+    pub fn new(id : String) -> Self {
         CliTray {
             id,
-            label,
             dice: Vec::new(),
             tray_result_type: TrayResultType::Sum, // default result type
         }
@@ -56,12 +54,9 @@ impl CliTray{
 }
 
 impl Tray for CliTray {
-    fn get_id(&self) -> usize {
-        self.id
-    }
-
-    fn get_label(&self) -> &str {
-        &self.label
+    /// trays have unique ID's that are used by the dice allocator to create a HashSet. The allocator ensure tha there are no duplicate tray IDs in the application.  
+    fn get_id(&self) -> &str {
+        &self.id
     }
 
     /// Adds a Die to the tray.

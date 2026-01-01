@@ -2,9 +2,11 @@ use dirs::{data_local_dir};
 
 use rust_dice::dice::{Die, DieResultType};
 use rust_dice::dice_allocator::DiceAllocator;
+use rust_dice::dice_builders::new_die;
 use rust_dice::dice_profile::{DieProfile, DieProfileType};
 use rust_dice::tray::{Tray};
 use rust_dice::dice_data::{DieData, DieData32, TypedDieData};
+use std::collections::HashMap;
 
 use std::fs::create_dir_all;
 use std::error::{Error};
@@ -15,22 +17,39 @@ use crate::logger::detailed_log_tray;
 
 pub struct CliDiceTrayApp{
     dice_allocator : CliDiceAllocator,
-    dice_trays : Vec<Box<dyn Tray>>
+    dice_trays : HashMap<String, Box<dyn Tray>>,
+    active_tray_key : Option<String>
 }
 
 impl CliDiceTrayApp{
     pub fn new() -> Self{
         CliDiceTrayApp{
             dice_allocator : CliDiceAllocator::new(),
-            dice_trays : Vec::new()
+            dice_trays : HashMap::new(),
+            active_tray_key: None
         }
     }
 
     pub fn init(&mut self){
+        println!("Welcome to dice-tray cli.");
         match self.load_trays_from_file(){
             Ok(trays) => {
-                self.dice_trays = trays;
-                println!("Welcome to dice-tray cli. Your trays have loaded successfully!");
+                let mut tray_duplicate = false;
+                for tray in trays.into_iter(){
+                    if !self.dice_trays.contains_key(tray.get_id()){
+                        self.dice_trays.insert(tray.get_id().to_string(), tray);
+                    }
+                    else{
+                        println!("A tray with ID: {} has already been loaded. Tray with duplicate ID cannot be loaded.", tray.get_id());
+                        tray_duplicate = true;
+                    }
+                }
+                if (tray_duplicate){
+                    println!("Some trays were not loaded due to errors. Sorry about that.");
+                }
+                else{
+                    println!("Your trays have loaded successfully!");
+                }
             },
             Err(e) => {
                 println!("Error loading trays from file: {}", e);
@@ -39,7 +58,7 @@ impl CliDiceTrayApp{
 
         if self.dice_trays.is_empty(){
             let new_tray = self.dice_allocator.new_tray("DiceTray".to_string());
-            self.dice_trays.push(new_tray);
+            self.dice_trays.insert(new_tray.get_id().to_string(), new_tray);
         }
     }
 
@@ -51,36 +70,95 @@ impl CliDiceTrayApp{
         }
     }
 
-    pub fn target_tray(&mut self, target : &str) -> usize{
-        let tray_checker = self.dice_trays.iter().enumerate();
-        for (index, tray) in tray_checker {
-            if tray.get_label() == target {
-                return index;
-            }
+    pub fn target_tray(&mut self, target : &str){
+        if self.dice_trays.contains_key(target){
+            println!("Targeting tray with ID: {}", target);
+            self.active_tray_key = Some(target.to_string());
         }
+        else{
+            println!("Creating a new tray with id: {}", target);
+            let new_tray = self.dice_allocator.new_tray(target.to_string());
+            self.active_tray_key = Some(new_tray.get_id().to_string());
+            self.dice_trays.insert(new_tray.get_id().to_string(), new_tray);
 
-        println!("Creating a new tray with label: {}", target);
-        let new_tray = self.dice_allocator.new_tray(target.to_string());
-        self.dice_trays.push(new_tray);
-        self.dice_trays.len() - 1
+        }
     }
 
-    pub fn add_dice_from_raw(&mut self, tray_index : usize, count : u32, faces : u32){
+    pub fn add_dice_from_raw(&mut self, count : u32, faces : u32){
         let profile = DieProfile::new(None, DieProfileType::Numerical(faces));
         for i in 0..count{
-            let new_die = self.dice_allocator.new_die(&profile);
-            self.dice_trays[tray_index].as_mut().add_die(new_die);
+            match self.dice_allocator.new_die(&profile){
+                Ok(die) => {
+                    match self.get_active_tray_mut(){
+                        Ok(tray) => tray.add_die(die),
+                        Err(e) => println!("Failed to add dice with error {}", e)
+                    }
+                }
+,
+                Err(e) => {
+                    println!("Failed to add new dice to tray from raw. Error: {}", e);
+                }
+            }
         }
     }
 
-    pub fn show_tray(&self, tray_index : usize){
-        let active_tray = &self.dice_trays[tray_index];
-        detailed_log_tray(active_tray.as_ref());
+    pub fn show_tray(&self){
+        match self.get_active_tray() {
+             Ok(active_tray) => {
+                detailed_log_tray(active_tray);
+             }
+             Err(e) => println!("Show Tray failed with error {}", e)
+        }
     }
 
-    pub fn roll_all(&mut self, tray_index : usize){
-        let active_tray = self.dice_trays[tray_index].as_mut();
-        active_tray.roll_all(rust_dice::dice::DieResultType::Face);
+    pub fn roll_all(&mut self){
+        match self.get_active_tray_mut() {
+            Ok(active_tray) => active_tray.roll_all(rust_dice::dice::DieResultType::Face),
+            Err(e) => println!("Roll all failed with error {}", e)
+        }
+    }
+
+    fn get_active_tray(&self) -> Result<&dyn Tray, String>{
+        match &self.active_tray_key {
+            Some(key) => {
+                match self.dice_trays.get(key) {
+                    Some(tray) => Ok(tray.as_ref()),
+                    None =>  Err(format!("No dice tray found for key {}", key))
+                }
+            },
+            None => {
+                match self.dice_trays.iter().next(){
+                    Some(tray) => {
+                        Ok(tray.1.as_ref())
+                    },
+                    None => Err(format!("No dice trays found at all. How!?"))
+                }
+            }
+        }
+    }
+
+    fn get_active_tray_mut(&mut self) -> Result<&mut dyn Tray, String>{
+        match &self.active_tray_key {
+            Some(key) => {
+                match self.dice_trays.get_mut(key) {
+                    Some(tray) => Ok(tray.as_mut()),
+                    None =>  Err(format!("No dice tray found for key {}", key))
+                }
+            },
+            None => {
+                // Get the first tray's key
+                let first_key = match self.dice_trays.keys().next() {
+                    Some(key) => key.clone(),
+                    None => return Err(format!("No dice trays found at all. How!?"))
+                };
+                
+                self.active_tray_key = Some(first_key.clone());
+                match self.dice_trays.get_mut(&first_key) {
+                    Some(tray) => Ok(tray.as_mut()),
+                    None => Err(format!("No dice tray found for key {}", first_key))
+                }
+            }
+        }
     }
 
     fn load_trays_from_file(&mut self) -> Result<Vec<Box<dyn Tray>>, Box<dyn Error>> {
@@ -106,7 +184,7 @@ impl CliDiceTrayApp{
             let mut tray = self.dice_allocator.new_tray(data.get_label().to_string());
             let mut tray_dice: Vec<Box<dyn Die>> = Vec::new();
             for datum in dice_data {
-                tray_dice.push(self.dice_allocator.new_die_from_data(datum));
+                tray_dice.push(self.dice_allocator.new_die_from_data(datum)?);
             }
             tray.add_dice(tray_dice);
             loaded_trays.push(tray);
@@ -119,7 +197,7 @@ impl CliDiceTrayApp{
             let mut tray_data_vec: Vec<CliTrayData> = Vec::new();
 
             for tray in self.dice_trays.iter() {
-                let tray_data = CliTrayData::from(tray.as_ref());
+                let tray_data = CliTrayData::from(tray.1.as_ref());
                 tray_data_vec.push(tray_data);
             }
             

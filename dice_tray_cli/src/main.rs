@@ -35,7 +35,6 @@ enum Commands{
 }
 
 fn main(){
-    let mut active_tray: usize = 0;
     let mut app =  CliDiceTrayApp::new();
     app.init();
 
@@ -52,12 +51,12 @@ fn main(){
         }) => {
             match tray{
                Some(tray_string) => {
-                    active_tray = app.target_tray(&tray_string);
+                    app.target_tray(tray_string);
                 }
                None => {} 
             };
             if let Ok(raw_dice) = parse_dice_notation(dice_command){
-                app.add_dice_from_raw(active_tray, raw_dice.0, raw_dice.1);
+                app.add_dice_from_raw(raw_dice.0, raw_dice.1);
             }
         },
         Some(Commands::Roll { 
@@ -75,13 +74,13 @@ fn main(){
                     todo!("Need to implement dice targeting.")
                 }
                 None => {
-                    app.roll_all(active_tray);
+                    app.roll_all();
                 }
             }
         },
         None => {println!("No commands found!")}
     };
 
-    app.show_tray(active_tray);
+    app.show_tray();
     app.close();
 }

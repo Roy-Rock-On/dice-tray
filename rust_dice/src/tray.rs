@@ -54,10 +54,7 @@ impl TraySortType{
 ///This trait provides fuinctions for adding and removing dice from the tray and for getting information about the tray state. 
 pub trait Tray{
     ///Gets the id nuymber assinged to the tray.
-    fn get_id(&self) -> usize;
-
-    ///Get the label assinged to the tray 
-    fn get_label(&self) -> &str;
+    fn get_id(&self) -> &str;
 
     ///Adds a single die to the tray.
     fn add_die(&mut self, die: Box<dyn Die>);
