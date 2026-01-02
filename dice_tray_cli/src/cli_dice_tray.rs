@@ -1,5 +1,5 @@
 use rust_dice::dice::{Die, DieResultType};
-use rust_dice::dice_data::{DieData, DieData32, TrayData, TypedDieData};
+use rust_dice::dice_data::{DieData, DieData32, TypedDieData};
 use rust_dice::tray::{Tray, TrayResult, TrayResultType};
 
 #[derive(serde::Serialize, serde::Deserialize)]

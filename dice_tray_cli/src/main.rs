@@ -4,7 +4,7 @@ mod cli_dice_tray;
 mod cli_parser;
 mod logger;
 
-use cli_parser::{DiceTargets, parse_dice_notation, parse_dice_targets};
+use cli_parser::{parse_dice_notation, parse_dice_targets};
 
 use app::CliDiceTrayApp;
 
