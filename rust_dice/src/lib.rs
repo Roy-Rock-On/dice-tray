@@ -10,11 +10,8 @@ pub mod dice;
 ///And because the dice/tray ids need to be reassinged by the dice allocator at runtime.    
 pub mod dice_data;
 
-///Module  used for allocating dice to an app. The DiceAllocator trait is used to assign dice unique ID numbers and connect settings to the dice tray.
+///Module  used for allocating dice to an app. The DiceAllocator trait is used to assign dice unique ID numbers and connect settings to the dice tray. Also contains helper function for building dice.
 pub mod dice_allocator;
-
-///Helper functions to quickly build sets of dice.
-pub mod dice_builders;
 
 ///Dice profiles are used to build new dice. Dice profiles can be saved/loaded from JSON (not yet implemented)
 pub mod dice_profile;

@@ -52,7 +52,7 @@ pub trait Die {
     //&mut self
 
     ///Rolls the die.
-    fn roll(&mut self, result_type: DieResultType);
+    fn roll(&mut self, result_type: Option<DieResultType>);
 
     ///Increments the face on the die by one, if face is maxed wrap the die around to one.
     fn increment(&mut self);
@@ -115,8 +115,10 @@ impl Die for Die32{
         &self.result_type
     }
 
-    fn roll(&mut self, result_type: DieResultType) {
-        self.set_result_type(result_type);
+    fn roll(&mut self, result_type: Option<DieResultType>) {
+        if let Some(result_type) = result_type{
+            self.set_result_type(result_type);
+        }
         self.current_face = self.rng.random_range(1..=self.faces);
         self.update_result();
     }
@@ -161,7 +163,12 @@ impl Die32 {
     /// If a identity is provided, the dice will check the settings for a result table with that name.
     /// This lets you setup dice that automatically lookup results in a table allowing for custom dice faces.
     /// The new dice is rolled on creation to give it a random self_current face.
-    pub fn new(id: usize, label: Option<String>, faces: u32) -> Self {
+    pub fn new(id: usize, label: Option<String>, faces: u32, result_type : Option<DieResultType> ) -> Self {
+        let new_result_type = match result_type{
+            Some(r) => r,
+            None => DieResultType::Face
+        };
+
         let mut new_die = Die32 {
             die_type : DieType::Die32,
             id,
@@ -170,10 +177,10 @@ impl Die32 {
             faces,
             current_face: 1,
             current_result: DieResult::Number(1),
-            result_type : DieResultType::Face,
+            result_type : new_result_type
         };
 
-        new_die.roll(DieResultType::Face);
+        new_die.roll(None);
         new_die
     }
 
@@ -188,7 +195,7 @@ impl Die32 {
             faces: data.get_faces(),
             current_face: data.get_current_face(),
             current_result: data.get_current_result().clone(),
-            result_type: DieResultType::Face
+            result_type: *data.get_current_result_type()
         }
     }
 
@@ -281,6 +288,17 @@ pub enum DieResultType {
     Best,
     Worst,
     Sum,
+}
+
+impl ToString for DieResultType{
+    fn to_string(&self) -> String {
+        match self {
+            DieResultType::Face => "Face".to_string(),
+            DieResultType::Best => "Best".to_string(),
+            DieResultType::Worst => "Worst".to_string(),
+            DieResultType::Sum => "Sum".to_string(),
+        }
+    }
 }
 
 impl PartialEq for DieResultType {

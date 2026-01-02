@@ -78,15 +78,15 @@ pub trait Tray{
     fn clear(&mut self);
 
     ///Applies the provided result type then rolls all the dice in the tray. 
-    fn roll_all(&mut self, result_type: DieResultType);
+    fn roll_all(&mut self, result_type: Option<DieResultType>);
 
     ///Rolls the dice at the provided index, using the provided result type. 
     ///Throws an error if no die is present at the index.
-    fn roll_at(&mut self, index: usize, result_type: DieResultType) -> Result<(), String>;
+    fn roll_at(&mut self, index: usize, result_type: Option<DieResultType>) -> Result<(), String>;
 
     /// Rolls all dice in the tray with the specified label.
     /// Throws an error if no die has the label provided.
-    fn roll_by_label(&mut self, label: &str, result_type: DieResultType) -> Result<(), String>;
+    fn roll_by_label(&mut self, label: &str, result_type: Option<DieResultType>) -> Result<(), String>;
 
     ///Reorganizes the dice tray based on the sort type provided.
     fn sort(&mut self, sort_by : TraySortType);

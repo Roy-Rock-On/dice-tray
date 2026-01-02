@@ -114,14 +114,14 @@ impl Tray for CliTray {
     }
 
     /// Rolls all Dice in the tray.
-    fn roll_all(&mut self, result_type: DieResultType) {
+    fn roll_all(&mut self, result_type: Option<DieResultType>) {
         for die in &mut self.dice {
             die.roll(result_type);
         }
     }
 
     /// Rolls the Die at the specified index in the tray.
-    fn roll_at(&mut self, index: usize, result_type: DieResultType) -> Result<(), String> {
+    fn roll_at(&mut self, index: usize, result_type: Option<DieResultType>) -> Result<(), String> {
         if index < self.dice.len() {
             let die = &mut self.dice[index];
             die.roll(result_type);
@@ -132,7 +132,7 @@ impl Tray for CliTray {
     }
 
     /// Rolls all Dice in the tray with the specified label
-    fn roll_by_label(&mut self, label: &str, result_type: DieResultType) -> Result<(), String> {
+    fn roll_by_label(&mut self, label: &str, result_type: Option<DieResultType>) -> Result<(), String> {
         let mut hit: bool = false;
         for die in self.dice.iter_mut() {
             if label == die.get_label() {

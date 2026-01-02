@@ -1,9 +1,9 @@
 use std::usize;
 
-use crate::dice::Die;
-use crate::dice_data::{DieData, TypedDieData};
+use crate::dice::{Die, Die32};
+use crate::dice_data::{TypedDieData};
 use crate::tray::Tray;
-use crate::dice_profile::{DieProfile};
+use crate::dice_profile::{DieProfile, DieProfileType};
 
 pub trait DiceAllocator{
     ///Creates a new die from a die profile, assigning it an id, and returning it as a Box<dyn Die>
@@ -37,5 +37,17 @@ impl DieIdGenerator{
         let next_id = self.next_die_id;
         self.next_die_id += 1;
         Ok(next_id)
+    }
+}
+
+///Creates a new die from a die profile.
+pub fn new_die(id: usize, profile : &DieProfile) -> impl Die + use<> {
+    match profile.die_type {
+        DieProfileType::Numerical(faces) =>{
+            Die32::new(id, profile.label.clone(), faces, profile.result_type)
+        },
+        DieProfileType::Custom => {
+            todo!("Implement custom dice later.")
+        }
     }
 }

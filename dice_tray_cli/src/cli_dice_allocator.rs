@@ -1,7 +1,6 @@
 
 use rust_dice::tray::{Tray};
-use rust_dice::dice_allocator::{DiceAllocator, DieIdGenerator};
-use rust_dice::dice_builders::new_die;
+use rust_dice::dice_allocator::{DiceAllocator, DieIdGenerator, new_die};
 use rust_dice::dice_profile::DieProfile;
 use rust_dice::dice_data::{TypedDieData};
 use rust_dice::dice::Die;
