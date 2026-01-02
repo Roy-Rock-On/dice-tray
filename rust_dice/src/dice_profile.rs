@@ -5,23 +5,26 @@ use crate::dice::DieResultType;
 pub struct DieProfile {
     pub label: Option<String>,
     pub die_type: DieProfileType,
-    pub result_type : Option<DieResultType>
+    pub result_type: Option<DieResultType>,
 }
 
-/// DieType is used to specify what kind of die the die_profile should build. Can be extended with more die types later. 
-pub enum DieProfileType{
+/// DieType is used to specify what kind of die the die_profile should build. Can be extended with more die types later.
+pub enum DieProfileType {
     Numerical(u32),
-    Custom
+    Custom,
 }
 
-
-impl DieProfile{
-    ///Creates and returns a new dice profile that can be used to create new dice. 
-    pub fn new(label: Option<String>, die_type : DieProfileType, result_type : Option<DieResultType>) -> Self {
-        DieProfile{
+impl DieProfile {
+    ///Creates and returns a new dice profile that can be used to create new dice.
+    pub fn new(
+        label: Option<String>,
+        die_type: DieProfileType,
+        result_type: Option<DieResultType>,
+    ) -> Self {
+        DieProfile {
             label,
-            die_type, 
-            result_type 
+            die_type,
+            result_type,
         }
     }
 }

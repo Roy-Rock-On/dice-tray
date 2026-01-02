@@ -21,5 +21,3 @@ pub mod tray;
 
 ///Module  for creating roll tables and looking up dice results on said tables.
 pub mod tables;
-
-

@@ -1,25 +1,24 @@
-
 use rust_dice::dice::{Die, DieResultType};
-use rust_dice::tray::{Tray, TrayResult, TrayResultType};
 use rust_dice::dice_data::{DieData, DieData32, TrayData, TypedDieData};
+use rust_dice::tray::{Tray, TrayResult, TrayResultType};
 
 #[derive(serde::Serialize, serde::Deserialize)]
-pub struct CliTrayData{
+pub struct CliTrayData {
     label: String,
-    dice_data: Vec<TypedDieData>
+    dice_data: Vec<TypedDieData>,
 }
 
-impl From<&dyn Tray> for CliTrayData{
+impl From<&dyn Tray> for CliTrayData {
     fn from(tray: &dyn Tray) -> Self {
         let tray_dice = tray.get_dice();
         let dice_data: Vec<TypedDieData> = tray_dice
             .iter()
             .map(|die| <DieData32 as DieData>::from_die(die.as_ref()))
             .collect();
-        
+
         CliTrayData {
             label: tray.get_id().to_string(),
-            dice_data
+            dice_data,
         }
     }
 }
@@ -37,14 +36,14 @@ impl CliTrayData {
 }
 
 pub struct CliTray {
-    id : String,
-    dice: Vec<Box<dyn Die>>, 
-    tray_result_type: TrayResultType, 
+    id: String,
+    dice: Vec<Box<dyn Die>>,
+    tray_result_type: TrayResultType,
 }
 
-impl CliTray{
+impl CliTray {
     /// Creates a new, empty Tray.
-    pub fn new(id : String) -> Self {
+    pub fn new(id: String) -> Self {
         CliTray {
             id,
             dice: Vec::new(),
@@ -76,35 +75,45 @@ impl Tray for CliTray {
         if index < self.dice.len() {
             Ok(self.dice.remove(index))
         } else {
-            Err(format!["No dice found at provided index: {}. No dice removed from tray.", index])
+            Err(format![
+                "No dice found at provided index: {}. No dice removed from tray.",
+                index
+            ])
         }
     }
 
     ///Removes a single die from the tray that matches the provided ID.
     ///Returns only the first die found. There shouldn't be multipule dice with the same ID active in the app if the DiceAllocator is being used properly.  
-    fn remove_die_by_id(&mut self, id : usize) -> Result<Box<dyn Die>, String>{
+    fn remove_die_by_id(&mut self, id: usize) -> Result<Box<dyn Die>, String> {
         let mut i = self.dice.len();
         loop {
             if self.dice[i].get_id() == id {
-                return Ok(self.dice.remove(i))
+                return Ok(self.dice.remove(i));
             }
-            if i == 0 { break; }
+            if i == 0 {
+                break;
+            }
             i -= 1;
         }
 
-        return Err(format!["No die with ID: {} found in tray. No die has been removed.", id]);
+        return Err(format![
+            "No die with ID: {} found in tray. No die has been removed.",
+            id
+        ]);
     }
 
     /// Removes all Dice with the specified label from the tray. Returns all Dice removed.
     fn remove_dice_by_label(&mut self, label: &str) -> Result<Vec<Box<dyn Die>>, String> {
         let mut removed_dice: Vec<Box<dyn Die>> = Vec::new();
         let mut i = self.dice.len() - 1;
-        
+
         loop {
             if self.dice[i].get_label() == label {
                 removed_dice.push(self.dice.remove(i));
             }
-            if i == 0 { break; }
+            if i == 0 {
+                break;
+            }
             i -= 1;
         }
         if removed_dice.is_empty() {
@@ -132,7 +141,11 @@ impl Tray for CliTray {
     }
 
     /// Rolls all Dice in the tray with the specified label
-    fn roll_by_label(&mut self, label: &str, result_type: Option<DieResultType>) -> Result<(), String> {
+    fn roll_by_label(
+        &mut self,
+        label: &str,
+        result_type: Option<DieResultType>,
+    ) -> Result<(), String> {
         let mut hit: bool = false;
         for die in self.dice.iter_mut() {
             if label == die.get_label() {
@@ -147,14 +160,16 @@ impl Tray for CliTray {
         }
     }
 
-    fn sort(&mut self, _sort_by : rust_dice::tray::TraySortType) {
+    fn sort(&mut self, _sort_by: rust_dice::tray::TraySortType) {
         todo!("Must implement sort for cli_dice_tray.");
     }
 
     fn remove_all(&mut self) -> Result<Vec<Box<dyn Die>>, String> {
-        let dice : Vec<Box<dyn  Die>> = self.dice.drain(..).collect();
-        if dice.is_empty(){
-            return Err(format!["Tray is already empty, no dice returned by remove_all."])
+        let dice: Vec<Box<dyn Die>> = self.dice.drain(..).collect();
+        if dice.is_empty() {
+            return Err(format![
+                "Tray is already empty, no dice returned by remove_all."
+            ]);
         }
         Ok(dice)
     }

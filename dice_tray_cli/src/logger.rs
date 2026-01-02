@@ -27,12 +27,12 @@ pub fn detailed_log_tray(tray: &dyn Tray) {
         .map(|(i, die)| DetailedDiceState {
             index: i,
             label: die.get_label().to_string(),
-            faces_string : die.get_face_count().to_string(), 
+            faces_string: die.get_face_count().to_string(),
             current_face_string: die.get_current_face().to_string(),
             result_type_string: die_result_type_to_string(die.as_ref()),
             result_string: die_result_to_string(die.as_ref()),
         })
-        .collect(); 
+        .collect();
 
     println!("Showing dice in tray: {}", tray.get_id());
     print_stdout(dice_states.with_title()).unwrap();
@@ -59,6 +59,6 @@ fn die_result_type_to_string(die: &dyn Die) -> String {
         DieResultType::Face => "Face".to_string(),
         DieResultType::Best => "Best".to_string(),
         DieResultType::Worst => "Worst".to_string(),
-        DieResultType::Sum => "Sum".to_string()
+        DieResultType::Sum => "Sum".to_string(),
     }
 }

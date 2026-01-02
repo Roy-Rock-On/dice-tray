@@ -1,6 +1,3 @@
-use crate::dice::Die32;
-use serde::{Serialize, Deserialize};
-
 use super::dice::{Die, DieResultType};
 
 ///Result type for a dice tray.
@@ -37,22 +34,22 @@ impl TrayResult {
 }
 
 ///Ways a dice tray can be sorted. Passed to Tray::sort() to organize the dice in the tray.
-pub enum TraySortType{
-    Face
+pub enum TraySortType {
+    Face,
 }
 
-impl TraySortType{
+impl TraySortType {
     ///Returns a string explaining how the tray was sorted. Used by the cli logger.
-    pub fn to_string(&self) -> String{
+    pub fn to_string(&self) -> String {
         match self {
-            TraySortType::Face => "Sorting tray by die face.".to_string()          
+            TraySortType::Face => "Sorting tray by die face.".to_string(),
         }
-    }  
+    }
 }
 
 ///Trait for a dice tray. Tray's own the refrences to the dice in them.
-///This trait provides fuinctions for adding and removing dice from the tray and for getting information about the tray state. 
-pub trait Tray{
+///This trait provides fuinctions for adding and removing dice from the tray and for getting information about the tray state.
+pub trait Tray {
     ///Gets the id nuymber assinged to the tray.
     fn get_id(&self) -> &str;
 
@@ -63,33 +60,37 @@ pub trait Tray{
     fn add_dice(&mut self, dice: Vec<Box<dyn Die>>);
 
     ///Removes the die at the specified tray index or returns an error if it isn't available.
-    fn remove_die_at(&mut self, index : usize) -> Result<Box<dyn Die>, String>;
+    fn remove_die_at(&mut self, index: usize) -> Result<Box<dyn Die>, String>;
 
     ///Removes the die witht he specified id, throws an error if the ID is not available in the tray.
-    fn remove_die_by_id(&mut self, id : usize) -> Result<Box<dyn Die>, String>;
+    fn remove_die_by_id(&mut self, id: usize) -> Result<Box<dyn Die>, String>;
 
     ///Removes all the dice with the specified label, throws an error if no dice are found.
-    fn remove_dice_by_label(&mut self, label : &str) -> Result<Vec<Box<dyn Die>>, String>;
+    fn remove_dice_by_label(&mut self, label: &str) -> Result<Vec<Box<dyn Die>>, String>;
 
     ///Removes all the dice form the tray and returns them, or throws an error if the tray is empty.
     fn remove_all(&mut self) -> Result<Vec<Box<dyn Die>>, String>;
 
-    ///Clears the tray of all dice. 
+    ///Clears the tray of all dice.
     fn clear(&mut self);
 
-    ///Applies the provided result type then rolls all the dice in the tray. 
+    ///Applies the provided result type then rolls all the dice in the tray.
     fn roll_all(&mut self, result_type: Option<DieResultType>);
 
-    ///Rolls the dice at the provided index, using the provided result type. 
+    ///Rolls the dice at the provided index, using the provided result type.
     ///Throws an error if no die is present at the index.
     fn roll_at(&mut self, index: usize, result_type: Option<DieResultType>) -> Result<(), String>;
 
     /// Rolls all dice in the tray with the specified label.
     /// Throws an error if no die has the label provided.
-    fn roll_by_label(&mut self, label: &str, result_type: Option<DieResultType>) -> Result<(), String>;
+    fn roll_by_label(
+        &mut self,
+        label: &str,
+        result_type: Option<DieResultType>,
+    ) -> Result<(), String>;
 
     ///Reorganizes the dice tray based on the sort type provided.
-    fn sort(&mut self, sort_by : TraySortType);
+    fn sort(&mut self, sort_by: TraySortType);
 
     /// Gets a reffrence to all the dice in the tray.
     fn get_dice(&self) -> &Vec<Box<dyn Die>>;
@@ -100,13 +101,3 @@ pub trait Tray{
     /// Gets the current tray result as a TrayResult enum.
     fn get_result(&self) -> TrayResult;
 }
-
-
-
-
-
-
-
-
-
-

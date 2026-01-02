@@ -1,7 +1,8 @@
-use regex::{Regex};
+use regex::Regex;
 use std::sync::LazyLock;
 
-static DICE_NOTATION_REGEX: LazyLock<Regex> =  LazyLock::new(|| Regex::new(r"(?i)^(\d*)?[d](\d+)$").unwrap());
+static DICE_NOTATION_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?i)^(\d*)?[d](\d+)$").unwrap());
 
 pub fn parse_dice_notation(command: &str) -> Result<Vec<(u32, u32)>, String> {
     let split_command = command.split_whitespace();
@@ -36,22 +37,20 @@ pub fn parse_dice_notation(command: &str) -> Result<Vec<(u32, u32)>, String> {
     }
 }
 
-pub enum DiceTargets{
+pub enum DiceTargets {
     Index(Vec<usize>),
-    Label(String)
+    Label(String),
 }
 
-pub fn parse_dice_targets(command: &str) -> Result<Vec<DiceTargets>, String>{
+pub fn parse_dice_targets(command: &str) -> Result<Vec<DiceTargets>, String> {
     let split_command = command.split_whitespace();
     let mut targets = Vec::new();
-        
+
     for part in split_command {
         if part.contains(',') || part.chars().all(|c| c.is_ascii_digit()) {
-            let indices: Result<Vec<usize>, _> = part
-                .split(',')
-                .map(|s| s.trim().parse::<usize>())
-                .collect();
-            
+            let indices: Result<Vec<usize>, _> =
+                part.split(',').map(|s| s.trim().parse::<usize>()).collect();
+
             match indices {
                 Ok(idx_vec) if !idx_vec.is_empty() => {
                     targets.push(DiceTargets::Index(idx_vec));
@@ -70,4 +69,3 @@ pub fn parse_dice_targets(command: &str) -> Result<Vec<DiceTargets>, String>{
         Ok(targets)
     }
 }
-
