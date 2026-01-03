@@ -33,7 +33,7 @@ enum Commands {
     ///Deletes the target tray and all the dice in it. If no target tray is provided using the --tray option nothing happens. The main tray can't be deleted.
     Delete,
     //Dice commands
-    /// Adds dice to a tray. Usage: add -t "fireball" "8d6 d2" : would roll 8 six-sided dice and a 2 sided-die to "fireball" tray. Targeting a tray that dosen't exist a new tray will be created.
+    /// Adds dice to a tray. Usage: add -t "fireball" "8d6 d2" : would roll 8 six-sided dice and a 2 sided-die to "fireball" tray. Targeting a tray that dosen't exist will create a new tray.
     Add {
         #[arg(short, long)]
         ///Optional result type. Current result types supported are: 'f' = the die's current face, 'b' = the best result the die has rolled, 'w' = the worst result the die has rolled, 'e' = sum of all results.
@@ -46,6 +46,7 @@ enum Commands {
         ///Optional dice targets, either by label or by index. If no targets are provided all dice in the target tray will be removed.
         dice_targets: Option<String>,
     },
+    ///Rolls the dice in the target tray at the provided dice targets(i.e. by index "0,4,6" or by id "d100").
     Roll {
         #[arg(short, long)]
         ///Optional result type. Current result types supported are: 'f' = the die's current face, 'b' = the best result the die has rolled, 'w' = the worst result the die has rolled, 'e' = sum of all results.
