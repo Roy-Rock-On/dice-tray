@@ -8,3 +8,4 @@ Commands should be explained by running "dicetray --help"
 
 I'd like to expand this with more dice types and criteria for modifying dice automatically. It's been a lot of fun, and I'm excited to keep learning more about rust. 
  
+For quick installation run 'cargo install --git "https://github.com/Roy-Rock-On/dice-tray.git"'
