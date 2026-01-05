@@ -31,7 +31,12 @@ enum Commands {
     ///Resets dice_tray_cli by clearing all trays and dice. Cannot be undone (at least for now)
     Reset,
     ///Deletes the target tray and all the dice in it. If no target tray is provided using the --tray option nothing happens. The main tray can't be deleted.
-    Delete,
+    Delete{
+        target_tray: String
+    },
+    New {
+        new_tray: String
+    },
     //Dice commands
     /// Adds dice to a tray. Usage: add -t "fireball" "8d6 d2" : would roll 8 six-sided dice and a 2 sided-die to "fireball" tray. Targeting a tray that dosen't exist will create a new tray.
     Add {
@@ -44,6 +49,12 @@ enum Commands {
     ///Drop removes dice from the tray based on the provided dice tragets. If no targets are provided the tray is cleared of all dice.
     Drop {
         ///Optional dice targets, either by label or by index. If no targets are provided all dice in the target tray will be removed.
+        dice_targets: Option<String>,
+    },
+    Move{       
+        ///A mandatory tray target. Dice will be moved from the active tray to this target tray.
+        tray_target: String, 
+        ///Optional dice targets, if not provided all dice in the active tray are moved to the target tray.       
         dice_targets: Option<String>,
     },
     ///Rolls the dice in the target tray at the provided dice targets(i.e. by index "0,4,6" or by id "d100").
@@ -66,10 +77,22 @@ fn main() {
         Some(Commands::Reset) => {
             app.reset();
         }
-        Some(Commands::Delete) => {
-            app.delete_tray(tray_id);
+        Some(Commands::Delete {
+            target_tray
+        }) => {
+            app.delete_tray(Some(target_tray));
         }
-        Some(Commands::Drop { dice_targets }) => match dice_targets {
+        Some(Commands::New {
+            new_tray
+        }) => {
+            match app.new_tray(new_tray){
+                Ok(()) => {},
+                Err(e) => println!("Failed to create a new tray with error {}", e)
+            }
+        },
+        Some(Commands::Drop { 
+            dice_targets 
+        }) => match dice_targets {
             Some(target_string) => {
                 if let Ok(targets) = parse_dice_targets(target_string) {
                     match app.drop_at_targets(tray_id, targets) {
@@ -95,7 +118,30 @@ fn main() {
                     app.add_dice_from_raw(tray_id, dice.0, dice.1, result_type_unpacked);
                 });
             }
-        }
+        },
+        Some(Commands::Move { 
+            tray_target, 
+            dice_targets 
+        }) =>{
+            if !app.is_tray_id_valid(tray_target) {
+                println!("No tray with ID = {}. Check your tray ID and try again.", tray_target)
+            }
+            else{
+                match dice_targets{
+                    None => {
+                        let _ = app.move_all(tray_id, tray_target);
+                    },
+                    Some(targets) => {
+                        match parse_dice_targets(targets) {
+                            Ok(dice_targets) =>{
+                                let _ = app.move_at(tray_id, dice_targets, tray_target);
+                            },
+                            Err(e) => {println!("Dice targets could not be parsed. Fialed with error {}", e)}
+                        }
+                    }
+                }
+            }
+        },
         Some(Commands::Roll {
             result_type,
             dice_targets,
@@ -121,6 +167,8 @@ fn main() {
             println!("No commands found!")
         }
     };
+
+    app.summarize_trays();
 
     if cli.verbose {
         app.show_all_trays();

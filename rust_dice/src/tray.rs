@@ -100,4 +100,6 @@ pub trait Tray {
 
     /// Gets the current tray result as a TrayResult enum.
     fn get_result(&self) -> TrayResult;
+
+    fn get_summary(&self) -> String;
 }

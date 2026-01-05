@@ -2,6 +2,7 @@ use rand::rngs::SmallRng;
 use rand::{Rng, RngCore, SeedableRng};
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
+use std::fmt::write;
 use std::mem::discriminant;
 
 use crate::dice_data::DieData32;
@@ -13,9 +14,8 @@ pub enum DieType {
 }
 
 /// The die trait alows for extending this library with custom dice types.
-pub trait Die {
+pub trait Die{
     //&self
-
     ///Returns a u64 that can be used to generate new RNG the next time the die is instantiated.
     fn get_rng_seed(&self) -> u64;
 
@@ -49,8 +49,10 @@ pub trait Die {
     ///Returns true if thr die's current face is the face with the lowest value.
     fn is_min(&self) -> bool;
 
-    //&mut self
+    ///Gets a summary of the dice as a string. Used to quickly print a summary of a dice tray.
+    fn get_summary(&self) -> String;
 
+    //&mut self
     ///Rolls the die.
     fn roll(&mut self, result_type: Option<DieResultType>);
 
@@ -112,6 +114,10 @@ impl Die for Die32 {
 
     fn get_result_type(&self) -> &DieResultType {
         &self.result_type
+    }
+
+    fn get_summary(&self) -> String {
+        format!("&{} = {} ", self.label, self.get_result().to_string())
     }
 
     fn roll(&mut self, result_type: Option<DieResultType>) {
@@ -326,6 +332,14 @@ impl DieResult {
         match self {
             DieResult::Number(x) => *x,
             _ => default_num,
+        }
+    }
+
+    pub fn to_string(&self) -> String{
+        match self{
+            DieResult::Number(num) => num.to_string(),
+            DieResult::String(string) => string.to_string(),
+            DieResult::None => "".to_string()
         }
     }
 }

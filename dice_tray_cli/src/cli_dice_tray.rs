@@ -2,6 +2,8 @@ use rust_dice::dice::{Die, DieResultType};
 use rust_dice::dice_data::{DieData, DieData32, TypedDieData};
 use rust_dice::tray::{Tray, TrayResult, TrayResultType};
 
+use std::fmt::Write;
+
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct CliTrayData {
     label: String,
@@ -221,5 +223,13 @@ impl Tray for CliTray {
                 }
             }
         }
+    }
+
+    fn get_summary(&self) -> String {
+        let mut summary_string = String::new();
+        for die in self.dice.iter().enumerate(){
+            write!(summary_string, "@{}:{}", die.0, die.1.get_summary()).unwrap()
+        }   
+        summary_string
     }
 }

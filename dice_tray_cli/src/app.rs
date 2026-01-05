@@ -11,7 +11,7 @@ use std::error::Error;
 use std::fs::create_dir_all;
 
 use crate::cli_dice_allocator::CliDiceAllocator;
-use crate::cli_dice_tray::CliTrayData;
+use crate::cli_dice_tray::{CliTrayData};
 use crate::cli_parser::DiceTargets;
 use crate::logger::detailed_log_tray;
 
@@ -106,6 +106,13 @@ impl CliDiceTrayApp {
         }
     }
 
+    pub fn summarize_trays(&self){
+        for tray in self.dice_trays.iter(){
+            println!("Summarizing tray {}", tray.1.get_id());
+            println!("{}", tray.1.get_summary());
+        }
+    }
+
     pub fn show_all_trays(&self) {
         self.dice_trays
             .iter()
@@ -175,19 +182,71 @@ impl CliDiceTrayApp {
         tray_id: Option<&str>,
         targets: Vec<DiceTargets>,
     ) -> Result<(), String> {
-        if let Ok(active_tray) = self.get_tray_mut(tray_id) {
-            targets.iter().for_each(|target| match target {
+        let active_tray = self.get_tray_mut(tray_id)?;
+        
+        for target in targets.iter() {
+            match target {
                 DiceTargets::Index(indices) => {
                     for i in indices.iter().rev() {
-                        let _ = active_tray.remove_die_at(*i);
+                        active_tray.remove_die_at(*i)?;
                     }
                 }
-                DiceTargets::Label(label) => match active_tray.remove_dice_by_label(label) {
-                    Ok(_) => {}
-                    Err(_) => {}
+                DiceTargets::Label(label) => {
+                    active_tray.remove_dice_by_label(label)?;
                 },
-            });
+            }
         }
+        
+        Ok(())
+    }
+
+    pub fn move_all(&mut self,
+        from_tray_id: Option<&str>,
+        to_tray_id: &str
+    ) -> Result<(), String> {
+        if from_tray_id == Some(to_tray_id) {
+            return Err("Active tray and target tray are the same. No need to move dice.".to_string());
+        }
+
+        let moved_dice = {
+            let active_tray = self.get_tray_mut(from_tray_id)?;
+            active_tray.remove_all()?
+        };
+
+        let to_tray = self.get_tray_mut(Some(to_tray_id))?;
+        to_tray.add_dice(moved_dice);
+
+        Ok(())
+    }
+
+    pub fn move_at(
+        &mut self,
+        from_tray_id: Option<&str>,
+        targets: Vec<DiceTargets>,
+        to_tray_id: &str
+    ) -> Result<(), String>{
+        if from_tray_id == Some(to_tray_id) {return Err("Active tray and target tray are the same. No need to move dice.".to_string());}
+
+        let mut moved_dice = Vec::new();
+        {
+            let active_tray = self.get_tray_mut(from_tray_id)?;
+            for t in targets {
+                match t {
+                    DiceTargets::Index(indices) => {
+                        for i in indices{
+                            moved_dice.push(active_tray.remove_die_at(i)?);
+                        };
+                    },
+                    DiceTargets::Label(label) => {
+                        moved_dice.append(&mut active_tray.remove_dice_by_label(&label)?);
+                    }
+                }    
+            }
+        }
+
+        let to_tray = self.get_tray_mut(Some(to_tray_id))?;
+        to_tray.add_dice(moved_dice);
+
         Ok(())
     }
 
@@ -202,13 +261,26 @@ impl CliDiceTrayApp {
             .insert(new_tray.get_id().to_string(), new_tray);
     }
 
+    ///Checks if a tray ID is a valid key in the dice_trays index map.
+    pub fn is_tray_id_valid(&self, check_id: &str) -> bool {
+        self.dice_trays.contains_key(check_id)
+    }
+
+    pub fn new_tray(&mut self, new_tray_id: &str) -> Result<(), String>{
+        if self.dice_trays.contains_key(new_tray_id){ 
+            return Err(format!("A dice tray already exists with key {}. Cannot create a new tray.", new_tray_id));
+        }else {
+            let new_tray = self.dice_allocator.new_tray(new_tray_id.to_string());
+            self.dice_trays.insert(new_tray.get_id().to_string(), new_tray);
+            return Ok(())
+        }
+    }
+
     fn get_tray_mut(&mut self, id: Option<&str>) -> Result<&mut dyn Tray, String> {
         match id {
             Some(key) => {
                 if !self.dice_trays.contains_key(key) {
-                    let new_tray = self.dice_allocator.new_tray(key.to_string());
-                    self.dice_trays.insert(key.to_string(), new_tray);
-                    println!("Creating a new tray with id = {}", key);
+                   return Err(format!("No tray found with id {}. Tray cannot be targeted.", key));
                 }
                 Ok(self.dice_trays.get_mut(key).unwrap().as_mut())
             }
