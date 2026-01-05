@@ -38,7 +38,7 @@ enum Commands {
         new_tray: String
     },
     //Dice commands
-    /// Adds dice to a tray. Usage: add -t "fireball" "8d6 d2" : would roll 8 six-sided dice and a 2 sided-die to "fireball" tray. Targeting a tray that dosen't exist will create a new tray.
+    /// Adds dice to a tray. Usage: add -t "fireball" "8d6 d2" : would roll 8 six-sided dice and a 2 sided-die to "fireball" tray.
     Add {
         #[arg(short, long)]
         ///Optional result type. Current result types supported are: 'f' = the die's current face, 'b' = the best result the die has rolled, 'w' = the worst result the die has rolled, 'e' = sum of all results.
