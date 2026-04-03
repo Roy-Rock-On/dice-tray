@@ -45,7 +45,7 @@ pub trait Die{
     ///Returns true if the die's current face is the face with the highest value.m
     fn is_max(&self) -> bool;
 
-    ///Returns true if thr die's current face is the face with the lowest value.
+    ///Returns true if the die's current face is the face with the lowest value.
     fn is_min(&self) -> bool;
 
     ///Gets a summary of the dice as a string. Used to quickly print a summary of a dice tray.
