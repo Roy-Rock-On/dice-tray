@@ -2,7 +2,6 @@ use rand::rngs::SmallRng;
 use rand::{Rng, RngCore, SeedableRng};
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
-use std::fmt::write;
 use std::mem::discriminant;
 
 use crate::dice_data::DieData32;
