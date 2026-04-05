@@ -11,7 +11,7 @@ function App() {
     const initWasm = async () => {
       try {
         await init(); // Initialize WASM module first
-        setGreeting(greet("React App"));
+        setGreeting(greet("New Tray"));
         setWasmReady(true);
       } catch (error) {
         console.error("Failed to initialize WASM:", error);
@@ -48,13 +48,12 @@ function Tray(){
   const [diceArray, setDiceArray] = useState([]);
 
   useEffect(() => {
-    const initTray = () => {
+    const initTray = async () => {
       try {
         console.log("Initializing DiceTrayHandle.");
         const handle = new DiceTrayHandle();
         setTrayHandle(handle);
-        // get_tray_data() now returns a JSON string
-        const jsonString = handle.get_tray_data();
+        const jsonString = await handle.get_tray_data();
         setTrayData(jsonString);
       } catch (error) {
         console.error("Failed to initialize tray handle:", error);
@@ -64,7 +63,7 @@ function Tray(){
   }, []);
 
   useEffect(() => {
-    const get_die_array = () => {
+    const get_die_array = async () => {
       try {
         if (trayData) {
           // trayData is now a JSON string from Rust
@@ -89,17 +88,73 @@ function Tray(){
     get_die_array();
   }, [trayData])
 
-  const AddDie = () => {
+  const AddDie = async () => {
     if (!trayHandle) return;
     
     try {
-      console.log("Adding a die to the tray.");
-      trayHandle.add_die(newFaces);
-      // get_tray_data() now returns a JSON string
-      const jsonString = trayHandle.get_tray_data();
+      console.log("Adding die with", newFaces, "faces");
+      
+      // Add the die
+      await trayHandle.add_die(newFaces);
+      console.log("Die added successfully");
+      // Get updated tray data
+      const jsonString = await trayHandle.get_tray_data();
+      console.log("Tray data retrieved successfully");
+      
       setTrayData(jsonString);
     } catch (error) {
       console.error("Failed to add die:", error);
+      console.error("Error details:", {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
+    }
+  };
+
+  const ClearTray = async () => {
+    if (!trayHandle) return;
+    try {
+      console.log("Clearing tray");
+      
+      await trayHandle.clear();
+      console.log("Tray cleared successfully");     
+      const jsonString = await trayHandle.get_tray_data();
+      console.log("Tray data retrieved after clear");
+      
+      setTrayData(jsonString);
+    } catch (error) {
+      console.error("Failed to clear tray:", error);
+      console.error("Error details:", {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
+    }
+  };
+
+  const RollAll = async () => {
+    if (!trayHandle) return;
+    try {
+      console.log("Rolling all dice");
+      
+      await trayHandle.roll_all();
+      console.log("All dice rolled successfully");
+      
+      // Small delay to prevent race conditions
+      await new Promise(resolve => setTimeout(resolve, 10));
+      
+      const jsonString = await trayHandle.get_tray_data();
+      console.log("Tray data retrieved after roll");
+      
+      setTrayData(jsonString);
+    } catch (error) {
+      console.error("Failed to roll dice:", error);
+      console.error("Error details:", {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
     }
   };
 
@@ -131,16 +186,52 @@ function Tray(){
             placeholder="faces" 
           />
           <button onClick={AddDie}>Add Die</button>
+          <button onClick={RollAll}>Roll All</button>
+          <button onClick={ClearTray}>Clear Tray</button>
       </div>
     </div>
   )
 }
 
 function Die({ dieData }){
+  console.log("Die Data is = " + JSON.stringify(dieData));
+  
+  // Defensive programming - handle malformed data
+  if (!dieData || typeof dieData !== 'object') {
+    return (
+      <div>
+        <div className="dice-container">
+          <div className="dice">
+            <p className="dice-text">?</p>
+          </div>
+          <p className="label-text">Error</p>
+        </div>
+      </div>
+    );
+  }
+  
+  const die32 = dieData.Die32;
+  
+  if (!die32 || typeof die32 !== 'object') {
+    return (
+      <div>
+        <div className="dice-container">
+          <div className="dice">
+            <p className="dice-text">?</p>
+          </div>
+          <p className="label-text">Invalid</p>
+        </div>
+      </div>
+    );
+  }
+
   return(
     <div>
-      <div className ="dice">
-        <p className="dice-text">{dieData.current_result}</p>
+      <div className="dice-container">
+        <div className ="dice">
+          <p className="dice-text">{die32.current_face || '?'}</p>
+        </div>
+        <p className="label-text">{die32.label || 'Unknown'}</p>
       </div>
     </div>
   )

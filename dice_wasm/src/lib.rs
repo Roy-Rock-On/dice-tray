@@ -4,10 +4,11 @@ use rust_dice::dice::Die32;
 use wasm_tray::{WasmTray, TrayData};
 use wasm_bindgen::prelude::*;
 use serde_json;
+use web_sys;
 
 #[wasm_bindgen]
 pub fn greet(msg: &str) -> String{
-    format!("Hello {}", msg)
+    format!("{}", msg)
 }
 
 #[wasm_bindgen]
@@ -26,22 +27,42 @@ impl DiceTrayHandle {
 
     /// Add a die to the tray
     #[wasm_bindgen]
-    pub fn add_die(&mut self, sides: u32) {
+    pub fn add_die(&mut self, sides: u32) -> Result<(), JsValue> {
+        // Validate input
+        if sides == 0 {
+            return Err(JsValue::from_str("Die must have at least 1 side"));
+        }
+        if sides > 10000 {
+            return Err(JsValue::from_str("Die cannot have more than 10,000 sides"));
+        }
+        
+        // Log for debugging
+        web_sys::console::log_1(&format!("Creating die with {} sides", sides).into());
+        
         let new_id = self.tray.get_next_die_id();
+        web_sys::console::log_1(&format!("Using die ID: {}", new_id).into());
+        
         let new_die = Die32::new(new_id, None, sides, None);
+        web_sys::console::log_1(&"Die created successfully".into());
+        
         self.tray.add_die(new_die);
+        web_sys::console::log_1(&"Die added to tray successfully".into());
+        
+        Ok(())
     }
 
     /// Roll all dice in the tray
     #[wasm_bindgen]
-    pub fn roll_all(&mut self) {
+    pub fn roll_all(&mut self) -> Result<(), JsValue> {
         self.tray.roll_all();
+        Ok(())
     }
 
     /// Clear all dice from the tray
     #[wasm_bindgen]
-    pub fn clear(&mut self) {
+    pub fn clear(&mut self) -> Result<(), JsValue> {
         self.tray.clear();
+        Ok(())
     }
 
     ///Gets the tray data used to update the tray.

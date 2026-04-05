@@ -125,33 +125,56 @@ code {
   border-radius: 8px;
 }
 
-.tray{
-  flex: 1;
+.tray {
   display: flex;
-  flex-direction: row;
+  flex-direction: row-reverse;
+  flex-wrap: wrap;
   gap: 8px;
   padding: 12px;
   margin: 4px;
-  max-height: 2rem;
+  min-height: 2rem;
   background: var(--dark);
   border: 1px solid var(--border);
   border-radius: 8px;
+  justify-content: flex-end;
 }
 
 .dice{
   aspect-ratio: 1;
+  min-width: 3rem;
+  min-height: 3rem;
+  max-width: 3rem;
+  min-width: 3rem;
   background: white;
   border: 3px solid black;
   border-radius: 4px;
 }
 
+.dice-container{
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
 .dice-text {
+  padding-top: 25%;
   font-weight: bold;
   color: black;
-  font-size: 1em;
+  font-size: 1.5em;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.label-text{
+  font-weight: normal;
+  color: rgba(247, 243, 35, 0.884);
+  font-size: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
 }
 
 .toolbar{

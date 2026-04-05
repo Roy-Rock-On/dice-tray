@@ -97,13 +97,11 @@ impl TrayData {
         self.label.clone()
     }
 
-    // For the dice array, you'll need to handle this carefully
     #[wasm_bindgen(getter)]
     pub fn dice_count(&self) -> usize {
         self.dice.len()
     }
 
-    // Method to get dice data as JSON string (simpler approach)
     #[wasm_bindgen]
     pub fn get_dice_json(&self) -> Result<String, JsValue> {
         serde_json::to_string(&self.dice)

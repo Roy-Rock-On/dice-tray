@@ -5,5 +5,22 @@ import topLevelAwait from 'vite-plugin-top-level-await'
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: '/dice/',  // Set base path for subdirectory hosting
   plugins: [react(), wasm(), topLevelAwait()],
+  build: {
+    target: ['es2022', 'chrome108', 'firefox109', 'safari15'],
+    rollupOptions: {
+      output: {
+        manualChunks: undefined
+      }
+    }
+  },
+  esbuild: {
+    target: 'es2022'
+  },
+  optimizeDeps: {
+    rolldownOptions:{
+      target: 'es2022'
+    }
+  }
 })
