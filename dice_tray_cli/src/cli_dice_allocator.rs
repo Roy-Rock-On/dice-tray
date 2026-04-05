@@ -21,7 +21,8 @@ impl DiceAllocator for CliDiceAllocator {
     }
 
     fn new_tray(&mut self, id: String) -> Box<dyn Tray> {
-        let new_tray = CliTray::new(id);
+        //Will have to create an allocator for dice ID numbers at some point. But not today!
+        let new_tray = CliTray::new(0,id);
         Box::new(new_tray)
     }
 }

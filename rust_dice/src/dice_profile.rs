@@ -1,6 +1,6 @@
 use crate::dice::DieResultType;
 
-///A dice_profile is a template that can be passed to Die::new() in order to create a die. To goal is for dice_profiles to support saving and laodind form JSON.
+///A dice_profile is a template that can be passed to Die::new() in order to create a die. To goal is for dice_profiles to support saving and laodind form JSON.p[]
 pub struct DieProfile {
     pub label: Option<String>,
     pub die_type: DieProfileType,

@@ -6,3 +6,4 @@ edition = "2024"
 [dependencies]
 rand = "*"
 serde = { version = "1.0", features = ["derive"] }
+getrandom = { version = "0.3", features = ["wasm_js"] }

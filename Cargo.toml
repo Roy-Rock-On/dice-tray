@@ -1,5 +1,3 @@
 [workspace]
 resolver = "3"
-members = ["rust_dice", "dice_tray_cli"]
-
-
+members = ["rust_dice", "dice_tray_cli", "dice_wasm"]

@@ -34,7 +34,7 @@ impl CliDiceTrayApp {
             Ok(trays) => {
                 let mut tray_duplicate = false;
                 for tray in trays.into_iter() {
-                    if !self.dice_trays.contains_key(tray.get_id()) {
+                    if !self.dice_trays.contains_key(tray.get_label()) {
                         self.dice_trays.insert(tray.get_id().to_string(), tray);
                     } else {
                         println!(
