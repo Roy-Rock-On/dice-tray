@@ -21,3 +21,6 @@ pub mod tray;
 
 ///Module  for creating roll tables and looking up dice results on said tables.
 pub mod tables;
+
+///New module for building the dice again from the ground up with it's own internal RNG.
+pub mod die;
