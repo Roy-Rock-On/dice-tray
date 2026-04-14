@@ -1,6 +1,8 @@
 use std::u32;
+use serde::{Serialize, Deserialize};
 
 
+#[derive(Serialize, Deserialize)]
 struct InternalRng {
     seed: u64,
 }
@@ -19,6 +21,7 @@ impl InternalRng {
         (seed % max) as u32
     }  
 
+    ///Returns the current seed. Used when serializing and deserializing the dice.
     pub fn get_current_seed(&self) -> u64{
         self.seed
     } 
@@ -38,6 +41,7 @@ impl InternalRng {
     }
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct Die {
     current_face: u32,
     face_weights: Vec<u32>,
@@ -159,6 +163,25 @@ fn die_test(){
 fn face_weights_mapping(){
     let die = Die::new(10, 1, 100, 10);
     println!{"Face weights = {:?} Total = {}", die.face_weights, die.total_weight};
+}
+
+#[test]
+fn test_serialize_die(){
+    let mut die = build_die(20, 1, 100, 25).unwrap();
+    {
+        let die_json = serde_json::to_string(&die).unwrap();
+        println!("JSON die = {}", die_json);
+    }
+    die.roll();
+    {
+        let die_json = serde_json::to_string(&die).unwrap();
+        println!("JSON die = {}", die_json);
+    }
+    die.roll();
+    {
+        let die_json = serde_json::to_string(&die).unwrap();
+        println!("JSON die = {}", die_json);
+    }
 }
 
 

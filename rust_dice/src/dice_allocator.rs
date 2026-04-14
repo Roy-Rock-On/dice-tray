@@ -26,7 +26,7 @@ impl DieIdGenerator {
         DieIdGenerator { next_die_id: 0 }
     }
 
-    ///Maybe refactor this to use proper errors when I'm reay to learn mroe about error handling.
+    ///Maybe refactor this to use proper errors when I'm reay to learn more about error handling.
     pub fn get_die_id(&mut self) -> Result<usize, String> {
         if self.next_die_id == usize::MAX {
             return Err(
