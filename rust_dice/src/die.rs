@@ -6,11 +6,22 @@ struct InternalRng {
 }
 
 impl InternalRng {
+    ///Creates a new internal RNG using the given seed.
+    /// Internal RNG uses a
     pub fn new(seed: u64) -> Self{
         let mut rng = InternalRng { seed };
         rng.next();
         rng
     }
+
+    pub fn get_number(&mut self, max: u32) -> u32{
+        let seed = self.next();
+        (seed % max) as u32
+    }  
+
+    pub fn get_current_seed(&self) -> u64{
+        self.seed
+    } 
 
     fn next(&mut self) -> u32 {
         let old_seed = self.seed;
@@ -25,15 +36,6 @@ impl InternalRng {
 
         xorshifted.rotate_right(rot)
     }
-
-    pub fn get_rng(&mut self) -> u32 {
-        self.next() as u32
-    }
-
-    pub fn get_number(&mut self, max: u32) -> u32{
-        let seed = self.next();
-        (seed % max) + 1 as u32
-    }    
 }
 
 pub struct Die {
@@ -44,16 +46,7 @@ pub struct Die {
 }
 
 impl Die{
-    pub fn new(faces: u32, seed: u64, std_weight: u32, weight_varience: u32) -> Self {
-        let face_weights = map_face_weights(seed, faces, std_weight, weight_varience);
-        Die { 
-            current_face: 1,
-            face_weights : face_weights.0,
-            total_weight : face_weights.1,
-            internal_rng: InternalRng::new(seed)
-        }
-    }
-
+    ///Rolls the Die and makes 
     pub fn roll(&mut self) -> u32 {
         let random_number = self.internal_rng.get_number(self.total_weight);
         for i in 0..self.face_weights.len(){
@@ -64,6 +57,34 @@ impl Die{
         }
         self.current_face
     }
+
+    fn new(faces: u32, seed: u64, std_weight: u32, weight_varience: u32) -> Self {
+        let face_weights = map_face_weights(seed, faces, std_weight, weight_varience);
+        Die { 
+            current_face: 1,
+            face_weights : face_weights.0,
+            total_weight : face_weights.1,
+            internal_rng: InternalRng::new(seed)
+        }
+    }
+}
+
+///Builds and retuns a new die from the provided seed. 
+///Each face of the die has a base weight of std_weight + (0 - weight_varience). 
+///Higher varience will create more "unfair" dice.
+///Once dice face weights are set they will persist for the lifetime of the die. 
+pub fn build_die(faces: u32, seed: u64, std_weight: u32, weight_varience: u32) -> Result<Die, String>{
+    if faces > 1000{
+        return Err(format!("Error: cannot create a die with over a thousand faces."));
+    }
+    else if std_weight <= 0 {
+        return Err(format!("Standard die weight must be greater than zero, recomend a value of 100."));
+    }
+    else if weight_varience <= 0 {
+        return Err(format!("Weight varience of new dice must be greater than zero, recomend a value of 25."));
+    }
+
+    Ok(Die::new(faces, seed, std_weight, weight_varience))
 }
 
 fn map_face_weights(seed: u64, face_count: u32, std_weight: u32, weight_varience: u32) -> (Vec<u32>, u32){
@@ -79,21 +100,6 @@ fn map_face_weights(seed: u64, face_count: u32, std_weight: u32, weight_varience
 }
 
 #[cfg(test)]
-
-#[test]
-fn randomize(){
-    let mut rng = InternalRng::new(57);
-    let mut counts: [i32; 11] = [0,0,0,0,0,0,0,0,0,0,0];
-    for i in 0..1000 {
-        let number = rng.get_rng();
-        let digitcount = number.to_string().len();
-        counts[digitcount] += 1;
-        println!("{} --- {} --- {}", i, number, digitcount);
-    }
-    for i in 1..=10{
-        println!("digit count count {} -- {}", i, counts[i]);
-    }
-}
 
 #[test]
 fn random_number(){
@@ -113,9 +119,9 @@ fn random_number(){
 #[test]
 fn die_test(){
     let faces = 10;
-    let mut die = Die::new(faces, 1789, 100, 100);
+    let mut die = build_die(faces, 71, 100, 50).unwrap();
     let mut counts: Vec<i32> = vec![0; faces as usize];
-    for i in 0..1000000 {
+    for i in 0..100000 {
         let roll = die.roll();
         counts[(roll - 1) as usize] += 1;
         println!("{} --- {}", i, roll);
