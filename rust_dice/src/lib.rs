@@ -24,3 +24,5 @@ pub mod tables;
 
 ///New module for building the dice again from the ground up with it's own internal RNG.
 pub mod die;
+
+pub mod die_reader;

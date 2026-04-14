@@ -62,6 +62,11 @@ impl Die{
         self.current_face
     }
 
+    ///Gets the current result of the dice without modification of the rng.
+    pub fn get_current_face(&self) -> u32 {
+        self.current_face
+    }
+
     fn new(faces: u32, seed: u64, std_weight: u32, weight_varience: u32) -> Self {
         let face_weights = map_face_weights(seed, faces, std_weight, weight_varience);
         Die { 
@@ -87,8 +92,9 @@ pub fn build_die(faces: u32, seed: u64, std_weight: u32, weight_varience: u32) -
     else if weight_varience <= 0 {
         return Err(format!("Weight varience of new dice must be greater than zero, recomend a value of 25."));
     }
-
-    Ok(Die::new(faces, seed, std_weight, weight_varience))
+    let mut die = Die::new(faces, seed, std_weight, weight_varience);
+    die.roll();
+    Ok(die)
 }
 
 fn map_face_weights(seed: u64, face_count: u32, std_weight: u32, weight_varience: u32) -> (Vec<u32>, u32){
