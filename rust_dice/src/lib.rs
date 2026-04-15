@@ -25,4 +25,6 @@ pub mod tables;
 ///New module for building the dice again from the ground up with it's own internal RNG.
 pub mod die;
 
-pub mod die_reader;
+///Die allocators create dice and assign them to a has set with unique IDs.
+///The die uses this ID to call updates when the die is rolled.
+pub mod die_allocator;

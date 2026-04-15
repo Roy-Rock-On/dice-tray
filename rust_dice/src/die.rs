@@ -1,6 +1,6 @@
 use std::u32;
+use std::fmt::Display;
 use serde::{Serialize, Deserialize};
-
 
 #[derive(Serialize, Deserialize)]
 struct InternalRng {
@@ -43,7 +43,11 @@ impl InternalRng {
 
 #[derive(Serialize, Deserialize)]
 pub struct Die {
+    id: usize,
+    label: String,
     current_face: u32,
+    result_type: DieResultType,
+    current_result: DieResult,
     face_weights: Vec<u32>,
     total_weight: u32,
     internal_rng: InternalRng,
@@ -51,7 +55,7 @@ pub struct Die {
 
 impl Die{
     ///Rolls the Die and makes 
-    pub fn roll(&mut self) -> u32 {
+    pub fn roll(&mut self) -> RollLog {
         let random_number = self.internal_rng.get_number(self.total_weight);
         for i in 0..self.face_weights.len(){
             if random_number <= self.face_weights[i] {
@@ -59,7 +63,10 @@ impl Die{
                 break;
             } 
         }
-        self.current_face
+        let face_result = self.current_face;
+        self.set_die_result(face_result);
+
+        RollLog { die_id: self.id, new_face: face_result, new_result: self.current_result.clone()}
     }
 
     ///Gets the current result of the dice without modification of the rng.
@@ -67,14 +74,86 @@ impl Die{
         self.current_face
     }
 
-    fn new(faces: u32, seed: u64, std_weight: u32, weight_varience: u32) -> Self {
-        let face_weights = map_face_weights(seed, faces, std_weight, weight_varience);
+    pub fn get_face_count(&self) -> u32{
+        self.face_weights.len() as u32
+    }
+
+    pub fn set_result_type(&mut self, new_type: DieResultType){
+        let current_result = self.current_face;
+        self.current_result = match new_type{
+            DieResultType::Face => DieResult::Face(current_result),
+            DieResultType::Best => DieResult::Best(current_result),
+            DieResultType::Sum => DieResult::Sum(current_result),
+            DieResultType::Worst => DieResult::Worst(current_result)
+        };
+    }
+
+    pub fn get_id(&self) -> usize{
+        self.id
+    }
+
+    pub fn get_label(&self) -> &str{
+        &self.label
+    }
+
+    fn set_die_result(&mut self, face_result: u32){
+        let current_result_num = match self.current_result.get_num(){
+            Ok(num) => num,
+            Err(_) => 0
+        };
+
+        self.current_result = match &self.result_type{
+            DieResultType::Face => DieResult::Face(face_result),
+            DieResultType::Best => {
+                if face_result > current_result_num{
+                    DieResult::Best(face_result)
+                }
+                else{
+                    DieResult::Best(current_result_num)
+                }
+            },
+            DieResultType::Worst => {
+                if face_result < current_result_num{
+                    DieResult::Worst(face_result)
+                }
+                else{
+                    DieResult::Worst(current_result_num)
+                }
+            },
+            DieResultType::Sum => DieResult::Sum(current_result_num + face_result)
+        }
+    }
+
+    fn new(id: usize, die_label: Option<String>, faces: u32, seed: u64, std_weight: u32, weight_varience: u32) -> Self {
+        let face_weights = Self::map_face_weights(seed, faces, std_weight, weight_varience);
+
+        let label = match die_label{
+            Some(l) => l.to_string(),
+            None => format!("d{}", faces)
+        };
+
         Die { 
+            id,
+            label,
             current_face: 1,
+            result_type: DieResultType::Face,
+            current_result: DieResult::Face(1),
             face_weights : face_weights.0,
             total_weight : face_weights.1,
             internal_rng: InternalRng::new(seed)
         }
+    }
+
+    fn map_face_weights(seed: u64, face_count: u32, std_weight: u32, weight_varience: u32) -> (Vec<u32>, u32){
+        let mut rng = InternalRng::new(seed);
+        let mut weights = Vec::new();
+        let mut cumulative = 0;
+        for _ in 0..face_count{
+            cumulative += (std_weight + rng.get_number(weight_varience));
+            weights.push(cumulative);
+        }
+
+        (weights, cumulative)
     }
 }
 
@@ -82,7 +161,7 @@ impl Die{
 ///Each face of the die has a base weight of std_weight + (0 - weight_varience). 
 ///Higher varience will create more "unfair" dice.
 ///Once dice face weights are set they will persist for the lifetime of the die. 
-pub fn build_die(faces: u32, seed: u64, std_weight: u32, weight_varience: u32) -> Result<Die, String>{
+pub fn build_die(id: usize, label: Option<String>, faces: u32, seed: u64, std_weight: u32, weight_varience: u32) -> Result<Die, String>{
     if faces > 1000{
         return Err(format!("Error: cannot create a die with over a thousand faces."));
     }
@@ -92,21 +171,44 @@ pub fn build_die(faces: u32, seed: u64, std_weight: u32, weight_varience: u32) -
     else if weight_varience <= 0 {
         return Err(format!("Weight varience of new dice must be greater than zero, recomend a value of 25."));
     }
-    let mut die = Die::new(faces, seed, std_weight, weight_varience);
+    let mut die = Die::new(id, label, faces, seed, std_weight, weight_varience);
     die.roll();
     Ok(die)
 }
 
-fn map_face_weights(seed: u64, face_count: u32, std_weight: u32, weight_varience: u32) -> (Vec<u32>, u32){
-    let mut rng = InternalRng::new(seed);
-    let mut weights = Vec::new();
-    let mut cumulative = 0;
-    for _ in 0..face_count{
-        cumulative += (std_weight + rng.get_number(weight_varience));
-        weights.push(cumulative);
-    }
+#[derive(Serialize, Deserialize)]
+enum DieResultType{
+    Face,
+    Best,
+    Worst,
+    Sum
+}
 
-    (weights, cumulative)
+#[derive(Serialize, Deserialize, Debug, Clone)]
+enum DieResult{
+    Face(u32),
+    Best(u32),
+    Worst(u32),
+    Sum(u32)
+}
+
+impl DieResult{
+    fn get_num(&self) -> Result<u32, String> {
+        match self {
+            DieResult::Best(x) => return Ok(*x),
+            DieResult::Face(x) => return Ok(*x),
+            DieResult::Sum(x) => return Ok(*x),
+            DieResult::Worst(x) => return Ok(*x),
+            _ => Err(format!("Cannot cast DieResult {:?} as number.", self))
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct RollLog{
+    die_id: usize,
+    new_face: u32,
+    new_result: DieResult
 }
 
 #[cfg(test)]
@@ -129,12 +231,12 @@ fn random_number(){
 #[test]
 fn die_test(){
     let faces = 10;
-    let mut die = build_die(faces, 71, 100, 50).unwrap();
+    let mut die = build_die(faces, Some("new die".to_string()), 71, 100, 50, 10).unwrap();
     let mut counts: Vec<i32> = vec![0; faces as usize];
     for i in 0..100000 {
         let roll = die.roll();
-        counts[(roll - 1) as usize] += 1;
-        println!("{} --- {}", i, roll);
+        counts[(roll.new_face - 1) as usize] += 1;
+        println!("{} --- {}", i, roll.new_result.get_num().unwrap());
     }
 
     let sum_of_counts = {
@@ -167,13 +269,13 @@ fn die_test(){
 
 #[test]
 fn face_weights_mapping(){
-    let die = Die::new(10, 1, 100, 10);
+    let die = Die::new(0, None, 10, 1, 100, 10);
     println!{"Face weights = {:?} Total = {}", die.face_weights, die.total_weight};
 }
 
 #[test]
 fn test_serialize_die(){
-    let mut die = build_die(20, 1, 100, 25).unwrap();
+    let mut die = build_die(20, None, 1, 100, 25, 25).unwrap();
     {
         let die_json = serde_json::to_string(&die).unwrap();
         println!("JSON die = {}", die_json);
