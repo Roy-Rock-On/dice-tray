@@ -1,6 +1,5 @@
-use std::{env, u32};
-use dotenv::dotenv;
-use getrandom::Error;
+use std::fmt;
+use std::u32;
 use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize)]
@@ -196,6 +195,21 @@ impl Die{
     }
 }
 
+impl fmt::Display for Die{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result{
+        let result_num = self.current_result.get_num().unwrap_or(0);
+        write!(
+            f,
+            "{}[id = {}, faces = d{}, current_face = {}, result = {}]",
+            self.label,
+            self.id,
+            self.face_weights.len(),
+            self.current_face,
+            result_num
+        )
+    }
+}
+
 ///Builds and retuns a new die from the provided seed. 
 ///Each face of the die has a base weight of std_weight + (0 - weight_varience). 
 ///Higher varience will create more "unfair" dice.
@@ -259,6 +273,25 @@ pub struct DieData{
     face_weights: Vec<u32>,
     total_weight: u32,
     last_rng_seed: u64,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct DiceDataList{
+    file_name: String,
+    dice_data_vec: Vec<DieData>
+}
+
+impl DiceDataList{
+    fn new(file_name: String) -> Self{
+        DiceDataList { 
+            file_name, 
+            dice_data_vec: Vec::new() 
+        }
+    }
+
+    fn add_data(&mut self, die_data: DieData){
+        self.dice_data_vec.push(die_data);
+    }
 }
 
 #[cfg(test)]
@@ -358,10 +391,70 @@ fn test_create_die_data() -> Result<(), std::io::Error>{
     println!("Data dir this = {:?}", data_dir);
     println!("exists: {}, is_dir: {}", data_dir.exists(), data_dir.is_dir());
 
-    let file_path = data_dir.join("test.txt");
+    let mut dice_data_list = DiceDataList::new("die_test".to_string());
+    let mut die_zero = build_die(0, Some("Die_Zero".to_string()), 4, 10, 100, 1).unwrap();
+    die_zero.roll();
+    let mut die_one = build_die(1, Some("Die_One".to_string()), 6, 20, 100, 25).unwrap();
+    die_one.roll();
+    let mut die_two = build_die(2, Some("Die_Two".to_string()), 8, 30, 100, 50).unwrap();
+    die_two.roll();
+    let mut die_three = build_die(3, Some("Die_Three".to_string()), 10, 40, 100, 100).unwrap();
+    die_three.roll();
+    let mut die_four = build_die(4, Some("Die_Four".to_string()), 12, 50, 100, 200).unwrap();
+    die_four.roll();
+    let mut die_five = build_die(5, Some("Die_Five".to_string()), 20, 60, 100, 300).unwrap();
+    die_five.roll();
+    let mut die_six = build_die(6, Some("Die_Six".to_string()), 100, 70, 100, 500).unwrap();
+    die_six.roll();
+
+    dice_data_list.add_data(die_zero.to_data());
+    dice_data_list.add_data(die_one.to_data());
+    dice_data_list.add_data(die_two.to_data());
+    dice_data_list.add_data(die_three.to_data());
+    dice_data_list.add_data(die_four.to_data());
+    dice_data_list.add_data(die_five.to_data());
+    dice_data_list.add_data(die_six.to_data());
+
+    let file_path = data_dir.join(dice_data_list.file_name.clone());
+    let die_list_json = serde_json::to_string_pretty(&dice_data_list)?;
 
     let mut test_file = fs::File::create(&file_path)?;
-    test_file.write_all("All your base are belong to us.".as_bytes())
+    test_file.write_all(die_list_json.as_bytes())
+}
+
+#[test]
+fn test_die_data_list_to_dice() -> Result<(), std::io::Error> {
+    use std::fs;
+    use std::path::PathBuf;
+    use dotenv;
+
+    dotenv::from_filename("rust_dice/src/.env").unwrap();
+
+    let rel = PathBuf::from(std::env::var("DICE_DATA_PATH").unwrap());
+    let data_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(rel);
+
+    println!("Data dir this = {:?}", data_dir);
+    println!("exists: {}, is_dir: {}", data_dir.exists(), data_dir.is_dir());
+
+    let file_path = data_dir.join("die_test");
+    let die_file = fs::read_to_string(&file_path)?;
+
+    let decoded_list: DiceDataList = serde_json::from_str(&die_file)?;
+
+    let mut restored_dice: Vec<Die> = decoded_list
+        .dice_data_vec
+        .into_iter()
+        .enumerate()
+        .map(|(i, data)| Die::from_data(data, i))
+        .collect();
+
+    for d in restored_dice.iter_mut(){
+        println!("{}", d);
+        d.roll();
+        println!("{}", d);
+    }
+
+    Ok(())
 }
 
 

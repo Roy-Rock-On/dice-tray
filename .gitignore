@@ -1,3 +1,3 @@
 /target
 /rust_dice/data
-/rust_dice/.env
+/rust_dice/src/.env
