@@ -56,6 +56,7 @@ pub struct Die {
     face_weights: Vec<u32>,
     total_weight: u32,
     internal_rng: InternalRng,
+    current_tray: Option<usize>
 }
 
 impl Die{
@@ -85,7 +86,7 @@ impl Die{
     }
 
     /// Sets the result type for a die.
-    pub fn set_result_type(&mut self, new_type: DieResultType){
+    fn set_result_type(&mut self, new_type: DieResultType){
         let current_result = self.current_face;
         self.current_result = match new_type{
             DieResultType::Face => DieResult::Face(current_result),
@@ -93,6 +94,11 @@ impl Die{
             DieResultType::Sum => DieResult::Sum(current_result),
             DieResultType::Worst => DieResult::Worst(current_result)
         };
+    }
+
+    /// Sets the in_tray to track what tray the die is in. Used by the dice allocator.
+    pub fn set_tray(&mut self, tray_id: Option<usize>){
+        self.current_tray = tray_id;
     }
 
     /// Returns the die ID, given by the die allocator at generation (or oterwise when the die is created). 
@@ -116,6 +122,7 @@ impl Die{
             face_weights: self.face_weights.clone(),
             total_weight: self.total_weight,
             last_rng_seed: self.internal_rng.get_current_seed(),
+            last_tray: self.current_tray
         }
     } 
 
@@ -129,7 +136,8 @@ impl Die{
             current_result: die_data.current_result,
             face_weights: die_data.face_weights,
             total_weight: die_data.total_weight,
-            internal_rng: InternalRng::new(die_data.last_rng_seed) 
+            internal_rng: InternalRng::new(die_data.last_rng_seed),
+            current_tray: None
         }
     } 
 
@@ -178,7 +186,8 @@ impl Die{
             current_result: DieResult::Face(1),
             face_weights : face_weights.0,
             total_weight : face_weights.1,
-            internal_rng: InternalRng::new(seed)
+            internal_rng: InternalRng::new(seed),
+            current_tray: None
         }
     }
 
@@ -273,12 +282,13 @@ pub struct DieData{
     face_weights: Vec<u32>,
     total_weight: u32,
     last_rng_seed: u64,
+    last_tray: Option<usize>
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct DiceDataList{
-    file_name: String,
-    dice_data_vec: Vec<DieData>
+    pub file_name: String,
+    pub dice_data_vec: Vec<DieData>
 }
 
 impl DiceDataList{

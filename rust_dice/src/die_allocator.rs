@@ -1,6 +1,7 @@
-use crate::die::{Die, RollLog, build_die};
+use crate::die::{DiceDataList, Die, DieData, RollLog, build_die};
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
+use std::fmt::Display;
 
 //constants used to sutomaticaly weight the dice. 
 const STD_WEIGHT: u32 = 100;
@@ -56,9 +57,9 @@ impl DieAllocator{
         }
     }
 
-    pub fn new_tray(&mut self){
+    pub fn new_tray(&mut self, label: Option<String>){
         let new_tray_id = self.tray_id_gen.get_next_tray_id();
-        self.trays.insert(new_tray_id, DieTray::new(new_tray_id));        
+        self.trays.insert(new_tray_id, DieTray::new(new_tray_id, label));        
     }
 
     pub fn new_die(&mut self, faces: u32, seed: Option<u64>, label: Option<String>) -> Result<(), String>{
@@ -77,17 +78,45 @@ impl DieAllocator{
         Ok(())
     }
 
-    pub fn add_to_tray(&mut self, die_id: usize, tray_id: usize) -> Result<(), String>{
+    pub fn new_die_from_data(&mut self, die_data: DieData) -> Result<(), String> {
+        let new_die_id = self.die_id_gen.get_next_die_id();
+        let new_die = Die::from_data(die_data, new_die_id);
+        self.dice.insert(new_die_id, new_die);
+        Ok(())
+    }
+
+    pub fn new_dice_from_list(&mut self, dice_data: DiceDataList) -> Result<(), String>{
+        dice_data.dice_data_vec.into_iter()
+            .for_each(|data| {
+                let next_id = self.die_id_gen.get_next_die_id();
+                let new_die = Die::from_data(data, next_id);
+                self.dice.insert(next_id, new_die);
+            });
+        Ok(())
+    }
+
+    pub fn move_die(&mut self, die_id: usize, tray_id: Option<usize>) -> Result<(), String>{
         // Find the die by id
-        let die_id = self.dice.get(&die_id)
+        let die = self.dice.get_mut(&die_id)
             .ok_or_else(|| format!("No die found with ID: {}", die_id))?;
 
-        // Find the tray by id
-        let tray = self.trays.get_mut(&tray_id)
-            .ok_or_else(|| format!("No tray found with ID: {}", tray_id))?;
+        let die_id = die.get_id();
 
-        // Add die reference to tray
-        tray.add_die(die_id);
+        if let Some(tray) = self.trays.get_mut(&die.get_id()){
+            tray.remove_die(die_id)?;
+        }
+
+        match tray_id{
+            None => die.set_tray(None),
+            Some(id) => {
+                if let Some(tray) = self.trays.get_mut(&id){
+                    tray.add_die(die_id);
+                }
+                else{
+                    return Err(format!("No tray found with ID: {}", id));
+                }
+            }
+        }
         Ok(())
     }
 
@@ -99,23 +128,58 @@ impl DieAllocator{
             Err(format!("No die found with given die ID: {} Cannot roll.", die_id))
         }
     }
+
+    pub fn print_dice(&self){
+        println!("---ALL DICE IN ALLOCATOR---");
+        for die in self.dice.values(){
+            println!{"{}", die};
+        }
+    }
+
+    pub fn print_tray(&self, tray_id: usize) -> Result<(), String> {
+        let tray = self.trays.get(&tray_id)
+            .ok_or_else(|| format!("No tray found with ID: {}", tray_id))?;
+
+        println!("Found tray with {}", tray_id);
+        println!("---{}---", tray.label);
+
+        for die_id in tray.dice.iter(){
+            if self.dice.contains_key(&die_id){
+                println!("{}", self.dice[&die_id]);
+            }
+            else{
+                return Err(format!("No dice found with ID: {}", die_id));
+            }
+        }
+
+        Ok(())
+    }
 }
 
 pub struct DieTray{
     id: usize,
+    label: String,
     dice: Vec<usize>
 }
 
 impl DieTray{
-    pub fn new(tray_id: usize) -> Self{
+    pub fn new(tray_id: usize, tray_name: Option<String>) -> Self{
+        let tray_label = match tray_name{
+            Some(s) => s,
+            None =>{
+                format!("Tray {}", tray_id.to_string())
+            }
+        };
+        
         DieTray { 
             id: tray_id,
+            label: tray_label,
             dice: Vec::new()
         }
     }
 
-    fn add_die(&mut self, die : &Die){
-        self.dice.push(die.get_id());
+    fn add_die(&mut self, die_id : usize){
+        self.dice.push(die_id);
     }
 
     fn remove_die(&mut self, die_id: usize) -> Result<usize, String>{
@@ -128,5 +192,72 @@ impl DieTray{
     }
 }
 
+impl Display for DieTray{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Tray ID = {}, Tray Label = {}, Count of dice in tray = {}",
+            self.id,
+            self.label,
+            self.dice.len()
+        )
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn test_new_tray(){
+    let mut allocator = DieAllocator::new();
+    allocator.new_tray(Some("Best Tray".to_string()));
+    allocator.new_tray(Some("Worst Tray".to_string()));
+    allocator.new_tray(None);
+
+    for t in allocator.trays.values(){
+        println!("{}", t);
+    }
+}
+
+fn build_allocator_from_file() -> Result<DieAllocator, String> {
+    use std::fs;
+    use std::path::PathBuf;
+    use dotenv;
+
+    dotenv::from_filename("rust_dice/src/.env").unwrap();
+
+    let rel = PathBuf::from(std::env::var("DICE_DATA_PATH").unwrap());
+    let data_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(rel);
+    let file_path = data_dir.join("die_test");
+    let die_file = fs::read_to_string(&file_path).unwrap();
+
+    let decoded_list: DiceDataList = serde_json::from_str(&die_file).unwrap();
+    
+    let mut allocator = DieAllocator::new();
+    allocator.new_tray(Some("THE TRAY".to_string()));
+    allocator.new_dice_from_list(decoded_list).unwrap();
+    Ok(allocator)
+}
+
+#[test]
+fn test_dice_from_list() -> Result<(), String>{
+    let allocator = build_allocator_from_file().unwrap();
+    allocator.print_dice();
+    Ok(())
+}
+
+
+#[test]
+fn test_dice_to_tray() -> Result<(), String>{
+    let mut allocator = build_allocator_from_file().unwrap();
+    allocator.print_dice();
+    allocator.move_die(2, Some(0))?;
+    allocator.move_die(1, Some(0))?;
+    allocator.print_tray(0)?;
+    
+    allocator.new_tray(Some("The tray to end all trays".to_string()));
+    allocator.move_die(5, Some(1))?;
+    allocator.print_tray(1)?;
+
+    Ok(())
+}
 
 
