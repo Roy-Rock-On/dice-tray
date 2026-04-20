@@ -79,7 +79,7 @@ impl DieAllocator{
 
     pub fn add_to_tray(&mut self, die_id: usize, tray_id: usize) -> Result<(), String>{
         // Find the die by id
-        let die = self.dice.get(&die_id)
+        let die_id = self.dice.get(&die_id)
             .ok_or_else(|| format!("No die found with ID: {}", die_id))?;
 
         // Find the tray by id
@@ -87,7 +87,7 @@ impl DieAllocator{
             .ok_or_else(|| format!("No tray found with ID: {}", tray_id))?;
 
         // Add die reference to tray
-        tray.add_die(die);
+        tray.add_die(die_id);
         Ok(())
     }
 

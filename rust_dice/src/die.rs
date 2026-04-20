@@ -1,5 +1,6 @@
-use std::u32;
-use std::fmt::Display;
+use std::{env, u32};
+use dotenv::dotenv;
+use getrandom::Error;
 use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize)]
@@ -9,22 +10,24 @@ struct InternalRng {
 
 impl InternalRng {
     ///Creates a new internal RNG using the given seed.
-    /// Internal RNG uses a
+    ///Internal RNG uses a
     pub fn new(seed: u64) -> Self{
         let mut rng = InternalRng { seed };
         rng.next();
         rng
-    }
+    }  
+    
+    ///Returns the current seed. Used when serializing the die to DieData.
+    pub fn get_current_seed(&self) -> u64{
+        self.seed
+    } 
 
+    ///Gets a random number from 0 (inclusive) to the max value provided (exclusive)
+    ///Used to randomize the face weights during dice creation. 
     pub fn get_number(&mut self, max: u32) -> u32{
         let seed = self.next();
         (seed % max) as u32
     }  
-
-    ///Returns the current seed. Used when serializing and deserializing the dice.
-    pub fn get_current_seed(&self) -> u64{
-        self.seed
-    } 
 
     fn next(&mut self) -> u32 {
         let old_seed = self.seed;
@@ -41,7 +44,10 @@ impl InternalRng {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+///A representation of a physical die. 
+///Uses Internal RNG (PCG32) and a vector of face weights to simulate imperfections.
+///Can be serialized into dice data, along with its seed. 
+///Can be created from dice data, or directly using build_die().  
 pub struct Die {
     id: usize,
     label: String,
@@ -74,10 +80,12 @@ impl Die{
         self.current_face
     }
 
+    /// Gets the total face count for the die.
     pub fn get_face_count(&self) -> u32{
         self.face_weights.len() as u32
     }
 
+    /// Sets the result type for a die.
     pub fn set_result_type(&mut self, new_type: DieResultType){
         let current_result = self.current_face;
         self.current_result = match new_type{
@@ -88,14 +96,45 @@ impl Die{
         };
     }
 
+    /// Returns the die ID, given by the die allocator at generation (or oterwise when the die is created). 
+    /// This is session dependenant and is not saved when the die is serialized.
     pub fn get_id(&self) -> usize{
         self.id
     }
 
+    /// Returns string slice containing the die label.
     pub fn get_label(&self) -> &str{
         &self.label
     }
 
+    ///Convert the die to die data so it can be serialized to JSON using Serde.
+    pub fn to_data(&self) -> DieData {
+        DieData{
+            label: self.label.clone(),
+            current_face: self.current_face,
+            current_result: self.current_result.clone(),
+            result_type: self.result_type.clone(),
+            face_weights: self.face_weights.clone(),
+            total_weight: self.total_weight,
+            last_rng_seed: self.internal_rng.get_current_seed(),
+        }
+    } 
+
+    ///Convert DieData into a die that can be rolled.
+    pub fn from_data(die_data: DieData, die_id: usize) -> Die{   
+        Die { 
+            id: die_id,
+            label: die_data.label,
+            current_face: die_data.current_face,
+            result_type: die_data.result_type,
+            current_result: die_data.current_result,
+            face_weights: die_data.face_weights,
+            total_weight: die_data.total_weight,
+            internal_rng: InternalRng::new(die_data.last_rng_seed) 
+        }
+    } 
+
+    // Private functions that run internal dice logic.
     fn set_die_result(&mut self, face_result: u32){
         let current_result_num = match self.current_result.get_num(){
             Ok(num) => num,
@@ -176,7 +215,7 @@ pub fn build_die(id: usize, label: Option<String>, faces: u32, seed: u64, std_we
     Ok(die)
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 enum DieResultType{
     Face,
     Best,
@@ -211,18 +250,29 @@ pub struct RollLog{
     new_result: DieResult
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct DieData{
+    label: String,
+    current_face: u32,
+    result_type: DieResultType,
+    current_result: DieResult,
+    face_weights: Vec<u32>,
+    total_weight: u32,
+    last_rng_seed: u64,
+}
+
 #[cfg(test)]
 
 #[test]
 fn random_number(){
     let mut rng = InternalRng::new(222);
     
-    println!("Getting random numbers 1 - 6");
+    println!("Getting random numbers 0 - 5");
     for _ in 0..100{
         println!("{}", rng.get_number(6));
     }
 
-    println!("Getting random numbers 1 - 20");
+    println!("Getting random numbers 0 - 19");
     for _ in 0..100{
         println!("{}", rng.get_number(20));
     }
@@ -275,21 +325,43 @@ fn face_weights_mapping(){
 
 #[test]
 fn test_serialize_die(){
-    let mut die = build_die(20, None, 1, 100, 25, 25).unwrap();
+    let mut die = build_die(20, None, 6, 100, 25, 25).unwrap();
     {
-        let die_json = serde_json::to_string(&die).unwrap();
+        let die_json = serde_json::to_string(&die.to_data()).unwrap();
         println!("JSON die = {}", die_json);
     }
     die.roll();
     {
-        let die_json = serde_json::to_string(&die).unwrap();
+        let die_json = serde_json::to_string(&die.to_data()).unwrap();
         println!("JSON die = {}", die_json);
     }
     die.roll();
     {
-        let die_json = serde_json::to_string(&die).unwrap();
+        let die_json = serde_json::to_string(&die.to_data()).unwrap();
         println!("JSON die = {}", die_json);
     }
+}
+
+#[test]
+fn test_create_die_data() -> Result<(), std::io::Error>{
+    use std::fs;
+    use std::io::Write;
+    use std::path::PathBuf;
+    use dotenv;
+
+    dotenv::from_filename("rust_dice/src/.env").unwrap();
+
+    let rel = PathBuf::from(std::env::var("DICE_DATA_PATH").unwrap());
+    let data_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(rel);
+    fs::create_dir_all(&data_dir)?;
+
+    println!("Data dir this = {:?}", data_dir);
+    println!("exists: {}, is_dir: {}", data_dir.exists(), data_dir.is_dir());
+
+    let file_path = data_dir.join("test.txt");
+
+    let mut test_file = fs::File::create(&file_path)?;
+    test_file.write_all("All your base are belong to us.".as_bytes())
 }
 
 
