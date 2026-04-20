@@ -48,6 +48,7 @@ pub struct DieAllocator{
 }
 
 impl DieAllocator{
+    ///Makes a new dice allocator for all your dice allocating needs.
     pub fn new() -> Self{
         Self { 
             tray_id_gen: TrayIDGenerator::new(),
@@ -57,11 +58,13 @@ impl DieAllocator{
         }
     }
 
+    ///Makes a new tray to track and sort dice being rolled.
     pub fn new_tray(&mut self, label: Option<String>){
         let new_tray_id = self.tray_id_gen.get_next_tray_id();
         self.trays.insert(new_tray_id, DieTray::new(new_tray_id, label));        
     }
 
+    ///Creates a new die. Does not add the dice to any tray.
     pub fn new_die(&mut self, faces: u32, seed: Option<u64>, label: Option<String>) -> Result<(), String>{
         let new_die_id = self.die_id_gen.get_next_die_id();
         
@@ -78,23 +81,37 @@ impl DieAllocator{
         Ok(())
     }
 
+    ///Creates a new die. 
+    ///If the die data contains a current_tray, attempts to move the die to a tray with matching ID.
+    ///If unable (i.e. tray dosen't exist) returns clears the die's current_tray.  
     pub fn new_die_from_data(&mut self, die_data: DieData) -> Result<(), String> {
         let new_die_id = self.die_id_gen.get_next_die_id();
-        let new_die = Die::from_data(die_data, new_die_id);
+        let mut new_die = Die::from_data(die_data, new_die_id);
+
+        if let Some(id) = new_die.get_tray_id(){
+            if let Some(tray) = self.trays.get_mut(&id){
+                tray.add_die(new_die_id);
+            }
+            else{
+                new_die.set_tray(None);
+            }
+        }
+
         self.dice.insert(new_die_id, new_die);
         Ok(())
     }
 
+    ///Creates new dice form a given DiceDataList. Uses new_die_from_data() internally.
     pub fn new_dice_from_list(&mut self, dice_data: DiceDataList) -> Result<(), String>{
-        dice_data.dice_data_vec.into_iter()
-            .for_each(|data| {
-                let next_id = self.die_id_gen.get_next_die_id();
-                let new_die = Die::from_data(data, next_id);
-                self.dice.insert(next_id, new_die);
-            });
+        for data in dice_data.dice_data_vec {
+            self.new_die_from_data(data)?; // now valid
+        }
         Ok(())
     }
 
+    ///Moves the die with the given die_id to the tray with the given tray_id. 
+    ///tray_id takes an option. None will result in the die being removed form all trays.
+    ///This function updates both the dice's internal current_tray and the tray's dice ID list.
     pub fn move_die(&mut self, die_id: usize, tray_id: Option<usize>) -> Result<(), String>{
         // Find the die by id
         let die = self.dice.get_mut(&die_id)
@@ -110,6 +127,7 @@ impl DieAllocator{
             None => die.set_tray(None),
             Some(id) => {
                 if let Some(tray) = self.trays.get_mut(&id){
+                    die.set_tray(tray_id);
                     tray.add_die(die_id);
                 }
                 else{
@@ -256,6 +274,13 @@ fn test_dice_to_tray() -> Result<(), String>{
     allocator.new_tray(Some("The tray to end all trays".to_string()));
     allocator.move_die(5, Some(1))?;
     allocator.print_tray(1)?;
+
+    allocator.move_die(5, Some(0))?;
+    allocator.print_tray(0)?;
+
+    allocator.move_die(5, None)?;
+
+    allocator.print_dice();
 
     Ok(())
 }

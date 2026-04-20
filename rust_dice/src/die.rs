@@ -101,6 +101,11 @@ impl Die{
         self.current_tray = tray_id;
     }
 
+    ///Returns the dies current tray by id. Or None.
+    pub fn get_tray_id(&self) -> Option<usize>{
+        self.current_tray
+    }
+
     /// Returns the die ID, given by the die allocator at generation (or oterwise when the die is created). 
     /// This is session dependenant and is not saved when the die is serialized.
     pub fn get_id(&self) -> usize{
@@ -209,12 +214,13 @@ impl fmt::Display for Die{
         let result_num = self.current_result.get_num().unwrap_or(0);
         write!(
             f,
-            "{}[id = {}, faces = d{}, current_face = {}, result = {}]",
+            "{}[id = {}, faces = d{}, current_face = {}, result = {}, current_tray = {:?}]",
             self.label,
             self.id,
             self.face_weights.len(),
             self.current_face,
-            result_num
+            result_num,
+            self.current_tray
         )
     }
 }
