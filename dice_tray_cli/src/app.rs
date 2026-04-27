@@ -1,30 +1,21 @@
 use dirs::data_local_dir;
 
-use rust_dice::dice::{Die, DieResultType};
-use rust_dice::dice_allocator::DiceAllocator;
-use rust_dice::dice_profile::{DieProfile, DieProfileType};
-use rust_dice::tray::Tray;
-
-use indexmap::IndexMap;
+use rust_dice::die_allocator::Allocator;
 
 use std::error::Error;
 use std::fs::create_dir_all;
 
-use crate::cli_dice_allocator::CliDiceAllocator;
-use crate::cli_dice_tray::{CliTrayData};
 use crate::cli_parser::DiceTargets;
 use crate::logger::detailed_log_tray;
 
 pub struct CliDiceTrayApp {
-    dice_allocator: CliDiceAllocator,
-    dice_trays: IndexMap<String, Box<dyn Tray>>,
+    dice_allocator: Allocator
 }
 
 impl CliDiceTrayApp {
     pub fn new() -> Self {
         CliDiceTrayApp {
-            dice_allocator: CliDiceAllocator::new(),
-            dice_trays: IndexMap::new(),
+            dice_allocator: Allocator::new(),
         }
     }
 

@@ -40,14 +40,14 @@ impl TrayIDGenerator{
     }
 }
 
-pub struct DieAllocator{
+pub struct Allocator{
     tray_id_gen: TrayIDGenerator,
     die_id_gen: DieIdGenerator,
     dice: HashMap<usize, Die>,
     trays: HashMap<usize, DieTray>
 }
 
-impl DieAllocator{
+impl Allocator{
     ///Makes a new dice allocator for all your dice allocating needs.
     pub fn new() -> Self{
         Self { 
@@ -113,7 +113,6 @@ impl DieAllocator{
     ///tray_id takes an option. None will result in the die being removed form all trays.
     ///This function updates both the dice's internal current_tray and the tray's dice ID list.
     pub fn move_die(&mut self, die_id: usize, tray_id: Option<usize>) -> Result<(), String>{
-        // Find the die by id
         let die = self.dice.get_mut(&die_id)
             .ok_or_else(|| format!("No die found with ID: {}", die_id))?;
 
@@ -138,6 +137,8 @@ impl DieAllocator{
         Ok(())
     }
 
+    ///Rolls the die with the given ID in place and returns a roll log.
+    ///If the die has been assinged to a tray the tray will be updated.
     pub fn roll_die(&mut self, die_id: usize) -> Result<RollLog, String> {
         if let Some(selected_die) = self.dice.get_mut(&die_id){
             return Ok(selected_die.roll());
@@ -147,6 +148,8 @@ impl DieAllocator{
         }
     }
 
+    ///Prints a list of dice in the allocator
+    ///For use in CLI or debugging. 
     pub fn print_dice(&self){
         println!("---ALL DICE IN ALLOCATOR---");
         for die in self.dice.values(){
@@ -154,11 +157,13 @@ impl DieAllocator{
         }
     }
 
+    ///Prints out a list of dice in a given tray. 
+    ///For use in CLI or debugging.
     pub fn print_tray(&self, tray_id: usize) -> Result<(), String> {
         let tray = self.trays.get(&tray_id)
             .ok_or_else(|| format!("No tray found with ID: {}", tray_id))?;
 
-        println!("Found tray with {}", tray_id);
+        println!("Found tray with ID: {}", tray_id);
         println!("---{}---", tray.label);
 
         for die_id in tray.dice.iter(){
@@ -225,7 +230,7 @@ impl Display for DieTray{
 #[cfg(test)]
 #[test]
 fn test_new_tray(){
-    let mut allocator = DieAllocator::new();
+    let mut allocator = Allocator::new();
     allocator.new_tray(Some("Best Tray".to_string()));
     allocator.new_tray(Some("Worst Tray".to_string()));
     allocator.new_tray(None);
@@ -235,7 +240,7 @@ fn test_new_tray(){
     }
 }
 
-fn build_allocator_from_file() -> Result<DieAllocator, String> {
+fn test_build_allocator_from_file() -> Result<Allocator, String> {
     use std::fs;
     use std::path::PathBuf;
     use dotenv;
@@ -249,7 +254,7 @@ fn build_allocator_from_file() -> Result<DieAllocator, String> {
 
     let decoded_list: DiceDataList = serde_json::from_str(&die_file).unwrap();
     
-    let mut allocator = DieAllocator::new();
+    let mut allocator = Allocator::new();
     allocator.new_tray(Some("THE TRAY".to_string()));
     allocator.new_dice_from_list(decoded_list).unwrap();
     Ok(allocator)
@@ -257,7 +262,7 @@ fn build_allocator_from_file() -> Result<DieAllocator, String> {
 
 #[test]
 fn test_dice_from_list() -> Result<(), String>{
-    let allocator = build_allocator_from_file().unwrap();
+    let allocator = test_build_allocator_from_file().unwrap();
     allocator.print_dice();
     Ok(())
 }
@@ -265,7 +270,7 @@ fn test_dice_from_list() -> Result<(), String>{
 
 #[test]
 fn test_dice_to_tray() -> Result<(), String>{
-    let mut allocator = build_allocator_from_file().unwrap();
+    let mut allocator = test_build_allocator_from_file().unwrap();
     allocator.print_dice();
     allocator.move_die(2, Some(0))?;
     allocator.move_die(1, Some(0))?;

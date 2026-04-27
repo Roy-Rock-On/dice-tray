@@ -182,7 +182,6 @@ dependencies = [
  "clap",
  "cli-table",
  "dirs",
- "indexmap",
  "regex",
  "rust_dice",
  "serde",

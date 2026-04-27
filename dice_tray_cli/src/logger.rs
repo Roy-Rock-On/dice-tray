@@ -1,6 +1,4 @@
 use cli_table::{Table, WithTitle, format::Justify, print_stdout};
-use rust_dice::dice::{Die, DieResult, DieResultType};
-use rust_dice::tray::Tray;
 
 #[derive(Table)]
 struct DetailedDiceState {

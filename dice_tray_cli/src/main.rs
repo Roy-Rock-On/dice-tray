@@ -1,15 +1,11 @@
 mod app;
-mod cli_dice_allocator;
-mod cli_dice_tray;
 mod cli_parser;
 mod logger;
 
 use cli_parser::{parse_dice_notation, parse_dice_targets};
 
 use app::CliDiceTrayApp;
-
 use clap::{Parser, Subcommand};
-use rust_dice::dice::DieResultType;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
