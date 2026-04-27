@@ -62,6 +62,8 @@ pub struct Die {
 impl Die{
     ///Rolls the Die and makes 
     pub fn roll(&mut self) -> RollLog {
+        let last_face = self.current_face;
+        let last_result = self.current_result.clone();
         let random_number = self.internal_rng.get_number(self.total_weight);
         for i in 0..self.face_weights.len(){
             if random_number <= self.face_weights[i] {
@@ -72,7 +74,14 @@ impl Die{
         let face_result = self.current_face;
         self.set_die_result(face_result);
 
-        RollLog { die_id: self.id, new_face: face_result, new_result: self.current_result.clone()}
+        RollLog {
+            die_id: self.id,
+            old_face: last_face,
+            new_face: face_result,
+            old_result: last_result,
+            new_result: self.current_result.clone(),
+            tray_update: self.current_tray.clone()
+        }
     }
 
     ///Gets the current result of the dice without modification of the rng.
@@ -275,8 +284,11 @@ impl DieResult{
 #[derive(Serialize, Deserialize)]
 pub struct RollLog{
     die_id: usize,
+    old_face: u32,
     new_face: u32,
-    new_result: DieResult
+    old_result: DieResult,
+    new_result: DieResult,
+    tray_update: Option<usize>
 }
 
 #[derive(Serialize, Deserialize)]
@@ -298,14 +310,18 @@ pub struct DiceDataList{
 }
 
 impl DiceDataList{
-    fn new(file_name: String) -> Self{
+    ///Creates a new dice data list for serilization into JSON.
+    ///Lets dice be saved between sessions. 
+    pub fn new(file_name: String) -> Self{
         DiceDataList { 
             file_name, 
             dice_data_vec: Vec::new() 
         }
     }
 
-    fn add_data(&mut self, die_data: DieData){
+    ///Allows for adding data to a dice data list. 
+    ///Used to iterate through a series of dice for serilization.
+    pub fn add_data(&mut self, die_data: DieData){
         self.dice_data_vec.push(die_data);
     }
 }

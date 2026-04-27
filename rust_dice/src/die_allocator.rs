@@ -148,7 +148,23 @@ impl Allocator{
         }
     }
 
-    ///Prints a list of dice in the allocator
+    ///Iterates through all the dice in allocator and returns a dice data list for serilization.
+    pub fn build_die_data_list(&self, new_file_name: Option<String>) -> DiceDataList {
+        let file_name = match new_file_name{
+            Some(name) => name,
+            None => "DiceData".to_string()
+        };
+
+        let mut dice_data_list = DiceDataList::new(file_name);
+
+        for die in self.dice.values(){
+            dice_data_list.add_data(die.to_data());
+        } 
+        
+        dice_data_list
+    }
+
+    ///Prints a list of all dice in the allocator
     ///For use in CLI or debugging. 
     pub fn print_dice(&self){
         println!("---ALL DICE IN ALLOCATOR---");
