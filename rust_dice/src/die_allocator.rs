@@ -1,7 +1,9 @@
-use crate::die::{DiceDataList, Die, DieData, RollLog, build_die};
+use crate::die::{DiceDataList, Die, DieData, DieSummary, RollLog, build_die};
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 use std::fmt::Display;
+
+use std::cmp::Ordering;
 
 //constants used to sutomaticaly weight the dice. 
 const STD_WEIGHT: u32 = 100;
@@ -118,8 +120,10 @@ impl Allocator{
 
         let die_id = die.get_id();
 
-        if let Some(tray) = self.trays.get_mut(&die.get_id()){
-            tray.remove_die(die_id)?;
+        if let Some(current_tray_id) = die.get_tray_id() {
+            if let Some(tray) = self.trays.get_mut(&current_tray_id) {
+                tray.remove_die(die_id)?;
+            }
         }
 
         match tray_id{
@@ -163,6 +167,21 @@ impl Allocator{
         
         dice_data_list
     }
+
+
+    pub fn sort_tray(&mut self, tray_id: usize, order: Ordering) -> Result<Vec<DieSummary>, String> {
+        let tray = self.trays.get_mut(&tray_id)
+            .ok_or_else(|| format!("No tray found with ID: {}", tray_id))?;
+
+        let tray_dice = tray.get_dice();
+        let dice_summaries = tray_dice.into_iter()
+            .map(|id|{self.dice[id].to_summary()})
+            .collect();
+
+        let sorted_dice = tray.sort(dice_summaries, order);
+        Ok(sorted_dice)
+    }
+
 
     ///Prints a list of all dice in the allocator
     ///For use in CLI or debugging. 
@@ -217,6 +236,25 @@ impl DieTray{
         }
     }
 
+    fn sort(&mut self, mut dice_summaries: Vec<DieSummary>, order: Ordering) -> Vec<DieSummary> {
+        match order {
+            Ordering::Less => dice_summaries.sort(),
+            Ordering::Greater => dice_summaries.sort_by(|a, b| b.cmp(a)),
+            Ordering::Equal => {}
+        }
+
+        self.dice = dice_summaries.iter()
+            .map(|die| die.get_id())
+            .collect();
+
+        dice_summaries
+    }
+
+    ///Returns a refrence to the dice_ids in the tray.
+    fn get_dice(&self) -> &Vec<usize>{
+        &self.dice
+    }
+
     fn add_die(&mut self, die_id : usize){
         self.dice.push(die_id);
     }
@@ -229,6 +267,8 @@ impl DieTray{
             Err(format!("No die with ID: {} Found in Tray with ID: {}", die_id, self.id))
         }
     }
+
+
 }
 
 impl Display for DieTray{
@@ -302,6 +342,74 @@ fn test_dice_to_tray() -> Result<(), String>{
     allocator.move_die(5, None)?;
 
     allocator.print_dice();
+
+    Ok(())
+}
+
+#[test]
+fn test_die_tray_sort() -> Result<(), String> {
+    let mut allocator = Allocator::new();
+    allocator.new_tray(Some("Sort Tray".to_string()));
+
+    allocator.new_die(20, Some(11), Some("d20".to_string()))?;
+    allocator.new_die(4, Some(22), Some("d4".to_string()))?;
+    allocator.new_die(12, Some(33), Some("d12".to_string()))?;
+    allocator.new_die(6, Some(44), Some("d6".to_string()))?;
+
+    allocator.move_die(0, Some(0))?;
+    allocator.move_die(1, Some(0))?;
+    allocator.move_die(2, Some(0))?;
+    allocator.move_die(3, Some(0))?;
+
+    let summaries = {
+        let tray = allocator.trays.get(&0).ok_or_else(|| "Tray not found".to_string())?;
+        tray.get_dice()
+            .iter()
+            .map(|id| allocator.dice[id].to_summary())
+            .collect::<Vec<DieSummary>>()
+    };
+
+    let sorted = {
+        let tray = allocator.trays.get_mut(&0).ok_or_else(|| "Tray not found".to_string())?;
+        tray.sort(summaries, Ordering::Less)
+    };
+
+    let sorted_ids = sorted.iter().map(|die| die.get_id()).collect::<Vec<usize>>();
+    assert_eq!(sorted_ids, vec![1, 3, 2, 0]);
+
+    Ok(())
+}
+
+#[test]
+fn test_allocator_sort_tray() -> Result<(), String> {
+    let mut allocator = Allocator::new();
+    allocator.new_tray(Some("Allocator Sort Tray".to_string()));
+
+    allocator.new_die(20, Some(101), Some("d20".to_string()))?;
+    allocator.new_die(4, Some(202), Some("d4".to_string()))?;
+    allocator.new_die(12, Some(303), Some("d12".to_string()))?;
+    allocator.new_die(6, Some(404), Some("d6".to_string()))?;
+
+    allocator.move_die(0, Some(0))?;
+    allocator.move_die(1, Some(0))?;
+    allocator.move_die(2, Some(0))?;
+    allocator.move_die(3, Some(0))?;
+
+    let sorted_asc = allocator.sort_tray(0, Ordering::Less)?;
+    let asc_ids = sorted_asc.iter().map(|die| die.get_id()).collect::<Vec<usize>>();
+    assert_eq!(asc_ids, vec![1, 3, 2, 0]);
+
+    let sorted_desc = allocator.sort_tray(0, Ordering::Greater)?;
+    let desc_ids = sorted_desc.iter().map(|die| die.get_id()).collect::<Vec<usize>>();
+    assert_eq!(desc_ids, vec![0, 2, 3, 1]);
+
+    let tray_ids = allocator
+        .trays
+        .get(&0)
+        .ok_or_else(|| "Tray not found".to_string())?
+        .get_dice()
+        .clone();
+    assert_eq!(tray_ids, desc_ids);
 
     Ok(())
 }
