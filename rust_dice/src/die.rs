@@ -76,6 +76,7 @@ impl Die{
 
         RollLog {
             die_id: self.id,
+            die_label: self.label.clone(),
             old_face: last_face,
             new_face: face_result,
             old_result: last_result,
@@ -156,9 +157,10 @@ impl Die{
     } 
 
     ///Returns a summary snapshot of the die without excess infroamtion.
-    pub fn to_summary(&self) -> DieSummary{
+    pub fn to_summary(&self) -> DieSummary<'_>{
         DieSummary { 
             die_id: self.id,
+            die_label: &self.label,
             total_faces: self.face_weights.len() as u32,
             current_face: self.get_current_face(),
             result: self.current_result.clone() 
@@ -272,7 +274,7 @@ enum DieResultType{
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-enum DieResult{
+pub enum DieResult{
     Face(u32),
     Best(u32),
     Worst(u32),
@@ -280,7 +282,7 @@ enum DieResult{
 }
 
 impl DieResult{
-    fn get_num(&self) -> Result<u32, String> {
+    pub fn get_num(&self) -> Result<u32, String> {
         match self {
             DieResult::Best(x) => return Ok(*x),
             DieResult::Face(x) => return Ok(*x),
@@ -289,11 +291,21 @@ impl DieResult{
             _ => Err(format!("Cannot cast DieResult {:?} as number.", self))
         }
     }
+
+    pub fn to_string(&self) -> String {
+        match self{
+            DieResult::Best(x) => format!("Best = {}", x),
+            DieResult::Face(x) => format!("Face = {}", x),
+            DieResult::Worst(x) => format!("Worst = {}", x),
+            DieResult::Sum(x) => format!("Sum = {}", x)
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct RollLog{
     die_id: usize,
+    die_label: String,
     old_face: u32,
     new_face: u32,
     old_result: DieResult,
@@ -303,20 +315,21 @@ pub struct RollLog{
 
 #[derive(Serialize, Deserialize)]
 ///A summary of a given die, used by trays to sort. Or passed to applicaitons to show dice with minimum information. 
-pub struct DieSummary{
+pub struct DieSummary<'a>{
     die_id: usize,
+    die_label: &'a str,
     total_faces: u32,
     current_face: u32,
     result: DieResult
 }
 
-impl DieSummary{
+impl<'a> DieSummary<'a>{
     pub fn get_id(&self) -> usize{
         self.die_id
     }
 }
 
-impl PartialEq for DieSummary {
+impl<'a> PartialEq for DieSummary<'a> {
     fn eq(&self, other: &Self) -> bool {
         self.total_faces == other.total_faces
             && self.current_face == other.current_face
@@ -325,15 +338,15 @@ impl PartialEq for DieSummary {
     }
 }
 
-impl Eq for DieSummary {}
+impl<'a> Eq for DieSummary<'a> {}
 
-impl PartialOrd for DieSummary {
+impl<'a> PartialOrd for DieSummary<'a> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl Ord for DieSummary {
+impl<'a> Ord for DieSummary<'a> {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         self.total_faces
             .cmp(&other.total_faces)

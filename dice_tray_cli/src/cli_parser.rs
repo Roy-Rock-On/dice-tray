@@ -1,42 +1,6 @@
 use regex::Regex;
 use std::sync::LazyLock;
 
-static DICE_NOTATION_REGEX: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(?i)^(\d*)?[d](\d+)$").unwrap());
-
-pub fn parse_dice_notation(command: &str) -> Result<Vec<(u32, u32)>, String> {
-    let split_command = command.split_whitespace();
-    let mut dice_vec = Vec::new();
-
-    for part in split_command {
-        if let Some(captures) = DICE_NOTATION_REGEX.captures(part) {
-            let count = match captures.get(1) {
-                Some(m) => {
-                    if m.as_str().is_empty() {
-                        1
-                    } else {
-                        m.as_str().parse::<u32>().unwrap_or(1)
-                    }
-                }
-                None => 1,
-            };
-
-            let faces = match captures.get(2) {
-                Some(m) => m.as_str().parse::<u32>().unwrap_or(6),
-                None => 6,
-            };
-
-            dice_vec.push((count, faces));
-        }
-    }
-
-    if dice_vec.is_empty() {
-        Err("No dice notation found in dice command.".to_string())
-    } else {
-        Ok(dice_vec)
-    }
-}
-
 pub enum DiceTargets {
     Index(Vec<usize>),
     Label(String),

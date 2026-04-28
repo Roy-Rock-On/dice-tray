@@ -42,21 +42,3 @@ pub fn detailed_log_tray(tray: &dyn Tray) {
     );
 }
 
-/// Converts a DieResult to a String for logging.
-fn die_result_to_string(die: &dyn Die) -> String {
-    match die.get_result() {
-        DieResult::Number(n) => n.to_string(),
-        DieResult::String(s) => s.clone(),
-        DieResult::None => "None".to_string(),
-    }
-}
-
-/// Converts a DieResultType to a String for logging.
-fn die_result_type_to_string(die: &dyn Die) -> String {
-    match die.get_result_type() {
-        DieResultType::Face => "Face".to_string(),
-        DieResultType::Best => "Best".to_string(),
-        DieResultType::Worst => "Worst".to_string(),
-        DieResultType::Sum => "Sum".to_string(),
-    }
-}

@@ -169,7 +169,7 @@ impl Allocator{
     }
 
 
-    pub fn sort_tray(&mut self, tray_id: usize, order: Ordering) -> Result<Vec<DieSummary>, String> {
+    pub fn sort_tray(&mut self, tray_id: usize, order: Ordering) -> Result<Vec<DieSummary<'_>>, String> {
         let tray = self.trays.get_mut(&tray_id)
             .ok_or_else(|| format!("No tray found with ID: {}", tray_id))?;
 
@@ -178,8 +178,18 @@ impl Allocator{
             .map(|id|{self.dice[id].to_summary()})
             .collect();
 
-        let sorted_dice = tray.sort(dice_summaries, order);
+        let sorted_dice: Vec<DieSummary<'_>> = tray.sort(dice_summaries, order);
         Ok(sorted_dice)
+    }
+
+    pub fn get_summary_at(&self, tray_id: usize) -> Result<Vec<DieSummary<'_>>, String> {
+        let tray = self.trays.get(&tray_id)
+            .ok_or_else(|| format!("No tray found with ID: {}", tray_id))?;
+
+        let tray_dice = tray.get_dice();
+        Ok(tray_dice.into_iter()
+        .map(|id|{self.dice[id].to_summary()})
+        .collect())
     }
 
 
@@ -236,7 +246,7 @@ impl DieTray{
         }
     }
 
-    fn sort(&mut self, mut dice_summaries: Vec<DieSummary>, order: Ordering) -> Vec<DieSummary> {
+    fn sort<'a>(&mut self, mut dice_summaries: Vec<DieSummary<'a>>, order: Ordering) -> Vec<DieSummary<'a>> {
         match order {
             Ordering::Less => dice_summaries.sort(),
             Ordering::Greater => dice_summaries.sort_by(|a, b| b.cmp(a)),
@@ -267,8 +277,6 @@ impl DieTray{
             Err(format!("No die with ID: {} Found in Tray with ID: {}", die_id, self.id))
         }
     }
-
-
 }
 
 impl Display for DieTray{
