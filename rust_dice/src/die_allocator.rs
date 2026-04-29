@@ -170,6 +170,8 @@ impl Allocator{
         dice_data_list
     }
 
+    ///Gets a summary of all the dice in the allocator's dice vec.
+    ///Optionaly sorts the dice before returning the summary.
     pub fn get_dice_summary(&self, order: Option<Ordering>) -> Vec<DieSummary<'_>>{
         let mut dice_summary: Vec<DieSummary<'_>> = self.dice.values()
             .map(|die| die.to_summary())
@@ -186,7 +188,8 @@ impl Allocator{
         dice_summary
     }
 
-    pub fn sort_tray(&mut self, tray_id: usize, order: Ordering) -> Result<Vec<DieSummary<'_>>, String> {
+    ///Sorts a dice try with the given ID in the given ordering. Returns a summary of the dice in the tray.
+    pub fn sort_tray(&mut self, tray_id: usize, order: Ordering) -> Result<TraySummary<'_>, String> {
         let tray = self.trays.get_mut(&tray_id)
             .ok_or_else(|| format!("No tray found with ID: {}", tray_id))?;
 
@@ -196,9 +199,10 @@ impl Allocator{
             .collect();
 
         let sorted_dice: Vec<DieSummary<'_>> = tray.sort(dice_summaries, order);
-        Ok(sorted_dice)
+        Ok(TraySummary::new(tray_id, &tray.label, sorted_dice))
     }
 
+    ///
     pub fn get_tray_summary(&self, tray_id: usize) -> Result<Vec<DieSummary<'_>>, String> {
         let tray = self.trays.get(&tray_id)
             .ok_or_else(|| format!("No tray found with ID: {}", tray_id))?;
@@ -453,11 +457,11 @@ fn test_allocator_sort_tray() -> Result<(), String> {
     allocator.move_die(3, Some(0))?;
 
     let sorted_asc = allocator.sort_tray(0, Ordering::Less)?;
-    let asc_ids = sorted_asc.iter().map(|die| die.die_id).collect::<Vec<usize>>();
+    let asc_ids = sorted_asc.tray_dice.iter().map(|die| die.die_id).collect::<Vec<usize>>();
     assert_eq!(asc_ids, vec![1, 3, 2, 0]);
 
     let sorted_desc = allocator.sort_tray(0, Ordering::Greater)?;
-    let desc_ids = sorted_desc.iter().map(|die| die.die_id).collect::<Vec<usize>>();
+    let desc_ids = sorted_desc.tray_dice.iter().map(|die| die.die_id).collect::<Vec<usize>>();
     assert_eq!(desc_ids, vec![0, 2, 3, 1]);
 
     let tray_ids = allocator
