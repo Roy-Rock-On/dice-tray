@@ -254,7 +254,7 @@ impl DieTray{
         }
 
         self.dice = dice_summaries.iter()
-            .map(|die| die.get_id())
+            .map(|die| die.die_id)
             .collect();
 
         dice_summaries
@@ -288,6 +288,22 @@ impl Display for DieTray{
             self.label,
             self.dice.len()
         )
+    }
+}
+
+pub struct TraySummary<'a>{
+    pub tray_id: usize,
+    pub tray_label: &'a str,
+    pub tray_dice: Vec<DieSummary<'a>>
+}
+
+impl<'a> TraySummary<'a>{
+    pub fn new(id: usize, label: &'a str, dice: Vec<DieSummary<'a>>) -> Self {
+        TraySummary { 
+            tray_id: id, 
+            tray_label: label,
+            tray_dice: dice
+        }
     }
 }
 
@@ -382,7 +398,7 @@ fn test_die_tray_sort() -> Result<(), String> {
         tray.sort(summaries, Ordering::Less)
     };
 
-    let sorted_ids = sorted.iter().map(|die| die.get_id()).collect::<Vec<usize>>();
+    let sorted_ids = sorted.iter().map(|die| die.die_id).collect::<Vec<usize>>();
     assert_eq!(sorted_ids, vec![1, 3, 2, 0]);
 
     Ok(())
@@ -404,11 +420,11 @@ fn test_allocator_sort_tray() -> Result<(), String> {
     allocator.move_die(3, Some(0))?;
 
     let sorted_asc = allocator.sort_tray(0, Ordering::Less)?;
-    let asc_ids = sorted_asc.iter().map(|die| die.get_id()).collect::<Vec<usize>>();
+    let asc_ids = sorted_asc.iter().map(|die| die.die_id).collect::<Vec<usize>>();
     assert_eq!(asc_ids, vec![1, 3, 2, 0]);
 
     let sorted_desc = allocator.sort_tray(0, Ordering::Greater)?;
-    let desc_ids = sorted_desc.iter().map(|die| die.get_id()).collect::<Vec<usize>>();
+    let desc_ids = sorted_desc.iter().map(|die| die.die_id).collect::<Vec<usize>>();
     assert_eq!(desc_ids, vec![0, 2, 3, 1]);
 
     let tray_ids = allocator

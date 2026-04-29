@@ -316,18 +316,13 @@ pub struct RollLog{
 #[derive(Serialize, Deserialize)]
 ///A summary of a given die, used by trays to sort. Or passed to applicaitons to show dice with minimum information. 
 pub struct DieSummary<'a>{
-    die_id: usize,
-    die_label: &'a str,
-    total_faces: u32,
-    current_face: u32,
-    result: DieResult
+    pub die_id: usize,
+    pub die_label: &'a str,
+    pub total_faces: u32,
+    pub current_face: u32,
+    pub result: DieResult
 }
 
-impl<'a> DieSummary<'a>{
-    pub fn get_id(&self) -> usize{
-        self.die_id
-    }
-}
 
 impl<'a> PartialEq for DieSummary<'a> {
     fn eq(&self, other: &Self) -> bool {

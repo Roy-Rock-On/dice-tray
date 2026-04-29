@@ -1,3 +1,5 @@
 /target
 /rust_dice/data
 /rust_dice/src/.env
+/dice_tray_cli/src/.env
+/dice_tray_cli/data

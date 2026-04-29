@@ -1,4 +1,6 @@
+
 use cli_table::{Table, WithTitle, format::Justify, print_stdout};
+use rust_dice::die_allocator::TraySummary;
 
 #[derive(Table)]
 struct DetailedDiceState {
@@ -10,35 +12,24 @@ struct DetailedDiceState {
     faces_string: String,
     #[table(title = "Current Face", justify = "Justify::Center")]
     current_face_string: String,
-    #[table(title = "Result Type", justify = "Justify::Center")]
-    result_type_string: String,
     #[table(title = "Result", justify = "Justify::Center")]
     result_string: String,
 }
 
 /// Logs the current state of the tray to the console. In table format. Using cli-table crate.
-pub fn detailed_log_tray(tray: &dyn Tray) {
-    let dice_states: Vec<DetailedDiceState> = tray
-        .get_dice()
+pub fn detailed_log_tray(summery : TraySummary) {
+    let dice_states: Vec<DetailedDiceState> = summery.tray_dice
         .iter()
-        .enumerate()
-        .map(|(i, die)| DetailedDiceState {
-            index: i,
-            label: die.get_label().to_string(),
-            faces_string: die.get_face_count().to_string(),
-            current_face_string: die.get_current_face().to_string(),
-            result_type_string: die_result_type_to_string(die.as_ref()),
-            result_string: die_result_to_string(die.as_ref()),
+        .map(|(die)| DetailedDiceState {
+            index: die.die_id,
+            label: die.die_label.to_string(),
+            faces_string: die.total_faces.to_string(),
+            current_face_string: die.current_face.to_string(),
+            result_string: die.result.to_string(),
         })
         .collect();
 
-    println!("Showing dice in tray: {}", tray.get_id());
+    println!("---ID: {} TRAY: {}---", summery.tray_id, summery.tray_label);
     print_stdout(dice_states.with_title()).unwrap();
-
-    println!(
-        "{} = {}",
-        tray.get_result_type().to_string(),
-        tray.get_result().to_string()
-    );
 }
 
