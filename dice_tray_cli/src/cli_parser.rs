@@ -1,7 +1,6 @@
 use regex::Regex;
 use std::sync::LazyLock;
 
-
 pub enum DiceTargets {
     Index(Vec<usize>),
     Label(String),
@@ -32,5 +31,26 @@ pub fn parse_dice_targets(command: &str) -> Result<Vec<DiceTargets>, String> {
         Err("No targets found in command.".to_string())
     } else {
         Ok(targets)
+    }
+}
+
+pub enum CliCommand{
+    Exit,
+    Help,
+    Error(String)
+}
+
+impl CliCommand{
+    pub fn new(input: &str) -> Self{
+        let first_token = match input.split_whitespace().next(){
+            Some(first ) => first.to_lowercase(),
+            None => return CliCommand::Error("No input found. Please enter a dice-tray command.".to_string())
+        };
+        
+        match first_token.trim(){
+            "exit" => CliCommand::Exit,
+            "help" => CliCommand::Help,
+            _ => CliCommand::Error(format!("{} is not a recognized command. Use 'help' to see a list of valid commands.", first_token))
+        }
     }
 }

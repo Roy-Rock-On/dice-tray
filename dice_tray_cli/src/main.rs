@@ -2,10 +2,11 @@ mod cli_parser;
 mod logger;
 
 use logger::{detailed_log_dice, detailed_log_tray};
+use cli_parser::{CliCommand};
 
-use std::{io};
 use std::io::Write;
 use std::cmp::Ordering;
+use std::process::ExitCode;
 
 use anyhow::Error;
 
@@ -28,23 +29,29 @@ fn main() {
     println!("Dice bag sucessfuly loaded from file.");
     detailed_log_dice(die_allocator.get_dice_summary(Some(Ordering::Less))).unwrap();
 
-    let mut input = String::new();
 	loop {
-		print!("> ");
-		io::stdout().flush().expect("failed to flush stdout");
+        println!();
+		println!("Enter your dice-tray command now.");
+        println!("Use 'help' to see list of commands and 'exit' to quit.");
+        print!("> ");
+        let command = match get_command() {
+            Ok(command) => command,
+            Err(e) => {
+                CliCommand::Error(
+                    format!("Input failed with the following error: {}. Command not valid, please try again.", e)
+                )
+            }
+        };
 
-		input.clear();
-		io::stdin()
-			.read_line(&mut input)
-			.expect("failed to read from stdin");
-
-		let trimmed = input.trim();
-
-		if trimmed.eq_ignore_ascii_case("exit") {
-			break;
-		}
-
-		println!("You said: {}", trimmed);
+        println!();
+        match command {
+            CliCommand::Help => println!("Print the help here later. Once we figure out how this works."),
+            CliCommand::Exit => {
+                println!("Saving dice and exiting dice-tray now. Goodbye!");
+                break;
+            }
+            CliCommand::Error(e) => println!("{}", e)
+        }
 	}
 }
 
@@ -65,4 +72,18 @@ fn load_dice() -> Result<DiceDataList, Error>{
     let decoded_list: DiceDataList = serde_json::from_str(&die_file)?;
     Ok(decoded_list)
 }
+
+fn get_command() -> Result<CliCommand, Error>{
+    use std::io::{stdout, stdin};
+
+    let mut input = String::new();
+    
+    stdout().flush().expect("failed to flush stdout");
+
+    input.clear();
+    stdin().read_line(&mut input)?;
+
+    let command = input.trim();
+    Ok(CliCommand::new(command))
+} 
 
