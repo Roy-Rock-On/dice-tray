@@ -168,6 +168,21 @@ impl Allocator{
         dice_data_list
     }
 
+    pub fn get_dice_summary(&self, order: Option<Ordering>) -> Vec<DieSummary<'_>>{
+        let mut dice_summary: Vec<DieSummary<'_>> = self.dice.values()
+            .map(|die| die.to_summary())
+            .collect();
+
+        if let Some(order) = order {
+            match order {
+                Ordering::Less => dice_summary.sort(),
+                Ordering::Greater => dice_summary.sort_by(|a, b| b.cmp(a)),
+                Ordering::Equal => {}
+            }
+        }
+        
+        dice_summary
+    }
 
     pub fn sort_tray(&mut self, tray_id: usize, order: Ordering) -> Result<Vec<DieSummary<'_>>, String> {
         let tray = self.trays.get_mut(&tray_id)
@@ -182,7 +197,7 @@ impl Allocator{
         Ok(sorted_dice)
     }
 
-    pub fn get_summary_at(&self, tray_id: usize) -> Result<Vec<DieSummary<'_>>, String> {
+    pub fn get_tray_summary(&self, tray_id: usize) -> Result<Vec<DieSummary<'_>>, String> {
         let tray = self.trays.get(&tray_id)
             .ok_or_else(|| format!("No tray found with ID: {}", tray_id))?;
 
@@ -191,7 +206,6 @@ impl Allocator{
         .map(|id|{self.dice[id].to_summary()})
         .collect())
     }
-
 
     ///Prints a list of all dice in the allocator
     ///For use in CLI or debugging. 

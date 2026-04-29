@@ -484,19 +484,19 @@ fn test_create_die_data() -> Result<(), std::io::Error>{
     println!("exists: {}, is_dir: {}", data_dir.exists(), data_dir.is_dir());
 
     let mut dice_data_list = DiceDataList::new("die_test".to_string());
-    let mut die_zero = build_die(0, Some("Die_Zero".to_string()), 4, 10, 100, 1).unwrap();
+    let mut die_zero = build_die(0, None, 4, 10, 100, 1).unwrap();
     die_zero.roll();
-    let mut die_one = build_die(1, Some("Die_One".to_string()), 6, 20, 100, 25).unwrap();
+    let mut die_one = build_die(1, None, 6, 20, 100, 25).unwrap();
     die_one.roll();
-    let mut die_two = build_die(2, Some("Die_Two".to_string()), 8, 30, 100, 50).unwrap();
+    let mut die_two = build_die(2, None, 8, 30, 100, 50).unwrap();
     die_two.roll();
-    let mut die_three = build_die(3, Some("Die_Three".to_string()), 10, 40, 100, 100).unwrap();
+    let mut die_three = build_die(3, None, 10, 40, 100, 100).unwrap();
     die_three.roll();
-    let mut die_four = build_die(4, Some("Die_Four".to_string()), 12, 50, 100, 200).unwrap();
+    let mut die_four = build_die(4, None, 12, 50, 100, 200).unwrap();
     die_four.roll();
-    let mut die_five = build_die(5, Some("Die_Five".to_string()), 20, 60, 100, 300).unwrap();
+    let mut die_five = build_die(5, None, 20, 60, 100, 300).unwrap();
     die_five.roll();
-    let mut die_six = build_die(6, Some("Die_Six".to_string()), 100, 70, 100, 500).unwrap();
+    let mut die_six = build_die(6, None, 100, 70, 100, 500).unwrap();
     die_six.roll();
 
     dice_data_list.add_data(die_zero.to_data());
