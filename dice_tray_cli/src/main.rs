@@ -6,7 +6,7 @@ use cli_parser::{CliCommand};
 
 use std::io::Write;
 use std::cmp::Ordering;
-use std::process::ExitCode;
+
 
 use anyhow::Error;
 
@@ -32,7 +32,7 @@ fn main() {
 	loop {
         println!();
 		println!("Enter your dice-tray command now.");
-        println!("Use 'help' to see list of commands and 'exit' to quit.");
+        println!("Use 'help' to see list of commands and 'exit' to save your dice bag and quit.");
         print!("> ");
         let command = match get_command() {
             Ok(command) => command,
@@ -47,8 +47,15 @@ fn main() {
         match command {
             CliCommand::Help => println!("Print the help here later. Once we figure out how this works."),
             CliCommand::Exit => {
-                println!("Saving dice and exiting dice-tray now. Goodbye!");
+                let dice_bag_data = die_allocator.build_die_data_list(None);
+                match save_dice(&dice_bag_data){
+                    Ok(())=> println!("Dice have been sucessfuly saved to {}. Goodbye!", dice_bag_data.file_name),
+                    Err(e) => println!("Failed to save dice with error {}. Goodbye!", e) 
+                }
                 break;
+            }
+            CliCommand::Remove(target) => {
+                println!("Found dice targets {}", target);
             }
             CliCommand::Error(e) => println!("{}", e)
         }
@@ -71,6 +78,28 @@ fn load_dice() -> Result<DiceDataList, Error>{
 
     let decoded_list: DiceDataList = serde_json::from_str(&die_file)?;
     Ok(decoded_list)
+}
+
+fn save_dice(dice_bag: &DiceDataList) -> Result<(), Error>{
+    use std::fs;
+    use std::io::Write;
+    use std::path::PathBuf;
+    use dotenv;
+    use serde_json;
+
+    dotenv::from_filename("rust_dice/src/.env").unwrap();
+
+    let rel = PathBuf::from(std::env::var("DICE_DATA_PATH").unwrap());
+    let data_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(rel);
+    fs::create_dir_all(&data_dir)?;
+
+    let file_path = data_dir.join(dice_bag.file_name.clone());
+    let die_list_json = serde_json::to_string_pretty(&dice_bag)?;
+
+    let mut save_file = fs::File::create(&file_path)?;
+    save_file.write_all(die_list_json.as_bytes())?;
+
+    Ok(())
 }
 
 fn get_command() -> Result<CliCommand, Error>{
