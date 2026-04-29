@@ -1,7 +1,9 @@
+use serde::{Deserialize, Serialize};
+
 use crate::die::{DiceDataList, Die, DieData, DieSummary, RollLog, build_die};
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
-use std::fmt::Display;
+use std::fmt::{Display, Formatter, Error};
 
 use std::cmp::Ordering;
 
@@ -180,7 +182,7 @@ impl Allocator{
                 Ordering::Equal => {}
             }
         }
-        
+
         dice_summary
     }
 
@@ -317,6 +319,23 @@ impl<'a> TraySummary<'a>{
             tray_id: id, 
             tray_label: label,
             tray_dice: dice
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub enum DiceTargets {
+    All,
+    Index(Vec<usize>),
+    Label(String),
+}
+
+impl Display for DiceTargets{
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            DiceTargets::All => write!(f, "all"),
+            DiceTargets::Index(indices) => write!(f, "indices={:?}", indices),
+            DiceTargets::Label(label) => write!(f, "label=\"{}\"", label),
         }
     }
 }

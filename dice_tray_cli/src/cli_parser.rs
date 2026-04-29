@@ -2,6 +2,8 @@ use regex::Regex;
 use anyhow::Error;
 use std::fmt::{self, Display, Formatter};
 
+use rust_dice::die_allocator::{DiceTargets};
+
 pub enum CliCommand{
     Exit,
     Help,
@@ -42,22 +44,6 @@ fn parse_remove_command(command_parts: Vec<&str>) -> Result<DiceTargets, Error>{
             parts.next().expect("Remove command has no arguments. Use 'help'see options for dice targeting.")
         )?;
         Ok(targets)
-    }
-}
-
-pub enum DiceTargets {
-    All,
-    Index(Vec<usize>),
-    Label(String),
-}
-
-impl Display for DiceTargets{
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            DiceTargets::All => write!(f, "all"),
-            DiceTargets::Index(indices) => write!(f, "indices={:?}", indices),
-            DiceTargets::Label(label) => write!(f, "label=\"{}\"", label),
-        }
     }
 }
 
