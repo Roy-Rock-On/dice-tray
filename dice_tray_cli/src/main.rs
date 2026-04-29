@@ -76,7 +76,7 @@ fn load_dice() -> Result<DiceDataList, Error>{
 
     let data_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(rel);
 
-    let file_path = data_dir.join("die_test");
+    let file_path = data_dir.join("DiceData");
     let die_file = read_to_string(&file_path)?;
 
     let decoded_list: DiceDataList = serde_json::from_str(&die_file)?;
