@@ -113,6 +113,46 @@ impl Allocator{
         Ok(())
     }
 
+    pub fn remove_dice(&mut self, targets: &DiceTargets) -> Result<(), String>{
+        match targets{
+            DiceTargets::All => {
+                self.dice.clear();
+                self.trays.values_mut().for_each(|t| t.clear_dice());
+            }
+            DiceTargets::Index(indicies) =>{
+                for i in indicies {
+                    if self.dice.contains_key(&i){
+                        self.move_die(*i, None)?;
+                        self.dice.remove(&i);
+                    }
+                }
+            }
+            DiceTargets::Label(label) => {
+                let matching_dice = self.get_indices_by_label(&label);
+                for i in matching_dice {
+                    if self.dice.contains_key(&i){
+                        self.move_die(i, None)?;
+                        self.dice.remove(&i);
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    fn get_indices_by_label(&self, label: &str) -> Vec<usize>{
+        let mut matching_ids = Vec::new();
+
+        for die in self.dice.values() {
+            if die.get_label() == label {
+                matching_ids.push(die.get_id());
+            }
+        }
+
+        matching_ids
+    }
+
     ///Moves the die with the given die_id to the tray with the given tray_id. 
     ///tray_id takes an option. None will result in the die being removed form all trays.
     ///This function updates both the dice's internal current_tray and the tray's dice ID list.
@@ -296,6 +336,10 @@ impl DieTray{
         else{
             Err(format!("No die with ID: {} Found in Tray with ID: {}", die_id, self.id))
         }
+    }
+
+    fn clear_dice(&mut self){
+        self.dice.clear();
     }
 }
 

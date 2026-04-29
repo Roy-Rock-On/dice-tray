@@ -54,8 +54,11 @@ fn main() {
                 }
                 break;
             }
-            CliCommand::Remove(target) => {
-                println!("Found dice targets {}", target);
+            CliCommand::Remove(targets) => {
+                match die_allocator.remove_dice(&targets){
+                    Ok(()) => println!("Sucessfuly removed dice at targets {}", targets),
+                    Err(e) => println!("Error removing dice {}", e)
+                }
             }
             CliCommand::Error(e) => println!("{}", e)
         }
