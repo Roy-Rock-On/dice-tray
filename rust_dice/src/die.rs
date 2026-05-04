@@ -88,6 +88,10 @@ impl Die{
         self.current_face
     }
 
+    pub fn get_current_result(&self) -> &DieResult{
+        &self.current_result
+    }
+
     /// Gets the total face count for the die.
     pub fn get_face_count(&self) -> u32{
         self.face_weights.len() as u32
@@ -141,17 +145,6 @@ impl Die{
             internal_rng: InternalRng::new(die_data.last_rng_seed),
         }
     } 
-
-    ///Returns a summary snapshot of the die without excess infroamtion.
-    pub fn to_summary(&self) -> DieSummary<'_>{
-        DieSummary { 
-            die_id: self.id,
-            die_label: &self.label,
-            total_faces: self.face_weights.len() as u32,
-            current_face: self.get_current_face(),
-            result: self.current_result.clone() 
-        }
-    }
 
     // Private functions that run internal dice logic.
     fn set_die_result(&mut self, face_result: u32){
@@ -294,44 +287,6 @@ pub struct RollLog{
     new_face: u32,
     old_result: DieResult,
     new_result: DieResult,
-}
-
-#[derive(Serialize, Deserialize)]
-///A summary of a given die, used by trays to sort. Or passed to applicaitons to show dice with minimum information. 
-pub struct DieSummary<'a>{
-    pub die_id: usize,
-    pub die_label: &'a str,
-    pub total_faces: u32,
-    pub current_face: u32,
-    pub result: DieResult
-}
-
-
-impl<'a> PartialEq for DieSummary<'a> {
-    fn eq(&self, other: &Self) -> bool {
-        self.total_faces == other.total_faces
-            && self.current_face == other.current_face
-            && self.result.get_num().unwrap_or(0) == other.result.get_num().unwrap_or(0)
-            && self.die_id == other.die_id
-    }
-}
-
-impl<'a> Eq for DieSummary<'a> {}
-
-impl<'a> PartialOrd for DieSummary<'a> {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl<'a> Ord for DieSummary<'a> {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.total_faces
-            .cmp(&other.total_faces)
-            .then_with(|| self.current_face.cmp(&other.current_face))
-            .then_with(|| self.result.get_num().unwrap_or(0).cmp(&other.result.get_num().unwrap_or(0)))
-            .then_with(|| self.die_id.cmp(&other.die_id))
-    }
 }
 
 #[derive(Serialize, Deserialize)]

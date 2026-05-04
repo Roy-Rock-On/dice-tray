@@ -1,32 +1,65 @@
 use anyhow::Error;
 use cli_table::{Table, WithTitle, format::Justify, print_stdout};
-use rust_dice::{die::DieSummary, die_allocator::TraySummary};
+use rust_dice::die_allocator::TraySummary;
+use rust_dice::die::Die;
+use std::cmp::Ordering;
 
 #[derive(Table)]
 struct DetailedDiceState {
-    #[table(title = "Index", justify = "Justify::Center")]
-    index: usize,
+    #[table(title = "ID", justify = "Justify::Center")]
+    id: String,
     #[table(title = "Label", justify = "Justify::Center")]
     label: String,
     #[table(title = "Face Count", justify = "Justify::Center")]
-    faces_string: String,
+    face_count: u32,
     #[table(title = "Current Face", justify = "Justify::Center")]
-    current_face_string: String,
+    current_face_string: u32,
     #[table(title = "Result", justify = "Justify::Center")]
     result_string: String,
 }
 
-pub fn detailed_log_dice(dice_summary: Vec<DieSummary>) -> Result<(), Error>{
-    let dice_states: Vec<DetailedDiceState> = dice_summary
+impl PartialEq for DetailedDiceState {
+    fn eq(&self, other: &Self) -> bool {
+        self.face_count == other.face_count
+            && self.current_face_string == other.current_face_string
+            && self.result_string == other.result_string
+            && self.label == other.label
+            && self.id == other.id
+    }
+}
+
+impl Eq for DetailedDiceState {}
+
+impl PartialOrd for DetailedDiceState {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for DetailedDiceState {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.face_count
+            .cmp(&other.face_count)
+            .then_with(|| self.current_face_string.cmp(&other.current_face_string))
+            .then_with(|| self.result_string.cmp(&other.result_string))
+            .then_with(|| self.label.cmp(&other.label))
+            .then_with(|| self.id.cmp(&other.id))
+    }
+}
+
+pub fn detailed_log_dice(dice_summary: Vec<&Die>) -> Result<(), Error>{
+    let mut dice_states: Vec<DetailedDiceState> = dice_summary
         .iter()
-        .map(|die| DetailedDiceState{
-            index: die.die_id,
-            label: die.die_label.to_string(),
-            faces_string: die.total_faces.to_string(),
-            current_face_string: die.current_face.to_string(),
-            result_string: die.result.to_string(),
+        .map(|die: &&Die| DetailedDiceState{
+            id: die.get_id().to_string(),
+            label: die.get_label().to_string(),
+            face_count: die.get_face_count(),
+            current_face_string: die.get_current_face(),
+            result_string: die.get_current_result().to_string(),
         })
         .collect();
+
+    dice_states.sort();
 
     print_stdout(dice_states.with_title())?;
     Ok(())
@@ -36,12 +69,12 @@ pub fn detailed_log_dice(dice_summary: Vec<DieSummary>) -> Result<(), Error>{
 pub fn detailed_log_tray(summery : TraySummary) -> Result<(), Error>{
     let dice_states: Vec<DetailedDiceState> = summery.tray_dice
         .iter()
-        .map(|(die)| DetailedDiceState {
-            index: die.die_id,
-            label: die.die_label.to_string(),
-            faces_string: die.total_faces.to_string(),
-            current_face_string: die.current_face.to_string(),
-            result_string: die.result.to_string(),
+        .map(|die| DetailedDiceState {
+            id: die.get_reader_id().to_string(),
+            label: die.get_label().to_string(),
+            face_count: die.get_face_count(),
+            current_face_string: die.get_current_face(),
+            result_string: die.get_current_result().to_string(),
         })
         .collect();
 

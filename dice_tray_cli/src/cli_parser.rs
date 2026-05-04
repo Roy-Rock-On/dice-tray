@@ -1,13 +1,16 @@
-use regex::Regex;
 use anyhow::Error;
-use std::fmt::{self, Display, Formatter};
-
 use rust_dice::die_allocator::{DiceTargets};
 
 pub enum CliCommand{
     Exit,
     Help,
-    Remove(DiceTargets), 
+    Create,
+    Bag,
+    Tray(Option<usize>),
+    Destroy(DiceTargets),
+    Add(DiceTargets, usize),
+    Move(DiceTargets, usize),
+    Remove(DiceTargets),
     Error(String)
 }
 
@@ -22,6 +25,27 @@ impl CliCommand{
         match first_token.trim(){
             "exit" | "-e" => CliCommand::Exit,
             "help" | "-h" => CliCommand::Help,
+            "bag" | "-b" => CliCommand::Bag,
+            "tray" | "-t" => {
+                CliCommand::Tray(None)
+            },
+            "create" | "new" | "-c" => CliCommand::Create,
+            "add" | "-a" => {
+                let other_tokens = commands.collect();
+                let (targets, tray_id) = match parse_add_command(other_tokens) {
+                    Ok(parsed) => parsed,
+                    Err(e) => return CliCommand::Error(format!("{}", e))
+                };
+                CliCommand::Add(targets, tray_id)
+            }
+            "move" | "-m" => {
+                let other_tokens = commands.collect();
+                let (targets, tray_id) = match parse_move_command(other_tokens) {
+                    Ok(parsed) => parsed,
+                    Err(e) => return CliCommand::Error(format!("{}", e))
+                };
+                CliCommand::Move(targets, tray_id)
+            }
             "remove" | "-r" => {
                 let other_tokens = commands.collect();
                 let targets = match parse_remove_command(other_tokens){
@@ -30,9 +54,55 @@ impl CliCommand{
                 };
                 CliCommand::Remove(targets)
             }
+            "destroy" | "delete" | "-d" => {
+                let other_tokens = commands.collect();
+                let targets = match parse_remove_command(other_tokens){
+                    Ok(t) => t,
+                    Err(e) => return CliCommand::Error(format!("{}", e))
+                };
+                CliCommand::Destroy(targets)
+            }
             _ => CliCommand::Error(format!("{} is not a recognized command. Use 'help' to see a list of valid commands.", first_token))
         }
     }
+}
+
+fn parse_add_command(command_parts: Vec<&str>) -> Result<(DiceTargets, usize), Error> {
+    let mut parts = command_parts.iter().peekable();
+    if parts.len() != 2 {
+        return Err(Error::msg("Add command requires exactly two arguments: <targets> <tray_id>. Use 'help' to see dice targeting options."));
+    }
+
+    let targets = parse_dice_targets(
+        parts.next().expect("Add command missing targets argument.")
+    )?;
+
+    let tray_id = parts
+        .next()
+        .expect("Add command missing tray ID argument.")
+        .parse::<usize>()
+        .map_err(|_| Error::msg("Tray ID must be a non-negative integer."))?;
+
+    Ok((targets, tray_id))
+}
+
+fn parse_move_command(command_parts: Vec<&str>) -> Result<(DiceTargets, usize), Error> {
+    let mut parts = command_parts.iter().peekable();
+    if parts.len() != 2 {
+        return Err(Error::msg("Move command requires exactly two arguments: <targets> <tray_id>. Use 'help' to see dice targeting options."));
+    }
+
+    let targets = parse_dice_targets(
+        parts.next().expect("Move command missing targets argument.")
+    )?;
+
+    let tray_id = parts
+        .next()
+        .expect("Move command missing tray ID argument.")
+        .parse::<usize>()
+        .map_err(|_| Error::msg("Tray ID must be a non-negative integer."))?;
+
+    Ok((targets, tray_id))
 }
 
 fn parse_remove_command(command_parts: Vec<&str>) -> Result<DiceTargets, Error>{

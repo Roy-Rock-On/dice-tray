@@ -1,13 +1,10 @@
 mod cli_parser;
 mod logger;
 
-use logger::{detailed_log_dice, detailed_log_tray};
+use logger::{detailed_log_tray, detailed_log_dice};
 use cli_parser::{CliCommand};
 
 use std::io::Write;
-use std::cmp::Ordering;
-
-
 use anyhow::Error;
 
 use rust_dice::die::DiceDataList; 
@@ -24,10 +21,12 @@ fn main() {
     };
 
     let mut die_allocator = Allocator::new();
-    die_allocator.new_dice_from_list(dice_list).unwrap();
+    die_allocator.create_dice_from_list(dice_list).unwrap();
 
     println!("Dice bag sucessfuly loaded from file.");
-    detailed_log_dice(die_allocator.get_dice_summary(Some(Ordering::Less))).unwrap();
+
+    println!("---DICE BAG---");
+    let _ =detailed_log_dice(die_allocator.get_dice());
 
 	loop {
         println!();
@@ -45,7 +44,30 @@ fn main() {
 
         println!();
         match command {
+            CliCommand::Bag => {
+                println!("---DICE BAG---");
+                let _ = detailed_log_dice(die_allocator.get_dice());
+            },
+            CliCommand::Tray(id) =>{
+                println!("Not yet implemented.");
+            }
             CliCommand::Help => println!("Print the help here later. Once we figure out how this works."),
+            CliCommand::Create => {
+                match prompt_new_die() {
+                    Ok((label, face_count, face_varience)) => {
+                        match die_allocator.create_die(face_count, None, Some(label.clone()), face_varience) {
+                            Ok(()) => println!(
+                                "Created die '{}' with {} faces and variance {}.",
+                                label,
+                                face_count,
+                                face_varience
+                            ),
+                            Err(e) => println!("Error creating die: {}", e),
+                        }
+                    }
+                    Err(e) => println!("Error creating die: {}", e),
+                }
+            }
             CliCommand::Exit => {
                 let dice_bag_data = die_allocator.build_die_data_list(None);
                 match save_dice(&dice_bag_data){
@@ -54,12 +76,15 @@ fn main() {
                 }
                 break;
             }
-            CliCommand::Remove(targets) => {
-                match die_allocator.remove_dice(&targets){
+            CliCommand::Destroy(targets) => {
+                match die_allocator.destroy_dice(&targets){
                     Ok(()) => println!("Sucessfuly removed dice at targets {}", targets),
                     Err(e) => println!("Error removing dice {}", e)
                 }
-            }
+            },
+            CliCommand::Add(_, _) => println!("Not yet implemented."),
+            CliCommand::Move(_, _) => println!("Not yet implemented."),
+            CliCommand::Remove(_) => println!("Not yet implemented."),
             CliCommand::Error(e) => println!("{}", e)
         }
 	}
@@ -76,7 +101,7 @@ fn load_dice() -> Result<DiceDataList, Error>{
 
     let data_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(rel);
 
-    let file_path = data_dir.join("DiceData");
+    let file_path = data_dir.join("die_test");
     let die_file = read_to_string(&file_path)?;
 
     let decoded_list: DiceDataList = serde_json::from_str(&die_file)?;
@@ -118,4 +143,44 @@ fn get_command() -> Result<CliCommand, Error>{
     let command = input.trim();
     Ok(CliCommand::new(command))
 } 
+
+fn prompt_new_die() -> Result<(String, u32, u32), Error> {
+    let label = prompt_nonempty("Enter die label")?;
+    let face_count = prompt_u32("Enter face count")?;
+    let face_varience = prompt_u32("Enter face variance")?;
+
+    Ok((label, face_count, face_varience))
+}
+
+fn prompt_nonempty(prompt: &str) -> Result<String, Error> {
+    loop {
+        let input = prompt_line(prompt)?;
+        if !input.is_empty() {
+            return Ok(input);
+        }
+
+        println!("Input cannot be empty.");
+    }
+}
+
+fn prompt_u32(prompt: &str) -> Result<u32, Error> {
+    loop {
+        let input = prompt_line(prompt)?;
+        match input.parse::<u32>() {
+            Ok(value) => return Ok(value),
+            Err(_) => println!("Please enter a non-negative integer."),
+        }
+    }
+}
+
+fn prompt_line(prompt: &str) -> Result<String, Error> {
+    use std::io::{stdin, stdout};
+
+    let mut input = String::new();
+    print!("{}: ", prompt);
+    stdout().flush()?;
+    stdin().read_line(&mut input)?;
+
+    Ok(input.trim().to_string())
+}
 
