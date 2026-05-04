@@ -7,6 +7,9 @@
 ///New module for building the dice again from the ground up with it's own internal RNG.
 pub mod die;
 
+///Die readers provide tray-facing views into shared dice in the allocator.
+pub mod die_reader;
+
 ///Die allocators create dice and assign them to a has set with unique IDs.
 ///Responsible for sorting dice into trays, updating them, and passing RollLogs to a user interface. 
 ///Used to integrate a persistant dice tray with web or CLI applications.

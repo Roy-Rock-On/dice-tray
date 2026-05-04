@@ -1,9 +1,10 @@
 use serde::{Deserialize, Serialize};
 
 use crate::die::{DiceDataList, Die, DieData, DieSummary, RollLog, build_die};
+use crate::die_reader::DieReader;
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
-use std::fmt::{Display, Formatter, Error};
+use std::fmt::{Display, Formatter};
 
 use std::cmp::Ordering;
 
@@ -44,10 +45,28 @@ impl TrayIDGenerator{
     }
 }
 
+struct ReaderIdGenerator {
+    next_reader_id: usize,
+}
+
+impl ReaderIdGenerator {
+    fn new() -> Self {
+        Self { next_reader_id: 0 }
+    }
+
+    fn get_next_reader_id(&mut self) -> usize {
+        let return_id = self.next_reader_id;
+        self.next_reader_id += 1;
+        return_id
+    }
+}
+
 pub struct Allocator{
     tray_id_gen: TrayIDGenerator,
     die_id_gen: DieIdGenerator,
+    reader_id_gen: ReaderIdGenerator,
     dice: HashMap<usize, Die>,
+    readers: HashMap<usize, DieReader>,
     trays: HashMap<usize, DieTray>
 }
 
@@ -57,7 +76,9 @@ impl Allocator{
         Self { 
             tray_id_gen: TrayIDGenerator::new(),
             die_id_gen: DieIdGenerator::new(),
+            reader_id_gen: ReaderIdGenerator::new(),
             dice: HashMap::new(),
+            readers: HashMap::new(),
             trays: HashMap::new() 
         }
     }
@@ -92,15 +113,6 @@ impl Allocator{
         let new_die_id = self.die_id_gen.get_next_die_id();
         let mut new_die = Die::from_data(die_data, new_die_id);
 
-        if let Some(id) = new_die.get_tray_id(){
-            if let Some(tray) = self.trays.get_mut(&id){
-                tray.add_die(new_die_id);
-            }
-            else{
-                new_die.set_tray(None);
-            }
-        }
-
         self.dice.insert(new_die_id, new_die);
         Ok(())
     }
@@ -117,12 +129,13 @@ impl Allocator{
         match targets{
             DiceTargets::All => {
                 self.dice.clear();
-                self.trays.values_mut().for_each(|t| t.clear_dice());
+                self.readers.clear();
+                self.trays.values_mut().for_each(|t| t.clear_readers());
             }
             DiceTargets::Index(indicies) =>{
                 for i in indicies {
                     if self.dice.contains_key(&i){
-                        self.move_die(*i, None)?;
+                        self.prune_readers_for_die(*i);
                         self.dice.remove(&i);
                     }
                 }
@@ -131,10 +144,74 @@ impl Allocator{
                 let matching_dice = self.get_indices_by_label(&label);
                 for i in matching_dice {
                     if self.dice.contains_key(&i){
-                        self.move_die(i, None)?;
+                        self.prune_readers_for_die(i);
                         self.dice.remove(&i);
                     }
                 }
+            }
+        }
+
+        Ok(())
+    }
+
+    ///Prunes all readers that point to a specific die from the reader store and all trays.
+    fn prune_readers_for_die(&mut self, die_id: usize) {
+        let ids_to_remove: Vec<usize> = self.readers
+            .iter()
+            .filter(|(_, reader)| reader.get_die_id() == die_id)
+            .map(|(id, _)| *id)
+            .collect();
+
+        for id in &ids_to_remove {
+            self.readers.remove(id);
+        }
+
+        self.trays.values_mut().for_each(|tray| tray.remove_readers_in(&ids_to_remove));
+    }
+
+    ///Adds a new reader for an existing die to a target tray.
+    ///Returns the reader ID on success.
+    pub fn add_die_reader(&mut self, die_id: usize, tray_id: usize) -> Result<usize, String> {
+        if !self.dice.contains_key(&die_id) {
+            return Err(format!("No die found with ID: {}", die_id));
+        }
+
+        let tray = self.trays.get_mut(&tray_id)
+            .ok_or_else(|| format!("No tray found with ID: {}", tray_id))?;
+
+        let reader_id = self.reader_id_gen.get_next_reader_id();
+        let reader = DieReader::new(reader_id, die_id, tray_id);
+        self.readers.insert(reader_id, reader);
+        tray.add_reader(reader_id);
+        Ok(reader_id)
+    }
+
+    ///Moves a reader to a different tray.
+    ///tray_id takes an option. None will remove the reader from its current tray and reader store.
+    pub fn move_reader(&mut self, reader_id: usize, new_tray_id: Option<usize>) -> Result<(), String> {
+        if !self.readers.contains_key(&reader_id) {
+            return Err(format!("No reader found with ID: {}", reader_id));
+        }
+
+        let old_tray_id = self.readers[&reader_id].get_tray_id();
+
+        if let Some(tray) = self.trays.get_mut(&old_tray_id) {
+            tray.remove_reader(reader_id);
+        }
+
+        match new_tray_id {
+            None => {
+                self.readers.remove(&reader_id);
+            }
+            Some(id) => {
+                self.readers
+                    .get_mut(&reader_id)
+                    .ok_or_else(|| format!("No reader found with ID: {}", reader_id))?
+                    .set_tray(id);
+                self.trays
+                    .get_mut(&id)
+                    .ok_or_else(|| format!("No tray found with ID: {}", id))?
+                    .add_reader(reader_id);
             }
         }
 
@@ -153,35 +230,7 @@ impl Allocator{
         matching_ids
     }
 
-    ///Moves the die with the given die_id to the tray with the given tray_id. 
-    ///tray_id takes an option. None will result in the die being removed form all trays.
-    ///This function updates both the dice's internal current_tray and the tray's dice ID list.
-    pub fn move_die(&mut self, die_id: usize, tray_id: Option<usize>) -> Result<(), String>{
-        let die = self.dice.get_mut(&die_id)
-            .ok_or_else(|| format!("No die found with ID: {}", die_id))?;
 
-        let die_id = die.get_id();
-
-        if let Some(current_tray_id) = die.get_tray_id() {
-            if let Some(tray) = self.trays.get_mut(&current_tray_id) {
-                tray.remove_die(die_id)?;
-            }
-        }
-
-        match tray_id{
-            None => die.set_tray(None),
-            Some(id) => {
-                if let Some(tray) = self.trays.get_mut(&id){
-                    die.set_tray(tray_id);
-                    tray.add_die(die_id);
-                }
-                else{
-                    return Err(format!("No tray found with ID: {}", id));
-                }
-            }
-        }
-        Ok(())
-    }
 
     ///Rolls the die with the given ID in place and returns a roll log.
     ///If the die has been assinged to a tray the tray will be updated.
@@ -230,15 +279,12 @@ impl Allocator{
 
     ///Sorts a dice try with the given ID in the given ordering. Returns a summary of the dice in the tray.
     pub fn sort_tray(&mut self, tray_id: usize, order: Ordering) -> Result<TraySummary<'_>, String> {
+        let readers = &self.readers;
+        let dice = &self.dice;
         let tray = self.trays.get_mut(&tray_id)
             .ok_or_else(|| format!("No tray found with ID: {}", tray_id))?;
 
-        let tray_dice = tray.get_dice();
-        let dice_summaries = tray_dice.into_iter()
-            .map(|id|{self.dice[id].to_summary()})
-            .collect();
-
-        let sorted_dice: Vec<DieSummary<'_>> = tray.sort(dice_summaries, order);
+        let sorted_dice: Vec<DieSummary<'_>> = tray.sort(readers, dice, order)?;
         Ok(TraySummary::new(tray_id, &tray.label, sorted_dice))
     }
 
@@ -247,10 +293,7 @@ impl Allocator{
         let tray = self.trays.get(&tray_id)
             .ok_or_else(|| format!("No tray found with ID: {}", tray_id))?;
 
-        let tray_dice = tray.get_dice();
-        Ok(tray_dice.into_iter()
-        .map(|id|{self.dice[id].to_summary()})
-        .collect())
+        tray.build_summary(&self.readers, &self.dice)
     }
 
     ///Prints a list of all dice in the allocator
@@ -271,12 +314,18 @@ impl Allocator{
         println!("Found tray with ID: {}", tray_id);
         println!("---{}---", tray.label);
 
-        for die_id in tray.dice.iter(){
-            if self.dice.contains_key(&die_id){
-                println!("{}", self.dice[&die_id]);
+        for reader_id in tray.reader_ids.iter(){
+            if let Some(reader) = self.readers.get(reader_id) {
+                let die_id = reader.get_die_id();
+                if self.dice.contains_key(&die_id){
+                    println!("{}", self.dice[&die_id]);
+                }
+                else{
+                    return Err(format!("No dice found with ID: {}", die_id));
+                }
             }
             else{
-                return Err(format!("No dice found with ID: {}", die_id));
+                return Err(format!("No reader found with ID: {}", reader_id));
             }
         }
 
@@ -287,7 +336,7 @@ impl Allocator{
 pub struct DieTray{
     id: usize,
     label: String,
-    dice: Vec<usize>
+    reader_ids: Vec<usize>
 }
 
 impl DieTray{
@@ -302,44 +351,87 @@ impl DieTray{
         DieTray { 
             id: tray_id,
             label: tray_label,
-            dice: Vec::new()
+            reader_ids: Vec::new()
         }
     }
 
-    fn sort<'a>(&mut self, mut dice_summaries: Vec<DieSummary<'a>>, order: Ordering) -> Vec<DieSummary<'a>> {
+    fn sort<'a>(
+        &mut self,
+        readers: &'a HashMap<usize, DieReader>,
+        dice: &'a HashMap<usize, Die>,
+        order: Ordering,
+    ) -> Result<Vec<DieSummary<'a>>, String> {
+        if let Some(reader_id) = self.reader_ids.iter().find(|rid| {
+            readers.get(rid).map_or(false, |r| !dice.contains_key(&r.get_die_id()))
+        }) {
+            return Err(format!("Reader {} points to missing die", reader_id));
+        }
+
+        let mut indexed: Vec<(usize, DieSummary<'a>)> = self.reader_ids
+            .iter()
+            .enumerate()
+            .map(|(index, reader_id)| {
+                let reader = readers.get(reader_id)
+                    .ok_or_else(|| format!("Reader {} not found", reader_id))?;
+                let summary = reader.to_summary(dice)?;
+                Ok((index, summary))
+            })
+            .collect::<Result<Vec<(usize, DieSummary<'a>)>, String>>()?;
+
         match order {
-            Ordering::Less => dice_summaries.sort(),
-            Ordering::Greater => dice_summaries.sort_by(|a, b| b.cmp(a)),
+            Ordering::Less => indexed.sort_by(|a, b| a.1.cmp(&b.1)),
+            Ordering::Greater => indexed.sort_by(|a, b| b.1.cmp(&a.1)),
             Ordering::Equal => {}
         }
 
-        self.dice = dice_summaries.iter()
-            .map(|die| die.die_id)
+        self.reader_ids = indexed
+            .iter()
+            .map(|(index, _)| self.reader_ids[*index])
             .collect();
 
-        dice_summaries
+        Ok(indexed.into_iter().map(|(_, summary)| summary).collect())
     }
 
-    ///Returns a refrence to the dice_ids in the tray.
-    fn get_dice(&self) -> &Vec<usize>{
-        &self.dice
+    fn build_summary<'a>(
+        &'a self,
+        readers: &'a HashMap<usize, DieReader>,
+        dice: &'a HashMap<usize, Die>,
+    ) -> Result<Vec<DieSummary<'a>>, String> {
+        self.reader_ids
+            .iter()
+            .map(|reader_id| {
+                let reader = readers
+                    .get(reader_id)
+                    .ok_or_else(|| format!("Reader {} not found", reader_id))?;
+                reader.to_summary(dice)
+            })
+            .collect()
     }
 
-    fn add_die(&mut self, die_id : usize){
-        self.dice.push(die_id);
+    ///Returns the die IDs referenced by readers in this tray.
+    pub fn get_reader_die_ids(&self, readers: &HashMap<usize, DieReader>) -> Vec<usize>{
+        self.reader_ids
+            .iter()
+            .filter_map(|reader_id| {
+                readers.get(reader_id).map(|r| r.get_die_id())
+            })
+            .collect()
     }
 
-    fn remove_die(&mut self, die_id: usize) -> Result<usize, String>{
-        if let Some(pos) = self.dice.iter().position(|die| *die == die_id){
-            return Ok(self.dice.remove(pos));
-        }
-        else{
-            Err(format!("No die with ID: {} Found in Tray with ID: {}", die_id, self.id))
-        }
+    fn add_reader(&mut self, reader_id: usize){
+        self.reader_ids.push(reader_id);
     }
 
-    fn clear_dice(&mut self){
-        self.dice.clear();
+    fn remove_reader(&mut self, reader_id: usize) {
+        self.reader_ids.retain(|id| *id != reader_id);
+    }
+
+    fn remove_readers_in(&mut self, ids: &[usize]) {
+        self.reader_ids.retain(|id| !ids.contains(id));
+    }
+
+    fn clear_readers(&mut self){
+        self.reader_ids.clear();
     }
 }
 
@@ -350,7 +442,7 @@ impl Display for DieTray{
             "Tray ID = {}, Tray Label = {}, Count of dice in tray = {}",
             self.id,
             self.label,
-            self.dice.len()
+            self.reader_ids.len()
         )
     }
 }
@@ -401,6 +493,7 @@ fn test_new_tray(){
     }
 }
 
+#[cfg(test)]
 fn test_build_allocator_from_file() -> Result<Allocator, String> {
     use std::fs;
     use std::path::PathBuf;
@@ -433,18 +526,18 @@ fn test_dice_from_list() -> Result<(), String>{
 fn test_dice_to_tray() -> Result<(), String>{
     let mut allocator = test_build_allocator_from_file().unwrap();
     allocator.print_dice();
-    allocator.move_die(2, Some(0))?;
-    allocator.move_die(1, Some(0))?;
+    allocator.add_die_reader(2, 0)?;
+    allocator.add_die_reader(1, 0)?;
     allocator.print_tray(0)?;
     
     allocator.new_tray(Some("The tray to end all trays".to_string()));
-    allocator.move_die(5, Some(1))?;
+    let reader_5 = allocator.add_die_reader(5, 1)?;
     allocator.print_tray(1)?;
 
-    allocator.move_die(5, Some(0))?;
+    allocator.move_reader(reader_5, Some(0))?;
     allocator.print_tray(0)?;
 
-    allocator.move_die(5, None)?;
+    allocator.move_reader(reader_5, None)?;
 
     allocator.print_dice();
 
@@ -461,22 +554,16 @@ fn test_die_tray_sort() -> Result<(), String> {
     allocator.new_die(12, Some(33), Some("d12".to_string()))?;
     allocator.new_die(6, Some(44), Some("d6".to_string()))?;
 
-    allocator.move_die(0, Some(0))?;
-    allocator.move_die(1, Some(0))?;
-    allocator.move_die(2, Some(0))?;
-    allocator.move_die(3, Some(0))?;
-
-    let summaries = {
-        let tray = allocator.trays.get(&0).ok_or_else(|| "Tray not found".to_string())?;
-        tray.get_dice()
-            .iter()
-            .map(|id| allocator.dice[id].to_summary())
-            .collect::<Vec<DieSummary>>()
-    };
+    allocator.add_die_reader(0, 0)?;
+    allocator.add_die_reader(1, 0)?;
+    allocator.add_die_reader(2, 0)?;
+    allocator.add_die_reader(3, 0)?;
 
     let sorted = {
+        let readers = &allocator.readers;
+        let dice = &allocator.dice;
         let tray = allocator.trays.get_mut(&0).ok_or_else(|| "Tray not found".to_string())?;
-        tray.sort(summaries, Ordering::Less)
+        tray.sort(readers, dice, Ordering::Less)?
     };
 
     let sorted_ids = sorted.iter().map(|die| die.die_id).collect::<Vec<usize>>();
@@ -495,10 +582,10 @@ fn test_allocator_sort_tray() -> Result<(), String> {
     allocator.new_die(12, Some(303), Some("d12".to_string()))?;
     allocator.new_die(6, Some(404), Some("d6".to_string()))?;
 
-    allocator.move_die(0, Some(0))?;
-    allocator.move_die(1, Some(0))?;
-    allocator.move_die(2, Some(0))?;
-    allocator.move_die(3, Some(0))?;
+    allocator.add_die_reader(0, 0)?;
+    allocator.add_die_reader(1, 0)?;
+    allocator.add_die_reader(2, 0)?;
+    allocator.add_die_reader(3, 0)?;
 
     let sorted_asc = allocator.sort_tray(0, Ordering::Less)?;
     let asc_ids = sorted_asc.tray_dice.iter().map(|die| die.die_id).collect::<Vec<usize>>();
@@ -512,8 +599,7 @@ fn test_allocator_sort_tray() -> Result<(), String> {
         .trays
         .get(&0)
         .ok_or_else(|| "Tray not found".to_string())?
-        .get_dice()
-        .clone();
+        .get_reader_die_ids(&allocator.readers);
     assert_eq!(tray_ids, desc_ids);
 
     Ok(())
