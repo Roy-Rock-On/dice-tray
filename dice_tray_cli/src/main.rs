@@ -5,10 +5,12 @@ use logger::{detailed_log_tray, detailed_log_dice};
 use cli_parser::{CliCommand};
 
 use std::io::Write;
+use std::cmp::Ordering;
+use std::collections::HashSet;
 use anyhow::Error;
 
 use rust_dice::die::DiceDataList; 
-use rust_dice::die_allocator::{Allocator};
+use rust_dice::die_allocator::{Allocator, DiceTargets};
 
 fn main() {
     println!("Welcome to Dice Tray!\n");
@@ -49,7 +51,47 @@ fn main() {
                 let _ = detailed_log_dice(die_allocator.get_dice());
             },
             CliCommand::Tray(id) =>{
-                println!("Not yet implemented.");
+                match id {
+                    Some(tray_id) => {
+                        match die_allocator.sort_tray(tray_id, Ordering::Less) {
+                            Ok(summary) => {
+                                if let Err(e) = detailed_log_tray(summary) {
+                                    println!("Error logging tray {}: {}", tray_id, e);
+                                }
+                            }
+                            Err(e) => println!("Error retrieving tray {}: {}", tray_id, e),
+                        }
+                    }
+                    None => {
+                        let tray_ids = die_allocator.get_tray_ids();
+                        if tray_ids.is_empty() {
+                            println!("No trays found.");
+                        } else {
+                            for tray_id in tray_ids {
+                                match die_allocator.sort_tray(tray_id, Ordering::Less) {
+                                    Ok(summary) => {
+                                        if let Err(e) = detailed_log_tray(summary) {
+                                            println!("Error logging tray {}: {}", tray_id, e);
+                                        }
+                                    }
+                                    Err(e) => println!("Error retrieving tray {}: {}", tray_id, e),
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            CliCommand::New => {
+                match prompt_optional("Enter tray label (leave empty for default)") {
+                    Ok(label) => {
+                        die_allocator.create_tray(label.clone());
+                        match label {
+                            Some(tray_label) => println!("Created new tray '{}'", tray_label),
+                            None => println!("Created new tray with default label."),
+                        }
+                    }
+                    Err(e) => println!("Error creating tray: {}", e),
+                }
             }
             CliCommand::Help => println!("Print the help here later. Once we figure out how this works."),
             CliCommand::Create => {
@@ -82,12 +124,126 @@ fn main() {
                     Err(e) => println!("Error removing dice {}", e)
                 }
             },
-            CliCommand::Add(_, _) => println!("Not yet implemented."),
-            CliCommand::Move(_, _) => println!("Not yet implemented."),
-            CliCommand::Remove(_) => println!("Not yet implemented."),
+            CliCommand::Add(die_targets, tray_id) => {
+                let die_ids = collect_target_die_ids(&die_allocator, &die_targets);
+                if die_ids.is_empty() {
+                    println!("No dice matched targets {}", die_targets);
+                    continue;
+                }
+
+                let mut added_count = 0usize;
+                for die_id in die_ids {
+                    match die_allocator.add_die_reader(die_id, tray_id) {
+                        Ok(_) => added_count += 1,
+                        Err(e) => println!("Error adding die {} to tray {}: {}", die_id, tray_id, e),
+                    }
+                }
+
+                println!("Added {} reader(s) to tray {}.", added_count, tray_id);
+            }
+            CliCommand::Move(die_reader_targets, tray_id) => {
+                let die_ids = collect_target_die_ids(&die_allocator, &die_reader_targets);
+                if die_ids.is_empty() {
+                    println!("No dice matched targets {}", die_reader_targets);
+                    continue;
+                }
+
+                let reader_ids = match collect_reader_ids_for_dice(&die_allocator, &die_ids) {
+                    Ok(ids) => ids,
+                    Err(e) => {
+                        println!("Error collecting readers to move: {}", e);
+                        continue;
+                    }
+                };
+
+                if reader_ids.is_empty() {
+                    println!("No reader(s) found for targets {}.", die_reader_targets);
+                    continue;
+                }
+
+                let mut moved_count = 0usize;
+                for reader_id in reader_ids {
+                    match die_allocator.move_reader(reader_id, Some(tray_id)) {
+                        Ok(()) => moved_count += 1,
+                        Err(e) => println!("Error moving reader {} to tray {}: {}", reader_id, tray_id, e),
+                    }
+                }
+
+                println!("Moved {} reader(s) to tray {}.", moved_count, tray_id);
+            }
+            CliCommand::Remove(die_reader_targets) => {
+                let die_ids = collect_target_die_ids(&die_allocator, &die_reader_targets);
+                if die_ids.is_empty() {
+                    println!("No dice matched targets {}", die_reader_targets);
+                    continue;
+                }
+
+                let reader_ids = match collect_reader_ids_for_dice(&die_allocator, &die_ids) {
+                    Ok(ids) => ids,
+                    Err(e) => {
+                        println!("Error collecting readers to remove: {}", e);
+                        continue;
+                    }
+                };
+
+                if reader_ids.is_empty() {
+                    println!("No reader(s) found for targets {}.", die_reader_targets);
+                    continue;
+                }
+
+                let mut removed_count = 0usize;
+                for reader_id in reader_ids {
+                    match die_allocator.move_reader(reader_id, None) {
+                        Ok(()) => removed_count += 1,
+                        Err(e) => println!("Error removing reader {} from trays: {}", reader_id, e),
+                    }
+                }
+
+                println!("Removed {} reader(s) from all trays.", removed_count);
+            }
             CliCommand::Error(e) => println!("{}", e)
         }
 	}
+}
+
+fn collect_target_die_ids(allocator: &Allocator, targets: &DiceTargets) -> Vec<usize> {
+    let matched_ids: Vec<usize> = match targets {
+        DiceTargets::All => allocator
+            .get_dice()
+            .iter()
+            .map(|die| die.get_id())
+            .collect(),
+        DiceTargets::Index(indices) => indices.clone(),
+        DiceTargets::Label(label) => allocator
+            .get_dice()
+            .iter()
+            .filter(|die| die.get_label() == label)
+            .map(|die| die.get_id())
+            .collect(),
+    };
+
+    let mut unique_ids = matched_ids;
+    unique_ids.sort();
+    unique_ids.dedup();
+    unique_ids
+}
+
+fn collect_reader_ids_for_dice(allocator: &Allocator, die_ids: &[usize]) -> Result<Vec<usize>, String> {
+    let die_id_set: HashSet<usize> = die_ids.iter().copied().collect();
+    let mut reader_ids: Vec<usize> = Vec::new();
+
+    for tray_id in allocator.get_tray_ids() {
+        let tray_summary = allocator.get_tray_summary(tray_id)?;
+        for reader in tray_summary {
+            if die_id_set.contains(&reader.get_die_id()) {
+                reader_ids.push(reader.get_reader_id());
+            }
+        }
+    }
+
+    reader_ids.sort();
+    reader_ids.dedup();
+    Ok(reader_ids)
 }
 
 fn load_dice() -> Result<DiceDataList, Error>{
@@ -101,7 +257,7 @@ fn load_dice() -> Result<DiceDataList, Error>{
 
     let data_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(rel);
 
-    let file_path = data_dir.join("die_test");
+    let file_path = data_dir.join("DiceData");
     let die_file = read_to_string(&file_path)?;
 
     let decoded_list: DiceDataList = serde_json::from_str(&die_file)?;
@@ -160,6 +316,15 @@ fn prompt_nonempty(prompt: &str) -> Result<String, Error> {
         }
 
         println!("Input cannot be empty.");
+    }
+}
+
+fn prompt_optional(prompt: &str) -> Result<Option<String>, Error> {
+    let input = prompt_line(prompt)?;
+    if input.is_empty() {
+        Ok(None)
+    } else {
+        Ok(Some(input))
     }
 }
 

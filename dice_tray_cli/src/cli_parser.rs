@@ -5,6 +5,7 @@ pub enum CliCommand{
     Exit,
     Help,
     Create,
+    New,
     Bag,
     Tray(Option<usize>),
     Destroy(DiceTargets),
@@ -27,9 +28,15 @@ impl CliCommand{
             "help" | "-h" => CliCommand::Help,
             "bag" | "-b" => CliCommand::Bag,
             "tray" | "-t" => {
-                CliCommand::Tray(None)
+                let other_tokens = commands.collect();
+                let tray_id = match parse_tray_command(other_tokens) {
+                    Ok(id) => id,
+                    Err(e) => return CliCommand::Error(format!("{}", e)),
+                };
+                CliCommand::Tray(tray_id)
             },
-            "create" | "new" | "-c" => CliCommand::Create,
+            "new" | "-n" => CliCommand::New,
+            "create" | "-c" => CliCommand::Create,
             "add" | "-a" => {
                 let other_tokens = commands.collect();
                 let (targets, tray_id) = match parse_add_command(other_tokens) {
@@ -64,6 +71,23 @@ impl CliCommand{
             }
             _ => CliCommand::Error(format!("{} is not a recognized command. Use 'help' to see a list of valid commands.", first_token))
         }
+    }
+}
+
+fn parse_tray_command(command_parts: Vec<&str>) -> Result<Option<usize>, Error> {
+    let mut parts = command_parts.iter().peekable();
+
+    match parts.len() {
+        0 => Ok(None),
+        1 => {
+            let tray_id = parts
+                .next()
+                .expect("Tray command missing ID argument.")
+                .parse::<usize>()
+                .map_err(|_| Error::msg("Tray ID must be a non-negative integer."))?;
+            Ok(Some(tray_id))
+        }
+        _ => Err(Error::msg("Tray command accepts at most one argument: optional <tray_id>.")),
     }
 }
 

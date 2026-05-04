@@ -274,6 +274,13 @@ impl Allocator{
         self.dice.values().collect()
     }
 
+    ///Returns all tray IDs currently tracked by the allocator in ascending order.
+    pub fn get_tray_ids(&self) -> Vec<usize> {
+        let mut tray_ids: Vec<usize> = self.trays.keys().copied().collect();
+        tray_ids.sort();
+        tray_ids
+    }
+
     ///Sorts a tray by its held readers in the given ordering and returns the tray summary.
     pub fn sort_tray(&mut self, tray_id: usize, order: Ordering) -> Result<TraySummary<'_>, String> {
         let tray = self.trays.get_mut(&tray_id)
