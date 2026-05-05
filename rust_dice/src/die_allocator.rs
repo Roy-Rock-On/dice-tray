@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::die::{DiceDataList, Die, DieData, RollLog, build_die};
+use crate::die::{DiceDataList, Die, DieData, DieResult, RollLog, build_die};
 use crate::die_reader::DieReader;
 use std::cmp::{Ordering, Reverse};
 use std::collections::{BinaryHeap, HashMap, HashSet};
@@ -109,6 +109,7 @@ impl Allocator{
         Ok(())
     }
 
+    ///Destroys dice in the dice bag, clearing any attached dice readers.
     pub fn destroy_dice(&mut self, targets: &DiceTargets) -> Result<(), String>{
         match targets{
             DiceTargets::All => {
@@ -282,7 +283,7 @@ impl Allocator{
     }
 
     ///Sorts a tray by its held readers in the given ordering and returns the tray summary.
-    pub fn sort_tray(&mut self, tray_id: usize, order: Ordering) -> Result<TraySummary<'_>, String> {
+    pub fn sort_tray(&mut self, tray_id: usize, order: Ordering) -> Result<TraySummary, String> {
         let tray = self.trays.get_mut(&tray_id)
             .ok_or_else(|| format!("No tray found with ID: {}", tray_id))?;
 
@@ -294,11 +295,20 @@ impl Allocator{
     }
 
     ///Returns readers currently in the requested tray in stored order.
-    pub fn get_tray_summary(&self, tray_id: usize) -> Result<Vec<&DieReader>, String> {
+    pub fn get_tray_summary(&self, tray_id: usize) -> Result<Vec<DieReader>, String> {
         let tray = self.trays.get(&tray_id)
             .ok_or_else(|| format!("No tray found with ID: {}", tray_id))?;
 
         tray.build_summary(&self.readers)
+    }
+
+    ///Returns a summary of all the dice in the Dice Bag.
+    pub fn get_dice_summary(&self) -> DiceSummary  {
+        let dice_summary = self.dice.values()
+            .map(|d| DieSummary::from_die(d))
+            .collect();
+
+        DiceSummary { dice : dice_summary }
     }
 
     ///Prints a list of all dice in the allocator
@@ -389,16 +399,17 @@ impl DieTray{
         Ok(())
     }
 
-    fn build_summary<'a>(
-        &'a self,
-        readers: &'a HashMap<usize, DieReader>,
-    ) -> Result<Vec<&'a DieReader>, String> {
+    fn build_summary(
+        &self,
+        readers: &HashMap<usize, DieReader>,
+    ) -> Result<Vec<DieReader>, String> {
         self.reader_ids
             .iter()
             .map(|reader_id| {
                 let reader = readers
-                    .get(reader_id)
-                    .ok_or_else(|| format!("Reader {} not found", reader_id))?;
+                    .get(&reader_id)
+                    .ok_or_else(|| format!("Reader {} not found", reader_id))?
+                    .clone();
                 Ok(reader)
             })
             .collect()
@@ -412,6 +423,25 @@ impl DieTray{
                 readers.get(reader_id).map(|r| r.get_die_id())
             })
             .collect()
+    }
+
+    pub fn roll(&mut self, targets: DiceTargets, readers: &HashMap<usize, DieReader>, dice: &mut HashMap<usize, Die>){
+        let readers_found : Vec<Option<&DieReader>> = self.reader_ids.iter()
+            .map(|i| readers.get(i) ).filter(|r| r.is_some()).collect();
+
+        match(targets){
+            DiceTargets::All => {
+                for reader in readers_found{
+                    reader.unwrap().roll(dice);
+                }
+            },
+            DiceTargets::Index(indicies) => {
+                for reader in readers_found.iter() {
+
+                }
+            },
+
+        }
     }
 
     fn add_reader(&mut self, reader_id: usize){
@@ -443,14 +473,15 @@ impl Display for DieTray{
     }
 }
 
-pub struct TraySummary<'a>{
-    pub tray_id: usize,
-    pub tray_label: String,
-    pub tray_dice: Vec<&'a DieReader>
+#[derive(Serialize, Deserialize)]
+pub struct TraySummary{
+    tray_id: usize,
+    tray_label: String,
+    tray_dice: Vec<DieReader>
 }
 
-impl<'a> TraySummary<'a>{
-    pub fn new(id: usize, label: String, dice: Vec<&'a DieReader>) -> Self {
+impl TraySummary{
+    pub fn new(id: usize, label: String, dice: Vec<DieReader>) -> Self {
         TraySummary { 
             tray_id: id, 
             tray_label: label,
@@ -458,6 +489,33 @@ impl<'a> TraySummary<'a>{
         }
     }
 }
+
+#[derive(Serialize, Deserialize)]
+pub struct DiceSummary{
+    dice: Vec<DieSummary>
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct DieSummary{
+    id: usize,
+    label: String,
+    faces: u32,
+    current_face: u32,
+    result: DieResult
+}
+
+impl DieSummary{
+    pub fn from_die(die: &Die) -> Self{
+        DieSummary { 
+            id: die.get_id(),
+            label: die.get_label().to_string(),
+            faces: die.get_face_count(),
+            current_face: die.get_current_face(),
+            result: die.get_current_result().clone()
+        }
+    }
+}
+
 
 #[derive(Serialize, Deserialize)]
 pub enum DiceTargets {

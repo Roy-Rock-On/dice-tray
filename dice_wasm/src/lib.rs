@@ -1,7 +1,5 @@
-mod wasm_tray;
+use rust_dice::die_allocator::Allocator;
 
-use rust_dice::dice::Die32;
-use wasm_tray::{WasmTray, TrayData};
 use wasm_bindgen::prelude::*;
 use serde_json;
 use web_sys;
@@ -12,49 +10,48 @@ pub fn greet(msg: &str) -> String{
 }
 
 #[wasm_bindgen]
-pub struct DiceTrayHandle {
-    tray: WasmTray,
+pub struct DiceAllocatorHandle {
+    app_allocator: Allocator,
 }
 
 #[wasm_bindgen]
-impl DiceTrayHandle {
+impl DiceAllocatorHandle {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Self {
         Self {
-            tray: WasmTray::new(0)
+            app_allocator: Allocator::new()
         }
     }
 
     /// Add a die to the tray
     #[wasm_bindgen]
-    pub fn add_die(&mut self, sides: u32) -> Result<(), JsValue> {
+    pub fn create_die(&mut self, sides: u32) -> Result<(), JsValue> {
         // Validate input
         if sides == 0 {
             return Err(JsValue::from_str("Die must have at least 1 side"));
         }
-        if sides > 10000 {
-            return Err(JsValue::from_str("Die cannot have more than 10,000 sides"));
+        if sides > 1000 {
+            return Err(JsValue::from_str("Die cannot have more than 1,000 sides"));
         }
         
         // Log for debugging
         web_sys::console::log_1(&format!("Creating die with {} sides", sides).into());
         
-        let new_id = self.tray.get_next_die_id();
-        web_sys::console::log_1(&format!("Using die ID: {}", new_id).into());
-        
-        let new_die = Die32::new(new_id, None, sides, None);
-        web_sys::console::log_1(&"Die created successfully".into());
-        
-        self.tray.add_die(new_die);
-        web_sys::console::log_1(&"Die added to tray successfully".into());
+        self.app_allocator.create_die(sides, None, None, 50);
         
         Ok(())
     }
 
+    #[wasm_bindgen]
+    pub fn get_dice_data(&self) -> Result<String, JsValue> {
+        let dice_data = self.app_allocator.get_dice_summary();
+        serde_json::to_string(&dice_data).map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+
     /// Roll all dice in the tray
     #[wasm_bindgen]
-    pub fn roll_all(&mut self) -> Result<(), JsValue> {
-        self.tray.roll_all();
+    pub fn roll_all(&mut self, tray_id: usize) -> Result<(), JsValue> {
+        self.app_allocator.roll_tray();
         Ok(())
     }
 
