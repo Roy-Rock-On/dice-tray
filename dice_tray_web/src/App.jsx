@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import init, { greet, DiceTrayHandle } from '../pkg/dice_wasm';
+import init, { greet, DiceAllocatorHandle } from '../pkg/dice_wasm';
 
 import './App.css'
 

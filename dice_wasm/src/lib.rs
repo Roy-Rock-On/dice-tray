@@ -1,6 +1,4 @@
-use std::string;
-
-use rust_dice::die_allocator::{Allocator, DieSummary};
+use rust_dice::die_allocator::{Allocator};
 
 use wasm_bindgen::prelude::*;
 use serde_json;
