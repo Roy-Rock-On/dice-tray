@@ -145,7 +145,7 @@ impl Allocator{
 
     ///Prunes all readers that point to a specific die from the reader store and all trays.
     fn prune_readers_for_die(&mut self, die_id: usize) {
-        self.trays.values_mut().for_each(|tray| tray.remove_readers_by_id(die_id));
+        self.trays.values_mut().for_each(|tray| tray.remove_readers_by_die_id(die_id));
     }
 
     ///Removes a tray, prunes its readers from the reader store, and frees the tray ID.
@@ -169,12 +169,10 @@ impl Allocator{
         let die = self.dice.get(&die_id)
             .ok_or_else(|| format!("No die found with ID: {}", die_id))?;
 
-        let reader = DieReader::new(die);
-
         let tray = self.trays.get_mut(&tray_id)
             .ok_or_else(|| format!("No tray found with ID: {}", tray_id))?;
 
-        tray.add_reader(reader);    
+        tray.add_reader(die);    
 
         Ok(tray.build_summary())
     }
@@ -294,7 +292,8 @@ impl Allocator{
 pub struct DieTray{
     id: usize,
     label: String,
-    readers: Vec<DieReader>
+    readers: Vec<DieReader>,
+    reader_id_gen: IdGenerator
 }
 
 impl DieTray{
@@ -309,7 +308,8 @@ impl DieTray{
         DieTray { 
             id: tray_id,
             label: tray_label,
-            readers: Vec::new()
+            readers: Vec::new(),
+            reader_id_gen: IdGenerator::new()
         }
     }
     
@@ -319,23 +319,11 @@ impl DieTray{
                 let die = dice
                     .get_mut(&reader.get_die_id())
                     .unwrap_or(Err(format!("Die reader at {} has no dice with id {}", index, reader.get_die_id()))?);
-                reader.roll(die);
+                reader.roll(die)?;
             }
         } 
 
         Ok(())
-    }
-
-    fn get_id(&self) -> usize{
-        self.id
-    }
-
-    fn get_label(&self) -> &str{
-        &self.label
-    }
-
-    fn remove_readers_by_id(&mut self, die_id: usize){
-        self.readers.retain(|dr| dr.get_die_id() != die_id );
     }
 
     fn sort(&mut self, order: Ordering){
@@ -350,20 +338,37 @@ impl DieTray{
         TraySummary::new(self)
     }
 
-    fn add_reader(&mut self, die_reader : DieReader){
-        self.readers.push(die_reader);
+    fn add_reader(&mut self, die : &Die){
+        let next_id = self.reader_id_gen.allocate();
+        let new_reader = DieReader::new(die, next_id);
+        self.readers.push(new_reader);
     }
 
-    fn remove_reader_at(&mut self, index: usize) {
-        self.readers.remove(index);
-    }
+    fn remove_readers_by_die_id(&mut self, die_id: usize){
+        let targeted_reader_ids : Vec<usize> = self.readers.iter()
+            .filter_map(|r|{
+                if r.get_die_id() == die_id{
+                    Some(r.get_reader_id())
+                }
+                else{
+                    None
+                }
+            }).collect();
 
-    fn remove_readers_by_index(&mut self, removal_index: &mut [usize]) {
-        removal_index.sort_unstable_by(|a, b| b.cmp(a));
-        
-        for index in removal_index{
-            self.readers.remove(*index);
+        for id in targeted_reader_ids{
+            self.reader_id_gen.free(id);
         }
+
+        self.readers.retain(|dr| dr.get_reader_id() != die_id);
+    }
+
+    fn remove_readers_by_reader_id(&mut self, reader_ids: &mut [usize]) {
+        for id in reader_ids.iter(){
+            self.reader_id_gen.free(*id);
+        }
+
+        self.readers.retain(|r| !reader_ids.contains(&r.get_reader_id()))
+                
     }
 
     fn clear_readers(&mut self){

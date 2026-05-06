@@ -7,6 +7,7 @@ use crate::die::{Die, DieResult, RollLog};
 #[derive(Clone, Serialize, Deserialize)]
 pub struct DieReader {
 	die_id: usize,
+    reader_id: usize,
     total_faces: u32,
     die_label: String, 
     current_face: u32,
@@ -15,9 +16,10 @@ pub struct DieReader {
 
 impl DieReader {
 	///Creates a new die reader for a die in the allocator's die store.
-	pub fn new(die: &Die) -> Self {
+	pub fn new(die: &Die, reader_id: usize) -> Self {
 		Self {
 			die_id: die.get_id(),
+            reader_id,
             total_faces: die.get_face_count(),
             die_label: die.get_label().to_string(),
             current_face: die.get_current_face(),
@@ -29,6 +31,10 @@ impl DieReader {
 	pub fn get_die_id(&self) -> usize {
 		self.die_id
 	}
+
+    pub fn get_reader_id(&self) -> usize{
+        self.reader_id
+    }
 
     pub fn get_label(&self) -> &str{
         &self.die_label
