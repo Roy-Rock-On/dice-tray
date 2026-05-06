@@ -11,6 +11,7 @@ use anyhow::Error;
 
 use rust_dice::die::DiceDataList; 
 use rust_dice::die_allocator::{Allocator, DiceTargets};
+use rust_dice::die_tray::{TraySummary}
 
 fn main() {
     println!("Welcome to Dice Tray!\n");
@@ -98,7 +99,7 @@ fn main() {
                 match prompt_new_die() {
                     Ok((label, face_count, face_varience)) => {
                         match die_allocator.create_die(face_count, None, Some(label.clone()), face_varience) {
-                            Ok(()) => println!(
+                            Ok(_) => println!(
                                 "Created die '{}' with {} faces and variance {}.",
                                 label,
                                 face_count,
@@ -234,7 +235,7 @@ fn collect_reader_ids_for_dice(allocator: &Allocator, die_ids: &[usize]) -> Resu
 
     for tray_id in allocator.get_tray_ids() {
         let tray_summary = allocator.get_tray_summary(tray_id)?;
-        for reader in tray_summary {
+        for reader in tray_summary.get_dice() {
             if die_id_set.contains(&reader.get_die_id()) {
                 reader_ids.push(reader.get_reader_id());
             }

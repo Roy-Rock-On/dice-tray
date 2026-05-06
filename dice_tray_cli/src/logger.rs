@@ -67,7 +67,7 @@ pub fn detailed_log_dice(dice_summary: Vec<&Die>) -> Result<(), Error>{
 
 /// Logs the current state of the tray to the console. In table format. Using cli-table crate.
 pub fn detailed_log_tray(summery : TraySummary) -> Result<(), Error>{
-    let dice_states: Vec<DetailedDiceState> = summery.tray_dice
+    let dice_states: Vec<DetailedDiceState> = summery.get_dice()
         .iter()
         .map(|die| DetailedDiceState {
             id: die.get_reader_id().to_string(),
@@ -78,7 +78,7 @@ pub fn detailed_log_tray(summery : TraySummary) -> Result<(), Error>{
         })
         .collect();
 
-    println!("---ID: {} TRAY: {}---", summery.tray_id, summery.tray_label);
+    println!("---ID: {} TRAY: {}---", summery.get_id(), summery.get_label());
     print_stdout(dice_states.with_title())?;
 
     Ok(())

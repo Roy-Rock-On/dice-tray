@@ -60,9 +60,7 @@ pub struct Die {
 
 impl Die{
     ///Rolls the Die and makes 
-    pub fn roll(&mut self) -> RollLog {
-        let last_face = self.current_face;
-        let last_result = self.current_result.clone();
+    pub fn roll(&mut self){
         let random_number = self.internal_rng.get_number(self.total_weight);
         for i in 0..self.face_weights.len(){
             if random_number <= self.face_weights[i] {
@@ -72,15 +70,6 @@ impl Die{
         }
         let face_result = self.current_face;
         self.set_die_result(face_result);
-
-        RollLog {
-            die_id: self.id,
-            die_label: self.label.clone(),
-            old_face: last_face,
-            new_face: face_result,
-            old_result: last_result,
-            new_result: self.current_result.clone(),
-        }
     }
 
     ///Gets the current result of the dice without modification of the rng.
@@ -279,15 +268,6 @@ impl DieResult{
     }
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct RollLog{
-    die_id: usize,
-    die_label: String,
-    old_face: u32,
-    new_face: u32,
-    old_result: DieResult,
-    new_result: DieResult,
-}
 
 #[derive(Serialize, Deserialize)]
 pub struct DieData{
@@ -346,9 +326,9 @@ fn die_test(){
     let mut die = build_die(faces, Some("new die".to_string()), 71, 100, 50, 10).unwrap();
     let mut counts: Vec<i32> = vec![0; faces as usize];
     for i in 0..100000 {
-        let roll = die.roll();
-        counts[(roll.new_face - 1) as usize] += 1;
-        println!("{} --- {}", i, roll.new_result.get_num().unwrap());
+        die.roll();
+        counts[(die.current_face - 1) as usize] += 1;
+        println!("{} --- {}", i, die.current_result.get_num().unwrap());
     }
 
     let sum_of_counts = {

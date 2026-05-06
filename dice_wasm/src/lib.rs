@@ -1,4 +1,6 @@
-use rust_dice::die_allocator::Allocator;
+use std::string;
+
+use rust_dice::die_allocator::{Allocator, DieSummary};
 
 use wasm_bindgen::prelude::*;
 use serde_json;
@@ -25,7 +27,7 @@ impl DiceAllocatorHandle {
 
     /// Add a die to the tray
     #[wasm_bindgen]
-    pub fn create_die(&mut self, sides: u32) -> Result<(), JsValue> {
+    pub fn create_die(&mut self, sides: u32) -> Result<String, JsValue> {
         // Validate input
         if sides == 0 {
             return Err(JsValue::from_str("Die must have at least 1 side"));
@@ -37,9 +39,8 @@ impl DiceAllocatorHandle {
         // Log for debugging
         web_sys::console::log_1(&format!("Creating die with {} sides", sides).into());
         
-        self.app_allocator.create_die(sides, None, None, 50);
-        
-        Ok(())
+        let die_summary = self.app_allocator.create_die(sides, None, None, 50)?;
+        serde_json::to_string(&die_summary).map_err(|e| JsValue::from_str(&e.to_string()))
     }
 
     #[wasm_bindgen]
@@ -50,22 +51,22 @@ impl DiceAllocatorHandle {
 
     /// Roll all dice in the tray
     #[wasm_bindgen]
-    pub fn roll_all(&mut self, tray_id: usize) -> Result<(), JsValue> {
-        self.app_allocator.roll_tray();
-        Ok(())
+    pub fn roll_tray(&mut self, tray_id: usize) -> Result<String, JsValue> {
+        let tray_summary = self.app_allocator.roll_tray(tray_id);
+        serde_json::to_string(&tray_summary).map_err(|e| JsValue::from_str(&e.to_string()))
     }
 
     /// Clear all dice from the tray
     #[wasm_bindgen]
-    pub fn clear(&mut self) -> Result<(), JsValue> {
-        self.tray.clear();
-        Ok(())
+    pub fn clear_tray(&mut self, tray_id: usize) -> Result<String, JsValue> {
+        let tray_summary = self.app_allocator.clear_readers_from_tray(tray_id)?;
+        serde_json::to_string(&tray_summary).map_err(|e| JsValue::from_str(&e.to_string()))
     }
 
     ///Gets the tray data used to update the tray.
     #[wasm_bindgen]
-    pub fn get_tray_data(&self) -> Result<String, JsValue> {
-        let tray_data = TrayData::from_tray(&self.tray);
-        serde_json::to_string(&tray_data).map_err(|e| JsValue::from_str(&e.to_string()))
+    pub fn get_tray_data(&self, tray_id: usize) -> Result<String, JsValue> {
+        let tray_summary = self.app_allocator.get_tray_summary(tray_id)?;
+        serde_json::to_string(&tray_summary).map_err(|e| JsValue::from_str(&e.to_string()))
     }
 }

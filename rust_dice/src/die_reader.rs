@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::die::{Die, DieResult, RollLog};
+use crate::die::{Die, DieResult};
 
 ///A lightweight tray-facing view into a die owned by the allocator.
 ///Readers can share the same underlying die by pointing at the same die_id.
@@ -53,12 +53,10 @@ impl DieReader {
     }
 
 	///Asks the provided die to roll, update the reader and return a roll log- or error.
-	pub fn roll(&mut self, die: &mut Die) -> Result<RollLog, String> {
+	pub fn roll(&mut self, die: &mut Die) {
 		let log = die.roll();
         self.current_face = die.get_current_face();
         self.current_result = die.get_current_result().clone();
-
-        Ok(log)
 	}
 }
 
