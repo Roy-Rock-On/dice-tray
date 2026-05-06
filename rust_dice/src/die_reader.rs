@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-
 use crate::die::{Die, DieResult};
 
 ///A lightweight tray-facing view into a die owned by the allocator.

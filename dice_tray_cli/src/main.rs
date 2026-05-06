@@ -11,7 +11,7 @@ use anyhow::Error;
 
 use rust_dice::die::DiceDataList; 
 use rust_dice::die_allocator::{Allocator, DiceTargets};
-use rust_dice::die_tray::{TraySummary}
+use rust_dice::die_tray::{TraySummary};
 
 fn main() {
     println!("Welcome to Dice Tray!\n");
@@ -143,34 +143,7 @@ fn main() {
                 println!("Added {} reader(s) to tray {}.", added_count, tray_id);
             }
             CliCommand::Move(die_reader_targets, tray_id) => {
-                let die_ids = collect_target_die_ids(&die_allocator, &die_reader_targets);
-                if die_ids.is_empty() {
-                    println!("No dice matched targets {}", die_reader_targets);
-                    continue;
-                }
-
-                let reader_ids = match collect_reader_ids_for_dice(&die_allocator, &die_ids) {
-                    Ok(ids) => ids,
-                    Err(e) => {
-                        println!("Error collecting readers to move: {}", e);
-                        continue;
-                    }
-                };
-
-                if reader_ids.is_empty() {
-                    println!("No reader(s) found for targets {}.", die_reader_targets);
-                    continue;
-                }
-
-                let mut moved_count = 0usize;
-                for reader_id in reader_ids {
-                    match die_allocator.move_reader(reader_id, Some(tray_id)) {
-                        Ok(()) => moved_count += 1,
-                        Err(e) => println!("Error moving reader {} to tray {}: {}", reader_id, tray_id, e),
-                    }
-                }
-
-                println!("Moved {} reader(s) to tray {}.", moved_count, tray_id);
+                todo!("Do this soemday");
             }
             CliCommand::Remove(die_reader_targets) => {
                 let die_ids = collect_target_die_ids(&die_allocator, &die_reader_targets);
@@ -194,10 +167,7 @@ fn main() {
 
                 let mut removed_count = 0usize;
                 for reader_id in reader_ids {
-                    match die_allocator.move_reader(reader_id, None) {
-                        Ok(()) => removed_count += 1,
-                        Err(e) => println!("Error removing reader {} from trays: {}", reader_id, e),
-                    }
+                    todo!("Do this someday!");
                 }
 
                 println!("Removed {} reader(s) from all trays.", removed_count);

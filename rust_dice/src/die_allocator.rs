@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::die::{DiceDataList, Die, DieData, DieResult, build_die};
-use crate::die_tray::{DieTray, TraySummary};
+use crate::die_tray::{DieTray, MoveSummary, TraySummary};
 use crate::id_generator::IdGenerator;
 
 use std::cmp::{Ordering};
@@ -160,8 +160,30 @@ impl Allocator{
 
     ///Moves a reader to a different tray.
     ///tray_id takes an option. None will remove the reader from its current tray and reader store.
-    pub fn move_reader(&mut self, from_tray: usize, reader_id: usize, new_tray_id: usize) -> Result<(), String> {
-        todo!("I didn't do it yet!");
+    pub fn move_reader(&mut self, from_tray: usize, reader_ids: &mut[usize], to_tray: Option<usize>) -> Result<MoveSummary, String> {
+        let removal_tray = self.trays.get_mut(&from_tray)
+            .unwrap_or(Err(format!("No tray found with ID: {}", from_tray))?);
+        
+        let die_ids = removal_tray.remove_readers_by_reader_id(reader_ids);
+
+        let removal_summary = removal_tray.build_summary();
+
+        match to_tray{
+            Some(to_id) => {
+                let to_tray = self.trays.get_mut(&to_id)
+                    .unwrap_or(Err(format!("No tray found with ID: {}", from_tray))?);
+
+                for id in die_ids {
+                    let die = self.dice.get(&id)
+                        .unwrap_or(Err(format!("No die found with ID: {}", id))?);
+                    to_tray.add_reader(die);
+                }
+
+                let move_summary = to_tray.build_summary();
+                Ok(MoveSummary::new(removal_summary, Some(move_summary)))
+            },
+            None => Ok(MoveSummary::new(removal_summary, None))
+        }
     }
 
     fn get_indices_by_label(&self, label: &str) -> Vec<usize>{

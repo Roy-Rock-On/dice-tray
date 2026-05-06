@@ -92,12 +92,22 @@ impl DieTray{
         self.readers.retain(|dr| dr.get_reader_id() != die_id);
     }
 
-    pub fn remove_readers_by_reader_id(&mut self, reader_ids: &mut [usize]) {
+    pub fn remove_readers_by_reader_id(&mut self, reader_ids: &mut [usize]) -> Vec<usize> {
+        let mut die_ids : Vec<usize> = Vec::new();
+        
         for id in reader_ids.iter(){
             self.reader_id_gen.free(*id);
         }
+        let readers_iter = self.readers.clone().into_iter();
+        self.readers = readers_iter
+            .filter(|r| reader_ids.contains(&r.get_reader_id()))
+            .map(|r|{
+                die_ids.push(r.get_die_id());
+                r
+            })
+            .collect();
 
-        self.readers.retain(|r| !reader_ids.contains(&r.get_reader_id()))           
+        die_ids           
     }
 
     pub fn clear_readers(&mut self){
@@ -152,6 +162,21 @@ impl TraySummary{
         println!("Tray ID = {}", self.tray_id);
         for reader in self.tray_dice.iter().enumerate(){
             println!("@{} - Faces {} - Result {}", reader.0, reader.1.get_face_count(), reader.1.get_current_face());
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct MoveSummary{
+    from_tray: TraySummary,
+    to_tray: Option<TraySummary>
+}
+
+impl MoveSummary{
+    pub fn new(from: TraySummary, to: Option<TraySummary>) -> Self {
+        MoveSummary{
+            from_tray: from,
+            to_tray: to
         }
     }
 }

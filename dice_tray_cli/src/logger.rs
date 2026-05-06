@@ -1,7 +1,8 @@
 use anyhow::Error;
 use cli_table::{Table, WithTitle, format::Justify, print_stdout};
-use rust_dice::die_allocator::TraySummary;
+use rust_dice::die_tray::TraySummary;
 use rust_dice::die::Die;
+use rust_dice::die_reader::DieReader;
 use std::cmp::Ordering;
 
 #[derive(Table)]
@@ -69,7 +70,7 @@ pub fn detailed_log_dice(dice_summary: Vec<&Die>) -> Result<(), Error>{
 pub fn detailed_log_tray(summery : TraySummary) -> Result<(), Error>{
     let dice_states: Vec<DetailedDiceState> = summery.get_dice()
         .iter()
-        .map(|die| DetailedDiceState {
+        .map(|die: &DieReader| DetailedDiceState {
             id: die.get_reader_id().to_string(),
             label: die.get_label().to_string(),
             face_count: die.get_face_count(),
