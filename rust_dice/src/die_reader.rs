@@ -1,15 +1,12 @@
 use serde::{Deserialize, Serialize};
 
 use crate::die::{Die, DieResult, RollLog};
-use std::collections::HashMap;
 
 ///A lightweight tray-facing view into a die owned by the allocator.
 ///Readers can share the same underlying die by pointing at the same die_id.
 #[derive(Clone, Serialize, Deserialize)]
 pub struct DieReader {
-	reader_id: usize,
 	die_id: usize,
-	current_tray_id: usize,
     total_faces: u32,
     die_label: String, 
     current_face: u32,
@@ -18,31 +15,14 @@ pub struct DieReader {
 
 impl DieReader {
 	///Creates a new die reader for a die in the allocator's die store.
-	pub fn new(reader_id: usize, die: &Die, current_tray_id: usize) -> Self {
+	pub fn new(die: &Die) -> Self {
 		Self {
-			reader_id,
 			die_id: die.get_id(),
-			current_tray_id,
             total_faces: die.get_face_count(),
             die_label: die.get_label().to_string(),
             current_face: die.get_current_face(),
             current_result: die.get_current_result().clone()
 		}
-	}
-
-	///Returns the tray ID this reader is currently assigned to, if any.
-	pub fn get_tray_id(&self) -> usize {
-		self.current_tray_id
-	}
-
-	///Sets or clears the tray this reader is assigned to.
-	pub fn set_tray(&mut self, tray_id: usize) {
-		self.current_tray_id = tray_id;
-	}
-
-	///Returns the reader's unique ID.
-	pub fn get_reader_id(&self) -> usize {
-		self.reader_id
 	}
 
 	///Returns the die ID this reader points to.
@@ -66,12 +46,8 @@ impl DieReader {
         &self.current_result
     }
 
-	///Asks the underlying die to roll and returns the resulting roll log.
-	pub fn roll(&mut self, dice: &mut HashMap<usize, Die>) -> Result<RollLog, String> {
-		let die = dice
-			.get_mut(&self.die_id)
-			.ok_or_else(|| format!("No die found with ID: {} for reader {}", self.die_id, self.reader_id))?;
-
+	///Asks the provided die to roll, update the reader and return a roll log- or error.
+	pub fn roll(&mut self, die: &mut Die) -> Result<RollLog, String> {
 		let log = die.roll();
         self.current_face = die.get_current_face();
         self.current_result = die.get_current_result().clone();
