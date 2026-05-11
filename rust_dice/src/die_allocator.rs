@@ -31,10 +31,11 @@ impl Allocator{
         }
     }
 
-    ///Makes a new tray to track and sort dice being rolled.
-    pub fn create_tray(&mut self, label: Option<String>){
+    ///Makes a new tray to track and sort dice being rolled. Returns a summary of the new tray (which will be empty).
+    pub fn create_tray(&mut self, label: Option<String>) -> TraySummary{
         let new_tray_id = self.tray_id_gen.allocate();
-        self.trays.insert(new_tray_id, DieTray::new(new_tray_id, label));        
+        self.trays.insert(new_tray_id, DieTray::new(new_tray_id, label));
+        self.trays.get(&new_tray_id).unwrap().build_summary()        
     }
 
     ///Creates a new die. Does not add the dice to any tray.
@@ -76,7 +77,7 @@ impl Allocator{
     }
 
     ///Destroys dice in the dice bag, clearing any attached dice readers.
-    pub fn destroy_dice(&mut self, targets: Vec<usize>) -> Result<(), String>{
+    pub fn destroy_dice(&mut self, targets: Vec<usize>) -> Result<DiceSummary, String>{
         for id in targets{
             if self.dice.contains_key(&id){
                 self.prune_readers_for_die(id);
@@ -85,7 +86,7 @@ impl Allocator{
             }
         }
 
-        Ok(())
+        Ok(self.get_dice_summaries())
     }
 
     ///Prunes all readers that point to a specific die from the reader store and all trays.
@@ -122,6 +123,7 @@ impl Allocator{
         Ok(tray.build_summary())
     }
 
+    ///Removes all the die readers from a given tray.
     pub fn clear_readers_from_tray(&mut self, tray_id : usize) -> Result<TraySummary, String> {
         if let Some(tray) = self.trays.get_mut(&tray_id){
             tray.clear_readers();
@@ -162,7 +164,7 @@ impl Allocator{
     }
 
     ///Gets a list of die IDs given a DiceTarget enum.
-    fn get_die_ids_from_targets(&self, targets: DiceTargets) -> Option<Vec<usize>>{
+    pub fn get_die_ids_from_targets(&self, targets: DiceTargets) -> Option<Vec<usize>>{
         let mut matching_ids = HashSet::new();
 
         match targets{
@@ -244,6 +246,11 @@ impl Allocator{
         self.dice.values().collect()
     }
 
+    ///Gets a summary of all the dice in the allocator.
+    pub fn get_dice_summaries(&self) -> DiceSummary{
+        DiceSummary::new(self.dice.values().map(|d| DieSummary::from_die(d)).collect())
+    }
+
     ///Returns all tray IDs currently tracked by the allocator in ascending order.
     pub fn get_tray_ids(&self) -> Vec<usize> {
         let mut tray_ids: Vec<usize> = self.trays.keys().copied().collect();
@@ -322,6 +329,14 @@ impl Allocator{
 #[derive(Serialize, Deserialize)]
 pub struct DiceSummary{
     dice: Vec<DieSummary>
+}
+
+impl DiceSummary{
+    pub fn new(die_summaries: Vec<DieSummary>) -> Self{
+        DiceSummary{
+            dice: die_summaries
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize)]

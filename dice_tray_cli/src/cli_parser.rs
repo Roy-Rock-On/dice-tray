@@ -1,5 +1,5 @@
 use anyhow::Error;
-use rust_dice::die_allocator::{DiceTargets};
+use rust_dice::die_targets::{DiceTargets};
 
 pub enum CliCommand{
     Exit,
@@ -10,8 +10,7 @@ pub enum CliCommand{
     Tray(Option<usize>),
     Destroy(DiceTargets),
     Add(DiceTargets, usize),
-    Move(DiceTargets, usize),
-    Remove(DiceTargets),
+    Move(DiceTargets, usize, Option<usize>),
     Error(String)
 }
 
