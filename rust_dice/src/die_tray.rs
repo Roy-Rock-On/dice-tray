@@ -1,8 +1,9 @@
+use crate::die_targets::DiceTargets;
 use crate::id_generator::IdGenerator;
-use crate::die_reader::DieReader;
+use crate::die_reader::{self, DieReader};
 use crate::die::Die;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::cmp::Ordering;
 use std::fmt::Display;
 
@@ -92,26 +93,63 @@ impl DieTray{
         self.readers.retain(|dr| dr.get_reader_id() != die_id);
     }
 
-    pub fn remove_readers_by_reader_id(&mut self, reader_ids: &mut [usize]) -> Vec<usize> {
-        let mut die_ids : Vec<usize> = Vec::new();
-        
-        for id in reader_ids.iter(){
+    pub fn remove_readers(&mut self, reader_ids: Vec<usize>) -> Option<Vec<usize>>{      
+        for id in &reader_ids{
             self.reader_id_gen.free(*id);
         }
-        let readers_iter = self.readers.clone().into_iter();
-        self.readers = readers_iter
-            .filter(|r| reader_ids.contains(&r.get_reader_id()))
-            .map(|r|{
-                die_ids.push(r.get_die_id());
-                r
-            })
+
+        let die_ids : Vec<usize> = self.readers.iter()
+            .filter_map(|dr| Some(dr.get_die_id()))
             .collect();
 
-        die_ids           
+        self.readers.retain(|r| !reader_ids.contains(&r.get_reader_id()));
+
+        if die_ids.len() > 0{
+            Some(die_ids)
+        }
+        else{
+            None
+        }
     }
 
     pub fn clear_readers(&mut self){
+        self.reader_id_gen.free_all();
         self.readers.clear();
+    }
+
+    pub fn get_reader_ids_by_targets(&self, targets: &DiceTargets) -> Option<Vec<usize>>{
+        let mut found_ids = HashSet::new();
+
+        match targets {
+            DiceTargets::All => {
+                for reader in &self.readers{
+                    found_ids.insert(reader.get_reader_id());
+                }
+            },
+            DiceTargets::Index(indecies) => {
+                for reader in &self.readers{
+                    if indecies.contains(&reader.get_reader_id()){
+                        found_ids.insert(reader.get_reader_id());
+                    }
+                }
+            },
+            DiceTargets::Label(labels) => {
+                for reader in &self.readers{
+                    if labels.contains(&reader.get_label().to_string()){
+                        found_ids.insert(reader.get_reader_id());
+                    }
+                }
+            }
+        }
+
+        let found_ids: Vec<usize> = found_ids.into_iter().collect();
+
+        if found_ids.len() > 0{
+            Some(found_ids)
+        }
+        else{
+            None
+        }
     }
 }
 

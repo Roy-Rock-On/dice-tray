@@ -1,5 +1,6 @@
 mod cli_parser;
 mod logger;
+mod cli_command_handlers;
 
 use logger::{detailed_log_tray, detailed_log_dice};
 use cli_parser::{CliCommand};

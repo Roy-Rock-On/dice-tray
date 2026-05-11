@@ -16,6 +16,9 @@ pub mod die_reader;
 ///Used to generate and track unique IDs for variuous components. For binding to a frontend UI.
 pub mod id_generator;
 
+///Used to target dice context dependantly by tray or at the allocator level.
+pub mod die_targets;
+
 ///Die allocators create dice and assign them to a has set with unique IDs.
 ///Responsible for sorting dice into trays, updating them, and passing RollLogs to a user interface. 
 ///Used to integrate a persistant dice tray with web or CLI applications.

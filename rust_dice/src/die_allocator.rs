@@ -1,18 +1,17 @@
 use serde::{Deserialize, Serialize};
 
 use crate::die::{DiceDataList, Die, DieData, DieResult, build_die};
+use crate::die_targets::DiceTargets;
 use crate::die_tray::{DieTray, MoveSummary, TraySummary};
 use crate::id_generator::IdGenerator;
 
 use std::cmp::{Ordering};
-use std::collections::{HashMap};
+use std::collections::{HashMap, HashSet};
 use std::time::{SystemTime, UNIX_EPOCH};
 use std::fmt::{Display, Formatter};
 
 //constants used to sutomaticaly weight the dice. 
 const STD_WEIGHT: u32 = 100;
-
-
 
 pub struct Allocator{
     tray_id_gen: IdGenerator,
@@ -77,37 +76,12 @@ impl Allocator{
     }
 
     ///Destroys dice in the dice bag, clearing any attached dice readers.
-    pub fn destroy_dice(&mut self, targets: &DiceTargets) -> Result<(), String>{
-        match targets{
-            DiceTargets::All => {
-                //Clean up all IDs
-                let die_ids: Vec<usize> = self.dice.keys().copied().collect();
-                die_ids.into_iter().for_each(|id| self.die_id_gen.free(id));
-                
-                //Clean dice readers out of trays.
-                self.trays.values_mut().for_each(|t| t.clear_readers());
-                
-                //Clean up the dice.
-                self.dice.clear();
-            }
-            DiceTargets::Index(indicies) =>{
-                for i in indicies {
-                    if self.dice.contains_key(&i){
-                        self.prune_readers_for_die(*i);
-                        self.dice.remove(&i);
-                        self.die_id_gen.free(*i);
-                    }
-                }
-            }
-            DiceTargets::Label(label) => {
-                let matching_dice = self.get_indices_by_label(&label);
-                for i in matching_dice {
-                    if self.dice.contains_key(&i){
-                        self.prune_readers_for_die(i);
-                        self.dice.remove(&i);
-                        self.die_id_gen.free(i);
-                    }
-                }
+    pub fn destroy_dice(&mut self, targets: Vec<usize>) -> Result<(), String>{
+        for id in targets{
+            if self.dice.contains_key(&id){
+                self.prune_readers_for_die(id);
+                self.die_id_gen.free(id);
+                self.dice.remove(&id);
             }
         }
 
@@ -160,11 +134,12 @@ impl Allocator{
 
     ///Moves a reader to a different tray.
     ///tray_id takes an option. None will remove the reader from its current tray and reader store.
-    pub fn move_reader(&mut self, from_tray: usize, reader_ids: &mut[usize], to_tray: Option<usize>) -> Result<MoveSummary, String> {
+    pub fn move_reader(&mut self, from_tray: usize, reader_ids: Vec<usize>, to_tray: Option<usize>) -> Result<MoveSummary, String> {
         let removal_tray = self.trays.get_mut(&from_tray)
             .unwrap_or(Err(format!("No tray found with ID: {}", from_tray))?);
         
-        let die_ids = removal_tray.remove_readers_by_reader_id(reader_ids);
+        let die_ids = removal_tray.remove_readers(reader_ids)
+            .unwrap_or(Err(format!("Failed to remove readers from tray with ID = {}", from_tray))?);
 
         let removal_summary = removal_tray.build_summary();
 
@@ -186,15 +161,53 @@ impl Allocator{
         }
     }
 
-    fn get_indices_by_label(&self, label: &str) -> Vec<usize>{
-        let mut matching_ids = Vec::new();
+    ///Gets a list of die IDs given a DiceTarget enum.
+    fn get_die_ids_from_targets(&self, targets: DiceTargets) -> Option<Vec<usize>>{
+        let mut matching_ids = HashSet::new();
 
-        for die in self.dice.values() {
-            if die.get_label() == label {
-                matching_ids.push(die.get_id());
+        match targets{
+            DiceTargets::All =>{
+                for die in self.dice.values(){
+                    matching_ids.insert(die.get_id());
+                }
+            },
+            DiceTargets::Index(indecies) => {
+                for index in indecies{
+                    if matching_ids.contains(&index){
+                        matching_ids.insert(index);
+                    }
+                }
+            },
+            DiceTargets::Label(labels) => {
+                for die in self.dice.values(){
+                    if labels.contains(&die.get_label().to_string()){
+                        matching_ids.insert(die.get_id());
+                    }
+                }
             }
         }
-        matching_ids
+
+        let matching_ids: Vec<usize> = matching_ids.into_iter().collect();
+
+        if matching_ids.len() > 0{
+            Some(matching_ids)
+        }
+        else{
+            None
+        }
+    }
+
+    ///Gets IDs of die reader in the tray based on the DiceTargets provided.
+    pub fn get_reader_ids_by_targets(&self, tray_id : usize, targets: DiceTargets) -> Result<Vec<usize>, String>{
+        if let Some(tray) = self.trays.get(&tray_id){
+            match tray.get_reader_ids_by_targets(&targets){
+                Some(reder_ids) => Ok(reder_ids),
+                None => Err(format!("No die readers found in tray ID = {} at targets {}", tray_id, targets))
+            }    
+        }
+        else{
+            Err(format!("No tray ID = {} found in application.", tray_id))
+        }
     }
 
     ///Rolls the die with the given ID in place and returns a roll log.
@@ -332,24 +345,6 @@ impl DieSummary{
     }
 }
 
-
-#[derive(Serialize, Deserialize)]
-pub enum DiceTargets {
-    All,
-    Index(Vec<usize>),
-    Label(String),
-}
-
-impl Display for DiceTargets{
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            DiceTargets::All => write!(f, "all"),
-            DiceTargets::Index(indices) => write!(f, "indices={:?}", indices),
-            DiceTargets::Label(label) => write!(f, "label=\"{}\"", label),
-        }
-    }
-}
-
 #[cfg(test)]
 #[test]
 fn test_new_tray(){
@@ -422,7 +417,7 @@ fn test_die_id_reuse_after_remove() -> Result<(), String> {
     allocator.create_die(8, Some(2), Some("b".to_string()), 25)?;
     allocator.create_die(10, Some(3), Some("c".to_string()), 25)?;
 
-    allocator.destroy_dice(&DiceTargets::Index(vec![1]))?;
+    allocator.destroy_dice(vec![1])?;
     allocator.create_die(12, Some(4), Some("d".to_string()), 25)?;
 
     assert!(allocator.dice.contains_key(&1));
