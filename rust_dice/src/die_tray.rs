@@ -10,24 +10,15 @@ use std::fmt::Display;
 use serde::{Serialize, Deserialize};
 
 pub struct DieTray{
-    id: usize,
     label: String,
     readers: Vec<DieReader>,
     reader_id_gen: IdGenerator
 }
 
 impl DieTray{
-    pub fn new(tray_id: usize, tray_name: Option<String>) -> Self{
-        let tray_label = match tray_name{
-            Some(s) => s,
-            None =>{
-                format!("Tray {}", tray_id.to_string())
-            }
-        };
-        
+    pub fn new(tray_name: String) -> Self{       
         DieTray { 
-            id: tray_id,
-            label: tray_label,
+            label: tray_name,
             readers: Vec::new(),
             reader_id_gen: IdGenerator::new()
         }
@@ -157,8 +148,7 @@ impl Display for DieTray{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Tray ID = {}, Tray Label = {}, Count of dice in tray = {}",
-            self.id,
+            "Tray Label = {}, Count of dice in tray = {}",
             self.label,
             self.readers.len()
         )
@@ -169,7 +159,6 @@ impl Display for DieTray{
 #[derive(Serialize, Deserialize)]
 ///A tray summary is used to sync the tray with a frontend UI.
 pub struct TraySummary{
-    tray_id: usize,
     tray_label: String,
     tray_dice: Vec<DieReader>
 }
@@ -177,7 +166,6 @@ pub struct TraySummary{
 impl TraySummary{
     pub fn new(tray: &DieTray) -> Self {
         TraySummary { 
-            tray_id: tray.id, 
             tray_label: tray.label.to_string(),
             tray_dice: tray.readers.clone()
         }
@@ -191,13 +179,8 @@ impl TraySummary{
         &self.tray_label
     }
 
-    pub fn get_id(&self) -> usize{
-        self.tray_id
-    }
-
     pub fn print(&self){
         println!("---{}---", self.tray_label);
-        println!("Tray ID = {}", self.tray_id);
         for reader in self.tray_dice.iter().enumerate(){
             println!("@{} - Faces {} - Result {}", reader.0, reader.1.get_face_count(), reader.1.get_current_face());
         }

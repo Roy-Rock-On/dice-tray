@@ -6,14 +6,11 @@ use logger::{detailed_log_tray, detailed_log_dice};
 use cli_parser::{CliCommand};
 
 use std::io::Write;
-use std::cmp::Ordering;
 use std::collections::HashSet;
 use anyhow::Error;
 
 use rust_dice::die::DiceDataList; 
 use rust_dice::die_allocator::Allocator;
-use rust_dice::die_targets::DiceTargets;
-use rust_dice::die_tray::{TraySummary};
 
 fn main() {
     println!("Welcome to Dice Tray!\n");
@@ -50,28 +47,6 @@ fn main() {
         println!();
         
 	}
-}
-
-fn collect_target_die_ids(allocator: &Allocator, targets: &DiceTargets) -> Vec<usize> {
-    let matched_ids: Vec<usize> = match targets {
-        DiceTargets::All => allocator
-            .get_dice()
-            .iter()
-            .map(|die| die.get_id())
-            .collect(),
-        DiceTargets::Index(indices) => indices.clone(),
-        DiceTargets::Label(label) => allocator
-            .get_dice()
-            .iter()
-            .filter(|die| die.get_label() == label)
-            .map(|die| die.get_id())
-            .collect(),
-    };
-
-    let mut unique_ids = matched_ids;
-    unique_ids.sort();
-    unique_ids.dedup();
-    unique_ids
 }
 
 fn collect_reader_ids_for_dice(allocator: &Allocator, die_ids: &[usize]) -> Result<Vec<usize>, String> {
@@ -148,12 +123,11 @@ fn get_command() -> Result<CliCommand, Error>{
 
 
 /* Exit LOGIC
-            let dice_bag_data = die_allocator.build_die_data_list(None);
-            match save_dice(&dice_bag_data){
-                Ok(())=> println!("Dice have been sucessfuly saved to {}. Goodbye!", dice_bag_data.file_name),
-                Err(e) => println!("Failed to save dice with error {}. Goodbye!", e) 
-            }
-            break;
-
+    let dice_bag_data = die_allocator.build_die_data_list(None);
+    match save_dice(&dice_bag_data){
+        Ok(())=> println!("Dice have been sucessfuly saved to {}. Goodbye!", dice_bag_data.file_name),
+        Err(e) => println!("Failed to save dice with error {}. Goodbye!", e) 
+    }
+    break;
 */
 

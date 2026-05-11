@@ -49,21 +49,21 @@ impl DiceAllocatorHandle {
 
     /// Roll all dice in the tray
     #[wasm_bindgen]
-    pub fn roll_tray(&mut self, tray_id: usize) -> Result<String, JsValue> {
+    pub fn roll_tray(&mut self, tray_id: String) -> Result<String, JsValue> {
         let tray_summary = self.app_allocator.roll_tray(tray_id);
         serde_json::to_string(&tray_summary).map_err(|e| JsValue::from_str(&e.to_string()))
     }
 
     /// Clear all dice from the tray
     #[wasm_bindgen]
-    pub fn clear_tray(&mut self, tray_id: usize) -> Result<String, JsValue> {
+    pub fn clear_tray(&mut self, tray_id: String) -> Result<String, JsValue> {
         let tray_summary = self.app_allocator.clear_readers_from_tray(tray_id)?;
         serde_json::to_string(&tray_summary).map_err(|e| JsValue::from_str(&e.to_string()))
     }
 
     ///Gets the tray data used to update the tray.
     #[wasm_bindgen]
-    pub fn get_tray_data(&self, tray_id: usize) -> Result<String, JsValue> {
+    pub fn get_tray_data(&self, tray_id: String) -> Result<String, JsValue> {
         let tray_summary = self.app_allocator.get_tray_summary(tray_id)?;
         serde_json::to_string(&tray_summary).map_err(|e| JsValue::from_str(&e.to_string()))
     }
