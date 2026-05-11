@@ -250,6 +250,11 @@ impl Allocator{
         DiceSummary::new(self.dice.values().map(|d| DieSummary::from_die(d)).collect())
     }
 
+    ///Gets summaries for every tray.
+    pub fn get_all_tray_summarys(&self) -> Vec<TraySummary>{
+        self.trays.values().map(|tray| tray.build_summary()).collect()
+    }
+
     ///Gets a tray summary for the given tray ID.
     pub fn get_tray_summary_at(&self, tray_id : String) -> Result<TraySummary, String>{
         if let Some(tray) = self.trays.get(&tray_id){

@@ -7,10 +7,10 @@ pub enum CliCommand{
     Create,
     New,
     Bag,
-    Tray(Option<usize>),
+    Tray(Option<String>),
     Destroy(DiceTargets),
-    Add(DiceTargets, usize),
-    Move(DiceTargets, usize, Option<usize>),
+    Add(DiceTargets, Option<String>),
+    Move(DiceTargets, String, Option<String>),
     Error(String)
 }
 
@@ -50,7 +50,7 @@ impl CliCommand{
                     Ok(parsed) => parsed,
                     Err(e) => return CliCommand::Error(format!("{}", e))
                 };
-                CliCommand::Move(targets, tray_id)
+                CliCommand::Move(targets, from_tray, to_tray)
             }
             "remove" | "-r" => {
                 let other_tokens = commands.collect();
@@ -73,7 +73,7 @@ impl CliCommand{
     }
 }
 
-fn parse_tray_command(command_parts: Vec<&str>) -> Result<Option<usize>, Error> {
+fn parse_tray_command(command_parts: Vec<&str>) -> Result<Option<String>, Error> {
     let mut parts = command_parts.iter().peekable();
 
     match parts.len() {
@@ -82,7 +82,7 @@ fn parse_tray_command(command_parts: Vec<&str>) -> Result<Option<usize>, Error> 
             let tray_id = parts
                 .next()
                 .expect("Tray command missing ID argument.")
-                .parse::<usize>()
+                .parse::<String>()
                 .map_err(|_| Error::msg("Tray ID must be a non-negative integer."))?;
             Ok(Some(tray_id))
         }
@@ -90,42 +90,44 @@ fn parse_tray_command(command_parts: Vec<&str>) -> Result<Option<usize>, Error> 
     }
 }
 
-fn parse_add_command(command_parts: Vec<&str>) -> Result<(DiceTargets, usize), Error> {
+fn parse_add_command(command_parts: Vec<&str>) -> Result<(DiceTargets, Option<String>), Error> {
     let mut parts = command_parts.iter().peekable();
-    if parts.len() != 2 {
-        return Err(Error::msg("Add command requires exactly two arguments: <targets> <tray_id>. Use 'help' to see dice targeting options."));
-    }
-
+    
     let targets = parse_dice_targets(
         parts.next().expect("Add command missing targets argument.")
     )?;
 
+    if parts.peek().is_none(){
+        return Ok((targets, None));
+    }
+
     let tray_id = parts
         .next()
-        .expect("Add command missing tray ID argument.")
-        .parse::<usize>()
-        .map_err(|_| Error::msg("Tray ID must be a non-negative integer."))?;
+        .unwrap()
+        .to_string();
 
-    Ok((targets, tray_id))
+    Ok((targets, Some(tray_id)))
 }
 
-fn parse_move_command(command_parts: Vec<&str>) -> Result<(DiceTargets, usize), Error> {
+fn parse_move_command(command_parts: Vec<&str>) -> Result<(DiceTargets, Option<String>, Option<String>), Error> {
     let mut parts = command_parts.iter().peekable();
-    if parts.len() != 2 {
-        return Err(Error::msg("Move command requires exactly two arguments: <targets> <tray_id>. Use 'help' to see dice targeting options."));
-    }
 
     let targets = parse_dice_targets(
         parts.next().expect("Move command missing targets argument.")
     )?;
 
-    let tray_id = parts
+    if parts.peek().is_none(){
+        return Ok((targets, None, None));
+
+    }
+
+    let from_tray = parts
         .next()
         .expect("Move command missing tray ID argument.")
         .parse::<usize>()
         .map_err(|_| Error::msg("Tray ID must be a non-negative integer."))?;
 
-    Ok((targets, tray_id))
+    Ok((targets, from_id))
 }
 
 fn parse_remove_command(command_parts: Vec<&str>) -> Result<DiceTargets, Error>{
@@ -144,43 +146,52 @@ fn parse_dice_targets(command: &str) -> Result<DiceTargets, Error> {
     if command.to_lowercase() == "all" {
         return Ok(DiceTargets::All);
     }
-    else if command.contains(',') || command.chars().all(|c| c.is_ascii_digit()) {
-        let indices: Result<Vec<usize>, _> =
-            command.split(',').map(|s| s.trim().parse::<usize>()).collect();
+    else if command.starts_with('@'){
+        if command.contains(',') || command.chars().all(|c| c.is_ascii_digit()) {
+            let indices: Result<Vec<usize>, _> =
+                command.split(',').map(|s| s.trim().parse::<usize>()).collect();
 
-        match indices {
-            Ok(id_vec) if !id_vec.is_empty() => {
-                return Ok(DiceTargets::Index(id_vec));
+            match indices {
+                Ok(id_vec) if !id_vec.is_empty() => {
+                    return Ok(DiceTargets::Index(id_vec));
+                }
+                _ => return Err(Error::msg("Invalid index list. Please provide a single index, split integers with ',' or use define a range with '-'.")),
             }
-            _ => return Err(Error::msg("Invalid index list. Please provide a single index, split integers with ',' or use define a range with '-'.")),
-        }
-    } else if command.contains('-') {
-        let split: Vec<&str> = command.split('-').map(|s| s.trim()).collect();
+        } else if command.contains('-') {
+            let split: Vec<&str> = command.split('-').map(|s| s.trim()).collect();
 
-        if split.len() != 2 {
-            return Err(Error::msg(
-                "Invalid range format. Please use exactly two integers separated by '-'.",
-            ));
-        }
+            if split.len() != 2 {
+                return Err(Error::msg(
+                    "Invalid range format. Please use exactly two integers separated by '-'.",
+                ));
+            }
 
-        let start = split[0]
-            .parse::<usize>()
-            .map_err(|_| Error::msg("Range start must be an integer."))?;
-        let end = split[1]
-            .parse::<usize>()
-            .map_err(|_| Error::msg("Range end must be an integer."))?;
+            let start = split[0]
+                .parse::<usize>()
+                .map_err(|_| Error::msg("Range start must be an integer."))?;
+            let end = split[1]
+                .parse::<usize>()
+                .map_err(|_| Error::msg("Range end must be an integer."))?;
 
-        if start > end {
-            return Err(Error::msg(
-                "Invalid range. Start index must be less than or equal to end index.",
-            ));
+            if start > end {
+                return Err(Error::msg(
+                    "Invalid range. Start index must be less than or equal to end index.",
+                ));
+            }
+            let index_range: Vec<usize> = (start..=end).collect();
+            return Ok(DiceTargets::Index(index_range));
         }
-        let index_range: Vec<usize> = (start..=end).collect();
-        return Ok(DiceTargets::Index(index_range));
+        else{
+            return Err(Error::msg("Invalid index list. Please provide a single index, split integers with ',' or use define a range with '-'."))
+        }
     }
     else{
         // Treat as label
         return Ok(DiceTargets::Label(command.to_string()));
     }
+}
+
+fn is_number(input : &str) -> Option<u32>{
+    input.parse::<u32>().ok()
 }
 

@@ -48,8 +48,10 @@ pub fn handle_command(allocator: &mut Allocator, command: CliCommand) -> Command
         },
         CliCommand::New => {
             if let Ok(label) = prompt_nonempty("Enter a label for your new tray: ") {
-                let summary = allocator.create_tray(Some(label.clone()));
-                CommandResult::ShowTray(summary)
+                match allocator.create_tray(label.clone()){
+                    Ok(summary) => CommandResult::ShowTray(summary),
+                    Err(e) => CommandResult::Error(format!("Error creating tray. {}", e))
+                }
             }
             else{
                 CommandResult::Error(format!("Error creating tray. Every tray requires a unique label."))

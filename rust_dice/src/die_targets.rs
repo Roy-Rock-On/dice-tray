@@ -5,7 +5,7 @@ use serde::{Serialize, Deserialize};
 pub enum DiceTargets {
     All,
     Index(Vec<usize>),
-    Label(Vec<String>),
+    Label(String),
 }
 
 impl Display for DiceTargets{
