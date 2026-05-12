@@ -23,26 +23,13 @@ pub fn handle_command(allocator: &mut Allocator, command: CliCommand) -> Command
         CliCommand::Tray(id) =>{
             match id {
                 Some(tray_id) => {
-                    match allocator.sort_tray(tray_id, Ordering::Less) {
+                    match allocator.sort_tray(&tray_id, Ordering::Less) {
                         Ok(summary) => CommandResult::ShowTray(summary),
                         Err(e) => CommandResult::Error(format!("Error retrieving tray {}: {}", tray_id, e))
                     }
                 }
                 None => {
-                    let tray_ids = allocator.get_tray_ids();
-                    let mut tray_summaries = Vec::new();
-                    for tray_id in tray_ids {
-                        if let Ok(summary) = allocator.sort_tray(tray_id, Ordering::Less) {
-                            tray_summaries.push(summary);
-                        }
-                    }
-
-                    if tray_summaries.is_empty(){
-                        CommandResult::Error(format!("No trays found in allocator."))
-                    }
-                    else{
-                        CommandResult::AllTrays(tray_summaries)
-                    }
+                    CommandResult::AllTrays(allocator.get_all_tray_summarys())
                 }
             }
         },
@@ -87,17 +74,22 @@ pub fn handle_command(allocator: &mut Allocator, command: CliCommand) -> Command
                 None => return CommandResult::Error(format!("Error adding dice. No dice found at provided targets to add."))
             };
 
+            let tray_id = match tray_id{
+                Some(label) => label,
+                None => allocator.get_target_tray().to_string()
+            };
+
             if die_ids.is_empty() {
                 return CommandResult::Error(format!("Add dice failed. No dice matched targets."))
             }
             else{
                 let mut added_count = 0usize;
                 for die_id in die_ids {
-                    if allocator.add_die_reader(die_id, tray_id).is_ok() {
+                    if allocator.add_die_reader(die_id, Some(tray_id.clone())).is_ok() {
                         added_count += 1;
                     }
                 }   
-                println!("Added {} die_reader(s) to tray {}.", added_count, tray_id);
+                println!("Added {} die_reader(s) to tray {}.", added_count, &tray_id);
                 match allocator.get_tray_summary(tray_id){
                     Ok(summary) => CommandResult::ShowTray(summary),
                     Err(e) => CommandResult::Error(format!("Add dice failed with error {}", e))

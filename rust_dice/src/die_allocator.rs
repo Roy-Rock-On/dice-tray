@@ -15,7 +15,8 @@ const STD_WEIGHT: u32 = 100;
 pub struct Allocator{
     die_id_gen: IdGenerator,
     dice: HashMap<usize, Die>,
-    trays: HashMap<String, DieTray>
+    trays: HashMap<String, DieTray>,
+    target_tray_label: String
 }
 
 impl Allocator{
@@ -24,7 +25,24 @@ impl Allocator{
         Self { 
             die_id_gen: IdGenerator::new(),
             dice: HashMap::new(),
-            trays: HashMap::new() 
+            trays: HashMap::new(),
+            target_tray_label: "Main".to_string()
+        }
+    }
+
+    ///Gets the target tray label. 
+    pub fn get_target_tray(&self) -> &str {
+        &self.target_tray_label
+    }
+
+
+    pub fn set_target_tray(&mut self, new_target_tray: String) -> Result<(), String>{
+        if self.trays.contains_key(&new_target_tray){
+            self.target_tray_label = new_target_tray;  
+            Ok(())
+        }
+        else{
+            Err(format!("No tray in allocator with label: {} Perhapse you need to create the tray first.", &new_target_tray))
         }
     }
 
@@ -106,7 +124,13 @@ impl Allocator{
 
     ///Adds a new reader for an existing die to a target tray.
     ///Returns a TraySummary of the given tray.
-    pub fn add_die_reader(&mut self, die_id: usize, tray_label: String) -> Result<TraySummary, String> {
+    pub fn add_die_reader(&mut self, die_id: usize, tray_label: Option<String>) -> Result<TraySummary, String> {
+        
+        let tray_label = match tray_label{
+            Some(label) => label,
+            None => self.target_tray_label.to_string()
+        };
+        
         if !self.trays.contains_key(&tray_label) {
             return Err(format!("No tray found with label: {}", tray_label));
         }
@@ -275,8 +299,8 @@ impl Allocator{
     }
 
     ///Sorts a tray by its held readers in the given ordering and returns the tray summary.
-    pub fn sort_tray(&mut self, tray_id: String, order: Ordering) -> Result<TraySummary, String> {
-        let tray = self.trays.get_mut(&tray_id)
+    pub fn sort_tray(&mut self, tray_id: &str, order: Ordering) -> Result<TraySummary, String> {
+        let tray = self.trays.get_mut(tray_id)
             .ok_or_else(|| format!("No tray found with ID: {}", tray_id))?;
 
         tray.sort(order);
@@ -361,9 +385,9 @@ impl DieSummary{
 #[test]
 fn test_new_tray(){
     let mut allocator = Allocator::new();
-    allocator.create_tray("Best Tray".to_string());
-    allocator.create_tray("Worst Tray".to_string());
-    allocator.create_tray("Another Tray".to_string());
+    let _ = allocator.create_tray("Best Tray".to_string());
+    let _ = allocator.create_tray("Worst Tray".to_string());
+    let _ = allocator.create_tray("Another Tray".to_string());
 
     for t in allocator.trays.values(){
         println!("{}", t);
@@ -386,7 +410,7 @@ fn test_build_allocator_from_file() -> Result<Allocator, String> {
     let decoded_list: DiceDataList = serde_json::from_str(&die_file).unwrap();
     
     let mut allocator = Allocator::new();
-    allocator.create_tray("THE TRAY".to_string());
+    let _ = allocator.create_tray("THE TRAY".to_string());
     allocator.create_dice_from_list(decoded_list).unwrap();
     Ok(allocator)
 }
@@ -401,19 +425,19 @@ fn test_dice_from_list() -> Result<(), String>{
 #[test]
 fn test_die_tray_sort() -> Result<(), String> {
     let mut allocator = Allocator::new();
-    allocator.create_tray("Sort Tray".to_string());
+    let _ = allocator.create_tray("Sort Tray".to_string());
 
     allocator.create_die(20, Some(11), Some("d20".to_string()), 10)?;
     allocator.create_die(4, Some(22), Some("d4".to_string()), 10)?;
     allocator.create_die(12, Some(33), Some("d12".to_string()), 10)?;
     allocator.create_die(6, Some(44), Some("d6".to_string()), 10)?;
 
-    allocator.add_die_reader(0, "Tray!".to_string())?;
-    allocator.add_die_reader(1, "Tray!".to_string())?;
-    allocator.add_die_reader(2, "Tray!".to_string())?;
-    allocator.add_die_reader(3, "Tray!".to_string())?;
+    allocator.add_die_reader(0, Some("Tray!".to_string()))?;
+    allocator.add_die_reader(1, Some("Tray!".to_string()))?;
+    allocator.add_die_reader(2, Some("Tray!".to_string()))?;
+    allocator.add_die_reader(3, Some("Tray!".to_string()))?;
 
-    if let Ok(summary) = allocator.sort_tray("Tray!".to_string(), Ordering::Greater){
+    if let Ok(summary) = allocator.sort_tray("Tray!", Ordering::Greater){
         summary.print(); 
     }
 

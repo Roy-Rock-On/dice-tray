@@ -79,7 +79,7 @@ pub fn detailed_log_tray(summery : TraySummary) -> Result<(), Error>{
         })
         .collect();
 
-    println!("---ID: {} TRAY: {}---", summery.get_id(), summery.get_label());
+    println!("---TRAY: {}---", summery.get_label());
     print_stdout(dice_states.with_title())?;
 
     Ok(())

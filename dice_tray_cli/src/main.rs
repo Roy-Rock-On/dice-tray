@@ -6,7 +6,6 @@ use logger::{detailed_log_tray, detailed_log_dice};
 use cli_parser::{CliCommand};
 
 use std::io::Write;
-use std::collections::HashSet;
 use anyhow::Error;
 
 use rust_dice::die::DiceDataList; 
@@ -49,23 +48,6 @@ fn main() {
 	}
 }
 
-fn collect_reader_ids_for_dice(allocator: &Allocator, die_ids: &[usize]) -> Result<Vec<usize>, String> {
-    let die_id_set: HashSet<usize> = die_ids.iter().copied().collect();
-    let mut reader_ids: Vec<usize> = Vec::new();
-
-    for tray_id in allocator.get_tray_ids() {
-        let tray_summary = allocator.get_tray_summary(tray_id)?;
-        for reader in tray_summary.get_dice() {
-            if die_id_set.contains(&reader.get_die_id()) {
-                reader_ids.push(reader.get_reader_id());
-            }
-        }
-    }
-
-    reader_ids.sort();
-    reader_ids.dedup();
-    Ok(reader_ids)
-}
 
 fn load_dice() -> Result<DiceDataList, Error>{
     use dotenv;

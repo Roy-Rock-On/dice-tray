@@ -10,7 +10,7 @@ pub enum CliCommand{
     Tray(Option<String>),
     Destroy(DiceTargets),
     Add(DiceTargets, Option<String>),
-    Move(DiceTargets, String, Option<String>),
+    Move(DiceTargets, Option<String>, Option<String>),
     Error(String)
 }
 
@@ -46,7 +46,7 @@ impl CliCommand{
             }
             "move" | "-m" => {
                 let other_tokens = commands.collect();
-                let (targets, tray_id) = match parse_move_command(other_tokens) {
+                let (targets, from_tray, to_tray) = match parse_move_command(other_tokens) {
                     Ok(parsed) => parsed,
                     Err(e) => return CliCommand::Error(format!("{}", e))
                 };
@@ -58,7 +58,7 @@ impl CliCommand{
                     Ok(t) => t,
                     Err(e) => return CliCommand::Error(format!("{}", e))
                 };
-                CliCommand::Remove(targets)
+                CliCommand::Move(targets.0, targets.1, None)
             }
             "destroy" | "delete" | "-d" => {
                 let other_tokens = commands.collect();
@@ -66,7 +66,7 @@ impl CliCommand{
                     Ok(t) => t,
                     Err(e) => return CliCommand::Error(format!("{}", e))
                 };
-                CliCommand::Destroy(targets)
+                CliCommand::Destroy(targets.0)
             }
             _ => CliCommand::Error(format!("{} is not a recognized command. Use 'help' to see a list of valid commands.", first_token))
         }
@@ -118,28 +118,45 @@ fn parse_move_command(command_parts: Vec<&str>) -> Result<(DiceTargets, Option<S
 
     if parts.peek().is_none(){
         return Ok((targets, None, None));
-
     }
 
     let from_tray = parts
         .next()
-        .expect("Move command missing tray ID argument.")
-        .parse::<usize>()
-        .map_err(|_| Error::msg("Tray ID must be a non-negative integer."))?;
+        .expect("This error should be unreachable, but the rust compiler requires handling.")
+        .to_string();
 
-    Ok((targets, from_id))
+    if parts.peek().is_none(){
+        return Ok((targets, Some(from_tray), None));
+    }
+
+    let to_tray = parts
+        .next()
+        .expect("This error should be unreachable, but the rust compiler requires handling.")
+        .to_string();
+
+    Ok((targets, Some(from_tray), Some(to_tray)))
 }
 
-fn parse_remove_command(command_parts: Vec<&str>) -> Result<DiceTargets, Error>{
+fn parse_remove_command(command_parts: Vec<&str>) -> Result<(DiceTargets, Option<String>), Error>{
     let mut parts = command_parts.iter().peekable();
-    if parts.len() >= 2 {
-        return Err(Error::msg("Remove command has too many arguments. Use 'help'see options for dice targeting."));
-    }else {
-        let targets = parse_dice_targets(
-            parts.next().expect("Remove command has no arguments. Use 'help'see options for dice targeting.")
-        )?;
-        Ok(targets)
+    if parts.peek().is_none() {
+        return Err(Error::msg("Remove command has no arguments. Use 'help'see options for dice targeting."));
     }
+
+    let targets = parse_dice_targets(
+        parts.next().expect("Remove command has no arguments. Use 'help'see options for dice targeting.")
+    )?;
+
+    if parts.next().is_none(){
+        return Ok((targets, None));
+    }
+
+    let from_tray = parts
+        .next()
+        .expect("This error should be unreachable, but the rust compiler requires handling.")
+        .to_string();
+
+    Ok((targets, Some(from_tray)))   
 }
 
 fn parse_dice_targets(command: &str) -> Result<DiceTargets, Error> {
