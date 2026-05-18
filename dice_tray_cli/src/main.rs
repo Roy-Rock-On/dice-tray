@@ -27,7 +27,7 @@ fn main() {
     let mut die_allocator = Allocator::new();
     die_allocator.create_dice_from_list(dice_list).unwrap();
 
-    println!("Dice bag sucessfuly loaded from file.");
+    println!("Dice bag successfully loaded from file.");
 
     println!("---DICE BAG---");
     let _ = detailed_log_dice(die_allocator.get_dice());
@@ -50,7 +50,7 @@ fn main() {
 /* Exit LOGIC
     let dice_bag_data = die_allocator.build_die_data_list(None);
     match save_dice(&dice_bag_data){
-        Ok(())=> println!("Dice have been sucessfuly saved to {}. Goodbye!", dice_bag_data.file_name),
+        Ok(())=> println!("Dice have been successfully saved to {}. Goodbye!", dice_bag_data.file_name),
         Err(e) => println!("Failed to save dice with error {}. Goodbye!", e) 
     }
     break;

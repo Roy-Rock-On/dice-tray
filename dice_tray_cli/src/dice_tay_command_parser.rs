@@ -1,7 +1,8 @@
-use std::fmt::{Display, format};
+use std::{fmt::{Display, format}, path::PathBuf};
 
 use anyhow::{Error, Context, Result, bail};
 use clap::parser::Indices;
+use std::path::Path;
 
 const STD_WEIGHT: u32 = 100;
 
@@ -69,7 +70,9 @@ fn parse_add_command(should_roll: bool, input_slice : &[&str], normalized_slice 
         tray_target: None
     };
     let mut normal_iter = normalized_slice.iter().enumerate().peekable();
-    while let Some((_index, token)) = normal_iter.next(){
+    let _ = normal_iter.next(); //Clear the initial command.
+
+    while let Some((index, token)) = normal_iter.next(){
         let parsed_token = parse_complex_token(token)?;
         match parsed_token {
             ComplexToken::Number(num) => args.number = num,
@@ -97,7 +100,15 @@ fn parse_add_command(should_roll: bool, input_slice : &[&str], normalized_slice 
                     }                            
                 }
             },
-            _ => ()
+            ComplexToken::Filler => (),
+            _ => {
+                if let Some(input_token) = input_slice.get(index){
+                    let label = parse_as_label(input_token)?;
+                    if args.dice_targets == DiceTargets::None {
+                        args.dice_targets = DiceTargets::Label(label);
+                    }
+                }
+            }
         }
     }
 
@@ -110,7 +121,7 @@ fn parse_create_command(input_slice : &[&str], normalized_slice : &[&str]) -> an
 
     println!("Checking the first token of the create command");
     let first_token = match normal_iter.peek(){
-        Some((index, token)) => **token,
+        Some((_index, token)) => **token,
         None => bail!("'new' command has no content.")
     };
 
@@ -207,11 +218,41 @@ fn parse_destroy_command(input_slice : &[&str], normalized_slice : &[&str]) -> a
 }
 
 fn parse_load_command(input_slice : &[&str], normalized_slice : &[&str]) -> anyhow::Result<DiceTrayCommand>{
-    todo!();
+    use std::path::Path;
+    
+    let mut input_iter = input_slice.iter();
+    let _ = input_iter.next(); //Clear command token.
+
+    if let Some(path_token) = input_iter.next(){
+        let load_path = Path::new(path_token);
+        if load_path.is_file() {
+            return Ok(DiceTrayCommand::Load(Some(PathBuf::from(load_path))));
+        }
+        else {
+            bail!("'load' command found no file at given path: {}", path_token);
+        }
+    }else{
+        return Ok(DiceTrayCommand::Load(None));
+    }
 }
 
 fn parse_save_command(input_slice : &[&str], normalized_slice : &[&str]) -> anyhow::Result<DiceTrayCommand>{
-    todo!();
+    use std::path::Path;
+    
+    let mut input_iter = input_slice.iter();
+    let _ = input_iter.next(); //Clear command token.
+
+    if let Some(path_token) = input_iter.next(){
+        let save_path = Path::new(path_token);
+        if save_path.is_file() {
+            return Ok(DiceTrayCommand::Save(Some(PathBuf::from(save_path))));
+        }
+        else {
+            bail!("'save' command found no file at given path: {}", path_token);
+        }
+    }else{
+        return Ok(DiceTrayCommand::Save(None));
+    }
 }
 
 fn parse_move_command(should_roll: bool, input_slice : &[&str], normalized_slice : &[&str]) -> anyhow::Result<DiceTrayCommand>{
@@ -221,7 +262,6 @@ fn parse_move_command(should_roll: bool, input_slice : &[&str], normalized_slice
 fn parse_show_command(input_slice : &[&str], normalized_slice : &[&str]) -> anyhow::Result<DiceTrayCommand>{
     todo!();
 }
-
 
 fn get_command_boundaries(command : &str) -> Vec<usize> {
     let mut boundaries: Vec<usize> = Vec::new();
@@ -242,7 +282,7 @@ fn get_command_boundaries(command : &str) -> Vec<usize> {
     boundaries
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum DiceTargets{
     Indices(Vec<usize>),
     Label(String),
@@ -255,9 +295,8 @@ enum ComplexToken {
     Indices(Vec<usize>),
     Tray,
     Die,
-    From,
-    To,
     Var,
+    Filler,
     Other
 }
 
@@ -265,9 +304,8 @@ fn parse_complex_token(token: &str) -> anyhow::Result<ComplexToken> {
     if let Some(token) = match token{
         "die" => Some(ComplexToken::Die),
         "tray" => Some(ComplexToken::Tray),
-        "from" => Some(ComplexToken::From),
-        "to" => Some(ComplexToken::To),
         "var" => Some(ComplexToken::Var),
+        "to" | "from" | "at" | "with" => Some(ComplexToken::Filler),
         _ => None
     }{
         return Ok(token);
@@ -364,7 +402,9 @@ enum DiceTrayCommand {
     MoveDice(MoveDiceArgs),
     RollDice(RollDiceArgs),
     ShowTray(String),
-    ShowDiceBag
+    ShowDiceBag,
+    Save(Option<PathBuf>),
+    Load(Option<PathBuf>)
 }
 
 #[derive(Debug)]
@@ -400,7 +440,7 @@ struct RollDiceArgs{
 #[cfg(test)]
 #[test]
 fn test_parser() -> anyhow::Result<()> {
-    let input = "destroy tray damage new dice 20 FIREBALL var 100 roll 10 FIREBALL to TRAY damage delete die @4-10".to_string();
+    let input = "new tray MAIN new die 6 FIREBALL var 100 roll 8 @0-10".to_string();
 
     let commands = process_command(&input).unwrap();
     println!("Found tray commands = {}", commands.len());
