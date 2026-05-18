@@ -48,6 +48,7 @@ fn parse_command(input_slice : &[&str], normalized_slice : &[&str]) -> anyhow::R
             "roll" => parse_add_command(true, input_slice, normalized_slice),
             "add" => parse_add_command(false, input_slice, normalized_slice),
             "move" => parse_move_command(true, input_slice, normalized_slice),
+            "place" => parse_move_command(false, input_slice, normalized_slice),
             "remove" | "place" => parse_move_command(true, input_slice, normalized_slice),
             "create" | "new" => parse_create_command(input_slice, normalized_slice),
             "delete" | "destroy" => parse_destroy_command(input_slice, normalized_slice),
@@ -100,7 +101,7 @@ fn parse_add_command(should_roll: bool, input_slice : &[&str], normalized_slice 
                     }                            
                 }
             },
-            ComplexToken::Filler => (),
+            ComplexToken::Filler | ComplexToken::From | ComplexToken::To => (),
             _ => {
                 if let Some(input_token) = input_slice.get(index){
                     let label = parse_as_label(input_token)?;
@@ -119,7 +120,6 @@ fn parse_create_command(input_slice : &[&str], normalized_slice : &[&str]) -> an
     let mut normal_iter = normalized_slice.iter().enumerate().peekable();
     let _ = normal_iter.next(); //Get the initial value out of the iter. It will always be the original command. 
 
-    println!("Checking the first token of the create command");
     let first_token = match normal_iter.peek(){
         Some((_index, token)) => **token,
         None => bail!("'new' command has no content.")
@@ -180,7 +180,7 @@ fn parse_destroy_command(input_slice : &[&str], normalized_slice : &[&str]) -> a
 
     println!("Checking the first token of the create command");
     let first_token = match normal_iter.peek(){
-        Some((index, token)) => **token,
+        Some((_index, token)) => **token,
         None => bail!("'new' command has no content.")
     };
 
@@ -256,11 +256,105 @@ fn parse_save_command(input_slice : &[&str], normalized_slice : &[&str]) -> anyh
 }
 
 fn parse_move_command(should_roll: bool, input_slice : &[&str], normalized_slice : &[&str]) -> anyhow::Result<DiceTrayCommand>{
-    todo!();
+    let mut move_args = MoveDiceArgs{
+        from_tray: None,
+        to_tray: None,
+        dice_targets: DiceTargets::None,
+        should_roll
+    };
+
+    let mut normal_iter = normalized_slice.iter().enumerate().peekable();
+    let _ = normal_iter.next(); //Get the initial value out of the iter. It will always be the original command. 
+
+    while let Some((index, token)) = normal_iter.next(){
+        match parse_complex_token(token)?{
+            ComplexToken::Die => {
+                let(next_index, next_token) = match normal_iter.next(){
+                    Some((index, token)) => (index, token),
+                    None => bail!("'move dice' found no token after 'die' clause. Please provide a valid dice target.")
+                };
+                match parse_complex_token(next_token)?{
+                    ComplexToken::Indices(indices) => {
+                        move_args.dice_targets = DiceTargets::Indices(indices);
+                    },
+                    _ => {
+                        if let Some(input_token) = input_slice.get(next_index){
+                            let target_label = parse_as_label(input_token)?;
+                            move_args.dice_targets = DiceTargets::Label(target_label);
+                        }
+                        else{
+                            bail!("'move dice' found no token after 'die' clause. Please provide a valid dice target.")  
+                        }
+                    }
+                };
+            },
+            ComplexToken::Indices(indices) => {
+                if move_args.dice_targets == DiceTargets::None {
+                    move_args.dice_targets = DiceTargets::Indices(indices);
+                }
+            },
+            ComplexToken::To =>{
+                let next_index = match normal_iter.next(){
+                    Some((index, _token)) => index,
+                    None => bail!("'move dice' requires a tray target following the 'to' clause.")
+                };
+                let input_token = match input_slice.get(next_index){
+                    Some(token) => token,
+                    None => bail!("'move dice' found no token in input at index {}. This shouldn't be possible.", next_index)
+                };
+                let tray_label = parse_as_label(input_token)?;
+                move_args.to_tray = Some(tray_label);
+            },
+            ComplexToken::From => {
+                let next_index = match normal_iter.next(){
+                    Some((index, _token)) => index,
+                    None => bail!("'move dice' requires a tray target following the 'from' clause.")
+                };
+                let input_token = match input_slice.get(next_index){
+                    Some(token) => token,
+                    None => bail!("'move dice' found no token in input at index {}. This shouldn't be possible.", next_index)
+                };
+                let tray_label = parse_as_label(input_token)?;
+                move_args.from_tray = Some(tray_label); 
+            },
+            ComplexToken::Filler => (),
+            _ => {
+                if let Some(input_token) = input_slice.get(index){
+                    if move_args.dice_targets == DiceTargets::None {
+                        let target_label = parse_as_label(input_token)?;
+                        move_args.dice_targets = DiceTargets::Label(target_label);
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(DiceTrayCommand::MoveDice(move_args))
 }
 
 fn parse_show_command(input_slice : &[&str], normalized_slice : &[&str]) -> anyhow::Result<DiceTrayCommand>{
-    todo!();
+    let mut normal_iter = normalized_slice.iter().enumerate().peekable();
+    let _ = normal_iter.next();
+
+    while let Some((index, token)) = normal_iter.next() {
+        let complex_token = parse_complex_token(token)?;
+        match complex_token {
+            ComplexToken::Tray =>{
+                if let Some(input_token) = input_slice.get(index + 1){
+                    let label = parse_as_label(input_token)?;
+                    return Ok(DiceTrayCommand::ShowTray(label));
+                } 
+            }
+            _ =>{
+                if let Some(input_token) = input_slice.get(index){
+                    let label = parse_as_label(input_token)?;
+                    return Ok(DiceTrayCommand::ShowTray(label));
+                } 
+            }
+        }
+    }
+
+    Ok(DiceTrayCommand::ShowDiceBag)
 }
 
 fn get_command_boundaries(command : &str) -> Vec<usize> {
@@ -271,6 +365,7 @@ fn get_command_boundaries(command : &str) -> Vec<usize> {
             "add" |
             "remove" |
             "move" |
+            "place" |
             "create" | "new" |
             "delete" | "destroy" |
             "save" |
@@ -296,6 +391,8 @@ enum ComplexToken {
     Tray,
     Die,
     Var,
+    From,
+    To,
     Filler,
     Other
 }
@@ -304,6 +401,8 @@ fn parse_complex_token(token: &str) -> anyhow::Result<ComplexToken> {
     if let Some(token) = match token{
         "die" => Some(ComplexToken::Die),
         "tray" => Some(ComplexToken::Tray),
+        "to" => Some(ComplexToken::From),
+        "from" => Some(ComplexToken::To),
         "var" => Some(ComplexToken::Var),
         "to" | "from" | "at" | "with" => Some(ComplexToken::Filler),
         _ => None
@@ -440,7 +539,7 @@ struct RollDiceArgs{
 #[cfg(test)]
 #[test]
 fn test_parser() -> anyhow::Result<()> {
-    let input = "new tray MAIN new die 6 FIREBALL var 100 roll 8 @0-10".to_string();
+    let input = "place FIREBALL dice @1-3 from damage show tray damage".to_string();
 
     let commands = process_command(&input).unwrap();
     println!("Found tray commands = {}", commands.len());
