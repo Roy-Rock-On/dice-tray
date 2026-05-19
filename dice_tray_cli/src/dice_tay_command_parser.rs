@@ -422,6 +422,9 @@ fn get_command_boundaries(command : &str) -> Vec<usize> {
             "delete" | "destroy" |
             "save" |
             "load" |
+            "exit" |
+            "quit" |
+            "help" |
             "show" => boundaries.push(index),
             _ => ()
         }
