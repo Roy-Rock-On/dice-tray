@@ -33,7 +33,7 @@ impl Allocator{
     }
 
     ///Gets the target tray label. 
-    fn get_target_tray(&self) -> &str {
+    pub fn get_target_tray(&self) -> &str {
         &self.target_tray_label
     }
 
@@ -116,8 +116,8 @@ impl Allocator{
     }
 
     ///Removes a tray, prunes its readers from the reader store, and frees the tray ID.
-    pub fn destroy_tray(&mut self, tray_label: String) -> anyhow::Result<()> {
-        let mut tray = match self.trays.remove(&tray_label){
+    pub fn destroy_tray(&mut self, tray_label: &str) -> anyhow::Result<()> {
+        let mut tray = match self.trays.remove(tray_label){
             Some(tray) => tray,
             None => bail!("Cannot destroy tray. No tray found with given label: {}", tray_label)
         };
@@ -167,8 +167,8 @@ impl Allocator{
 
     ///Moves a reader to a different tray.
     ///tray_id takes an option. None will remove the reader from its current tray and reader store.
-    pub fn move_reader(&mut self, from_tray: String, reader_ids: Vec<usize>, to_tray: Option<String>) -> anyhow::Result<MoveSummary> {
-        let removal_tray = match self.trays.get_mut(&from_tray){
+    pub fn move_reader(&mut self, from_tray: &str, reader_ids: &Vec<usize>, to_tray: Option<&str>) -> anyhow::Result<MoveSummary> {
+        let removal_tray = match self.trays.get_mut(from_tray){
             Some(tray) => tray,
             None => bail!("No tray found with ID: {}", from_tray)
         };
@@ -182,7 +182,7 @@ impl Allocator{
 
         match to_tray{
             Some(to_id) => {
-                let to_tray = match self.trays.get_mut(&to_id){
+                let to_tray = match self.trays.get_mut(to_id){
                     Some(tray) => tray,
                     None => bail!("No tray found with ID: {}", from_tray)
                 };
@@ -240,21 +240,21 @@ impl Allocator{
     }
 
     ///Gets IDs of die reader in the tray based on the DiceTargets provided.
-    pub fn get_reader_ids_by_targets(&self, tray_id : String, targets: DiceTargets) -> Result<Vec<usize>, String>{
-        if let Some(tray) = self.trays.get(&tray_id){
+    pub fn get_reader_ids_by_targets(&self, tray_id : &str, targets: &DiceTargets) -> anyhow::Result<Vec<usize>>{
+        if let Some(tray) = self.trays.get(tray_id){
             match tray.get_reader_ids_by_targets(&targets){
-                Some(reder_ids) => Ok(reder_ids),
-                None => Err(format!("No die readers found in tray ID = {} at targets {}", tray_id, targets))
+                Some(reader_ids) => Ok(reader_ids),
+                None => bail!("No die readers found in tray ID = {} at targets {}", tray_id, targets)
             }    
         }
         else{
-            Err(format!("No tray ID = {} found in application.", tray_id))
+            bail!("No tray ID = {} found in application.", tray_id)
         }
     }
 
     ///Rolls the die with the given ID in place and returns a roll log.
     ///If the die has been assinged to a tray the tray will be updated.
-    pub fn roll_at(&mut self, tray_id: &Option<String>, dice_targets: &[usize]) -> anyhow::Result<()> {
+    pub fn roll_at(&mut self, tray_id: Option<&str>, dice_targets: &[usize]) -> anyhow::Result<()> {
         let tray_label = match tray_id{
             Some(label) => label,
             None => &self.target_tray_label
@@ -296,7 +296,7 @@ impl Allocator{
     }
 
     ///Gets summaries for every tray.
-    pub fn get_all_tray_summarys(&self) -> Vec<TraySummary>{
+    pub fn get_all_tray_summaries(&self) -> Vec<TraySummary>{
         self.trays.values().map(|tray| tray.build_summary()).collect()
     }
 
@@ -337,9 +337,11 @@ impl Allocator{
     }
 
     ///Returns readers currently in the requested tray in stored order.
-    pub fn get_tray_summary(&self, tray_id: String) -> Result<TraySummary, String> {
-        let tray = self.trays.get(&tray_id)
-            .ok_or_else(|| format!("No tray found with ID: {}", tray_id))?;
+    pub fn get_tray_summary(&self, tray_id: &str) -> anyhow::Result<TraySummary> {
+        let tray = match self.trays.get(tray_id){
+            Some(tray ) => tray,
+            None => bail!("No tray found with ID: {}", tray_id)
+        };
 
         Ok(tray.build_summary())
     }

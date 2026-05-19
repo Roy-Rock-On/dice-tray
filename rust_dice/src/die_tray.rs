@@ -195,8 +195,8 @@ impl TraySummary{
 
 #[derive(Serialize, Deserialize)]
 pub struct MoveSummary{
-    from_tray: TraySummary,
-    to_tray: Option<TraySummary>
+    pub from_tray: TraySummary,
+    pub to_tray: Option<TraySummary>
 }
 
 impl MoveSummary{

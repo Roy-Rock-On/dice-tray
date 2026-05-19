@@ -1,6 +1,6 @@
 use anyhow::Error;
 use cli_table::{Table, WithTitle, format::Justify, print_stdout};
-use rust_dice::die_tray::TraySummary;
+use rust_dice::die_tray::{MoveSummary, TraySummary};
 use rust_dice::die::Die;
 use rust_dice::die_reader::DieReader;
 use std::cmp::Ordering;
@@ -81,6 +81,18 @@ pub fn detailed_log_tray(summery : TraySummary) -> Result<(), Error>{
 
     println!("---TRAY: {}---", summery.get_label());
     print_stdout(dice_states.with_title())?;
+
+    Ok(())
+}
+
+pub fn detailed_move_summary(summery: MoveSummary) -> anyhow::Result<()> {
+    println!("From Tray:");
+    detailed_log_tray(summery.from_tray)?;
+
+    if let Some(tray) = summery.to_tray{
+        println!("To Tray:");
+        detailed_log_tray(tray)?;
+    };
 
     Ok(())
 }

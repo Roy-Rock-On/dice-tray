@@ -454,7 +454,7 @@ fn parse_complex_token(token: &str) -> anyhow::Result<ComplexToken> {
         "from" => Some(ComplexToken::To),
         "var" => Some(ComplexToken::Var),
         "all" => Some(ComplexToken::All),
-        "to" | "from" | "at" | "with" => Some(ComplexToken::Filler),
+        "at" | "with" => Some(ComplexToken::Filler),
         _ => None
     }{
         return Ok(token);
