@@ -1,12 +1,10 @@
-use std::{fmt::{Display, format}, path::PathBuf};
-
+use std::path::PathBuf;
 use anyhow::{Error, Context, Result, bail};
-use clap::parser::Indices;
-use std::path::Path;
+use rust_dice::die_targets::DiceTargets;
 
 const STD_WEIGHT: u32 = 100;
 
-fn process_command(input : &str) -> anyhow::Result<Vec<DiceTrayCommand>> {
+pub fn process_commands(input : &str) -> anyhow::Result<Vec<DiceTrayCommand>> {
     let mut commands : Vec<DiceTrayCommand> = Vec::new();
     let input_vector : Vec<&str> = input.trim().split_ascii_whitespace().collect();
     
@@ -49,12 +47,14 @@ fn parse_command(input_slice : &[&str], normalized_slice : &[&str]) -> anyhow::R
             "add" => parse_add_command(false, input_slice, normalized_slice),
             "move" => parse_move_command(true, input_slice, normalized_slice),
             "place" => parse_move_command(false, input_slice, normalized_slice),
-            "remove" | "place" => parse_move_command(true, input_slice, normalized_slice),
+            "remove" => parse_move_command(false, input_slice, normalized_slice),
             "create" | "new" => parse_create_command(input_slice, normalized_slice),
             "delete" | "destroy" => parse_destroy_command(input_slice, normalized_slice),
             "save" => parse_save_command(input_slice, normalized_slice),
             "load" => parse_load_command(input_slice, normalized_slice),
             "show" => parse_show_command(input_slice, normalized_slice),
+            "exit" | "quit" => Ok(DiceTrayCommand::Exit),
+            "help" => Ok(DiceTrayCommand::Help),
             _ => bail!("Token {} not recognized while parsing command.", token)
         }
     }
@@ -77,11 +77,13 @@ fn parse_add_command(should_roll: bool, input_slice : &[&str], normalized_slice 
         let parsed_token = parse_complex_token(token)?;
         match parsed_token {
             ComplexToken::Number(num) => args.number = num,
-            ComplexToken::Indices(targets) => args.dice_targets = DiceTargets::Indices(targets),
+            ComplexToken::Indices(targets) => args.dice_targets = DiceTargets::Index(targets),
+            ComplexToken::All => args.dice_targets = DiceTargets::All,
             ComplexToken::Die =>{
                 if let Some((next_index, next_token)) = normal_iter.next(){
                     match parse_complex_token(*next_token)?{
-                        ComplexToken::Indices(indices) => args.dice_targets = DiceTargets::Indices(indices),
+                        ComplexToken::Indices(indices) => args.dice_targets = DiceTargets::Index(indices),
+                        ComplexToken::All => args.dice_targets = DiceTargets::All,
                         ComplexToken::Other => {
                             if let Some(token) = input_slice.get(next_index){
                                 args.dice_targets = DiceTargets::Label(parse_as_label(token)?);
@@ -112,7 +114,6 @@ fn parse_add_command(should_roll: bool, input_slice : &[&str], normalized_slice 
             }
         }
     }
-
     Ok(DiceTrayCommand::AddDice(args))
 }
 
@@ -203,7 +204,8 @@ fn parse_destroy_command(input_slice : &[&str], normalized_slice : &[&str]) -> a
         while let Some((index, token)) = normal_iter.next(){
             let parsed_token = parse_complex_token(token)?;
             match parsed_token{
-                ComplexToken::Indices(indices) => return Ok(DiceTrayCommand::DeleteDice(DiceTargets::Indices(indices))),
+                ComplexToken::Indices(indices) => return Ok(DiceTrayCommand::DeleteDice(DiceTargets::Index(indices))),
+                ComplexToken::All => return Ok(DiceTrayCommand::DeleteDice(DiceTargets::All)),
                 ComplexToken::Other => {
                     if let Some(token) = input_slice.get(index){
                         let label = parse_as_label(token)?;
@@ -275,8 +277,9 @@ fn parse_move_command(should_roll: bool, input_slice : &[&str], normalized_slice
                 };
                 match parse_complex_token(next_token)?{
                     ComplexToken::Indices(indices) => {
-                        move_args.dice_targets = DiceTargets::Indices(indices);
+                        move_args.dice_targets = DiceTargets::Index(indices);
                     },
+                    ComplexToken::All => move_args.dice_targets = DiceTargets::All,
                     _ => {
                         if let Some(input_token) = input_slice.get(next_index){
                             let target_label = parse_as_label(input_token)?;
@@ -290,7 +293,7 @@ fn parse_move_command(should_roll: bool, input_slice : &[&str], normalized_slice
             },
             ComplexToken::Indices(indices) => {
                 if move_args.dice_targets == DiceTargets::None {
-                    move_args.dice_targets = DiceTargets::Indices(indices);
+                    move_args.dice_targets = DiceTargets::Index(indices);
                 }
             },
             ComplexToken::To =>{
@@ -332,6 +335,56 @@ fn parse_move_command(should_roll: bool, input_slice : &[&str], normalized_slice
     Ok(DiceTrayCommand::MoveDice(move_args))
 }
 
+fn parse_remove_command(input_slice : &[&str], normalized_slice : &[&str]) -> anyhow::Result<DiceTrayCommand> {
+    let mut args = RemoveDiceArgs{
+        dice_targets: DiceTargets::None,
+        from_tray: None
+    };
+    let mut normal_iter = normalized_slice.iter().enumerate().peekable();
+    let _ = normal_iter.next(); //Clear the initial command.
+
+    while let Some((index, token)) = normal_iter.next(){
+        let parsed_token = parse_complex_token(token)?;
+        match parsed_token {
+            ComplexToken::Indices(targets) => args.dice_targets = DiceTargets::Index(targets),
+            ComplexToken::All => args.dice_targets = DiceTargets::All,
+            ComplexToken::Die =>{
+                if let Some((next_index, next_token)) = normal_iter.next(){
+                    match parse_complex_token(*next_token)?{
+                        ComplexToken::Indices(indices) => args.dice_targets = DiceTargets::Index(indices),
+                        ComplexToken::Other => {
+                            if let Some(token) = input_slice.get(next_index){
+                                args.dice_targets = DiceTargets::Label(parse_as_label(token)?);
+                            }                            
+                        }
+                        _ => bail!("'die' token must be followed by valid die targets. Found '{}' instead.", next_token)
+                    }
+                }
+            },
+            ComplexToken::Tray => {
+                if let Some((next_index, next_token)) = normal_iter.next(){
+                    if let Some(token) = input_slice.get(next_index){
+                        args.from_tray = Some(parse_as_label(token)?);
+                    }
+                    else{
+                        bail!("'tray' token must be followed by valid tray Label. Found '{}' instead.", next_token)
+                    }                            
+                }
+            },
+            ComplexToken::Filler | ComplexToken::From | ComplexToken::To => (),
+            _ => {
+                if let Some(input_token) = input_slice.get(index){
+                    let label = parse_as_label(input_token)?;
+                    if args.dice_targets == DiceTargets::None {
+                        args.dice_targets = DiceTargets::Label(label);
+                    }
+                }
+            }
+        }
+    }
+    Ok(DiceTrayCommand::RemoveDice(args))
+}
+
 fn parse_show_command(input_slice : &[&str], normalized_slice : &[&str]) -> anyhow::Result<DiceTrayCommand>{
     let mut normal_iter = normalized_slice.iter().enumerate().peekable();
     let _ = normal_iter.next();
@@ -353,7 +406,6 @@ fn parse_show_command(input_slice : &[&str], normalized_slice : &[&str]) -> anyh
             }
         }
     }
-
     Ok(DiceTrayCommand::ShowDiceBag)
 }
 
@@ -377,17 +429,11 @@ fn get_command_boundaries(command : &str) -> Vec<usize> {
     boundaries
 }
 
-#[derive(Debug, PartialEq)]
-enum DiceTargets{
-    Indices(Vec<usize>),
-    Label(String),
-    None
-}
-
 #[derive(Debug)]
 enum ComplexToken {
     Number(u32),
     Indices(Vec<usize>),
+    All,
     Tray,
     Die,
     Var,
@@ -404,6 +450,7 @@ fn parse_complex_token(token: &str) -> anyhow::Result<ComplexToken> {
         "to" => Some(ComplexToken::From),
         "from" => Some(ComplexToken::To),
         "var" => Some(ComplexToken::Var),
+        "all" => Some(ComplexToken::All),
         "to" | "from" | "at" | "with" => Some(ComplexToken::Filler),
         _ => None
     }{
@@ -492,29 +539,32 @@ pub fn get_command_string() -> String{
 }
 
 #[derive(Debug)]
-enum DiceTrayCommand {
+pub enum DiceTrayCommand {
     NewDie(CreateDieArgs),
     DeleteDice(DiceTargets),
     NewTray(String),
     DeleteTray(String),
     AddDice(AddDiceArgs),
+    RemoveDice(RemoveDiceArgs),
     MoveDice(MoveDiceArgs),
     RollDice(RollDiceArgs),
     ShowTray(String),
     ShowDiceBag,
     Save(Option<PathBuf>),
-    Load(Option<PathBuf>)
+    Load(Option<PathBuf>),
+    Exit,
+    Help
 }
 
 #[derive(Debug)]
-struct CreateDieArgs{
+pub struct CreateDieArgs{
     pub label: Option<String>,
     pub faces: Option<u32>,
     pub variance: Option<u32>
 }
 
 #[derive(Debug)]
-struct AddDiceArgs{
+pub struct AddDiceArgs{
    pub should_roll: bool,
    pub number: u32,
    pub dice_targets: DiceTargets,
@@ -522,7 +572,7 @@ struct AddDiceArgs{
 }
 
 #[derive(Debug)]
-struct MoveDiceArgs{
+pub struct MoveDiceArgs{
     pub should_roll: bool,
     pub dice_targets: DiceTargets,
     pub from_tray: Option<String>,
@@ -530,7 +580,13 @@ struct MoveDiceArgs{
 }
 
 #[derive(Debug)]
-struct RollDiceArgs{
+pub struct RemoveDiceArgs{
+    pub dice_targets: DiceTargets,
+    pub from_tray: Option<String>
+}
+
+#[derive(Debug)]
+pub struct RollDiceArgs{
     pub dice_targets: DiceTargets,
     pub tray_target: Option<String>
 }
@@ -541,7 +597,7 @@ struct RollDiceArgs{
 fn test_parser() -> anyhow::Result<()> {
     let input = "place FIREBALL dice @1-3 from damage show tray damage".to_string();
 
-    let commands = process_command(&input).unwrap();
+    let commands = process_commands(&input).unwrap();
     println!("Found tray commands = {}", commands.len());
 
     for command in commands{

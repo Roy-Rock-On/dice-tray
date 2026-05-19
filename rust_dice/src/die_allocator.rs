@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::die::{DiceDataList, Die, DieData, DieResult, build_die};
+use crate::die::{self, DiceDataList, Die, DieData, DieResult, build_die};
 use crate::die_targets::DiceTargets;
 use crate::die_tray::{DieTray, MoveSummary, TraySummary};
 use crate::id_generator::IdGenerator;
@@ -8,6 +8,8 @@ use crate::id_generator::IdGenerator;
 use std::cmp::{Ordering};
 use std::collections::{HashMap, HashSet};
 use std::time::{SystemTime, UNIX_EPOCH};
+
+use anyhow::{Error, bail};
 
 //constants used to sutomaticaly weight the dice. 
 const STD_WEIGHT: u32 = 100;
@@ -31,25 +33,25 @@ impl Allocator{
     }
 
     ///Gets the target tray label. 
-    pub fn get_target_tray(&self) -> &str {
+    fn get_target_tray(&self) -> &str {
         &self.target_tray_label
     }
 
 
-    pub fn set_target_tray(&mut self, new_target_tray: String) -> Result<(), String>{
+    pub fn set_target_tray(&mut self, new_target_tray: String) -> anyhow::Result<()>{
         if self.trays.contains_key(&new_target_tray){
             self.target_tray_label = new_target_tray;  
             Ok(())
         }
         else{
-            Err(format!("No tray in allocator with label: {} Perhapse you need to create the tray first.", &new_target_tray))
+            bail!("No tray in allocator with label: {} Maybe you need to create the tray first.", &new_target_tray)
         }
     }
 
     ///Makes a new tray to track and sort dice being rolled. Returns a summary of the new tray (which will be empty).
-    pub fn create_tray(&mut self, label: String) -> Result<TraySummary, String>{
+    pub fn create_tray(&mut self, label: String) -> anyhow::Result<TraySummary>{
         if self.trays.contains_key(&label){
-            return Err(format!("Allocator already contains a tray with label: {} All tray labels must bey unique.", label))
+            bail!("Allocator already contains a tray with label: {} All tray labels must bey unique.", label)
         }
 
         let new_tray = DieTray::new(label.clone());
@@ -58,7 +60,7 @@ impl Allocator{
     }
 
     ///Creates a new die. Does not add the dice to any tray.
-    pub fn create_die(&mut self, faces: u32, seed: Option<u64>, label: Option<String>, varience: u32) -> Result<DieSummary, String>{
+    pub fn create_die(&mut self, faces: u32, seed: Option<u64>, label: Option<String>, varience: u32) -> anyhow::Result<DieSummary>{
         let new_die_id = self.die_id_gen.allocate();
         
         let new_seed = match seed {
@@ -78,7 +80,7 @@ impl Allocator{
     ///Creates a new die. 
     ///If the die data contains a current_tray, attempts to move the die to a tray with matching ID.
     ///If unable (i.e. tray dosen't exist) returns clears the die's current_tray.  
-    pub fn create_die_from_data(&mut self, die_data: DieData) -> Result<(), String> {
+    pub fn create_die_from_data(&mut self, die_data: DieData) -> anyhow::Result<()> {
         let new_die_id = self.die_id_gen.allocate();
         let mut new_die = Die::from_data(die_data, new_die_id);
         new_die.roll();
@@ -88,7 +90,7 @@ impl Allocator{
     }
 
     ///Creates new dice form a given DiceDataList. Uses new_die_from_data() internally.
-    pub fn create_dice_from_list(&mut self, dice_data: DiceDataList) -> Result<(), String>{
+    pub fn create_dice_from_list(&mut self, dice_data: DiceDataList) -> anyhow::Result<()>{
         for data in dice_data.dice_data_vec {
             self.create_die_from_data(data)?; // now valid
         }
@@ -96,7 +98,7 @@ impl Allocator{
     }
 
     ///Destroys dice in the dice bag, clearing any attached dice readers.
-    pub fn destroy_dice(&mut self, targets: Vec<usize>) -> Result<DiceSummary, String>{
+    pub fn destroy_dice(&mut self, targets: Vec<usize>) -> anyhow::Result<DiceSummary>{
         for id in targets{
             if self.dice.contains_key(&id){
                 self.prune_readers_for_die(id);
@@ -114,9 +116,11 @@ impl Allocator{
     }
 
     ///Removes a tray, prunes its readers from the reader store, and frees the tray ID.
-    pub fn destroy_tray(&mut self, tray_label: String) -> Result<(), String> {
-        let mut tray = self.trays.remove(&tray_label)
-            .ok_or_else(|| format!("No tray found with label: {}", tray_label))?;
+    pub fn destroy_tray(&mut self, tray_label: String) -> anyhow::Result<()> {
+        let mut tray = match self.trays.remove(&tray_label){
+            Some(tray) => tray,
+            None => bail!("Cannot destroy tray. No tray found with given label: {}", tray_label)
+        };
 
         tray.clear_readers();
         Ok(())
@@ -124,58 +128,70 @@ impl Allocator{
 
     ///Adds a new reader for an existing die to a target tray.
     ///Returns a TraySummary of the given tray.
-    pub fn add_die_reader(&mut self, die_id: usize, tray_label: Option<String>) -> Result<TraySummary, String> {
+    pub fn add_die_reader(&mut self, die_id: usize, tray_label: &Option<String>) -> anyhow::Result<usize> {
         
         let tray_label = match tray_label{
             Some(label) => label,
-            None => self.target_tray_label.to_string()
+            None => &self.target_tray_label
         };
         
-        if !self.trays.contains_key(&tray_label) {
-            return Err(format!("No tray found with label: {}", tray_label));
+        if !self.trays.contains_key(tray_label) {
+            bail!("No tray found with label: {}", tray_label);
         }
 
-        let die = self.dice.get(&die_id)
-            .ok_or_else(|| format!("No die found with label: {}", die_id))?;
+        let die = match self.dice.get(&die_id){
+            Some(die) => die,
+            None => bail!("No die found with ID: {} | Cannot build a die reader.", die_id)
+        };
 
-        let tray = self.trays.get_mut(&tray_label)
-            .ok_or_else(|| format!("No tray found with label: {}", tray_label))?;
+        let tray = match self.trays.get_mut(tray_label){
+            Some(tray) => tray,
+            None => bail!("No tray found with Label: {} | Cannot add die reader to tray.", tray_label)
+        };
 
-        tray.add_reader(die);    
+        let reader_id = tray.add_reader(die);    
 
-        Ok(tray.build_summary())
+        Ok(reader_id)
     }
 
     ///Removes all the die readers from a given tray.
-    pub fn clear_readers_from_tray(&mut self, tray_label : String) -> Result<TraySummary, String> {
+    pub fn clear_readers_from_tray(&mut self, tray_label : String) -> anyhow::Result<()> {
         if let Some(tray) = self.trays.get_mut(&tray_label){
             tray.clear_readers();
-            Ok(tray.build_summary())
+            Ok(())
         }
         else{
-            return Err(format!("No tray found with ID: {}", tray_label));
+            bail!("No tray found with ID: {}", tray_label);
         }
     }
 
     ///Moves a reader to a different tray.
     ///tray_id takes an option. None will remove the reader from its current tray and reader store.
-    pub fn move_reader(&mut self, from_tray: String, reader_ids: Vec<usize>, to_tray: Option<String>) -> Result<MoveSummary, String> {
-        let removal_tray = self.trays.get_mut(&from_tray)
-            .unwrap_or(Err(format!("No tray found with ID: {}", from_tray))?);
+    pub fn move_reader(&mut self, from_tray: String, reader_ids: Vec<usize>, to_tray: Option<String>) -> anyhow::Result<MoveSummary> {
+        let removal_tray = match self.trays.get_mut(&from_tray){
+            Some(tray) => tray,
+            None => bail!("No tray found with ID: {}", from_tray)
+        };
         
-        let die_ids = removal_tray.remove_readers(reader_ids)
-            .unwrap_or(Err(format!("Failed to remove readers from tray with ID = {}", from_tray))?);
+        let die_ids = match removal_tray.remove_readers(&reader_ids){
+            Some(ids) => ids,
+            None => bail!("No readers found with IDs {:?} in tray {}", reader_ids, removal_tray.get_label())
+        };
 
         let removal_summary = removal_tray.build_summary();
 
         match to_tray{
             Some(to_id) => {
-                let to_tray = self.trays.get_mut(&to_id)
-                    .unwrap_or(Err(format!("No tray found with ID: {}", from_tray))?);
+                let to_tray = match self.trays.get_mut(&to_id){
+                    Some(tray) => tray,
+                    None => bail!("No tray found with ID: {}", from_tray)
+                };
 
                 for id in die_ids {
-                    let die = self.dice.get(&id)
-                        .unwrap_or(Err(format!("No die found with ID: {}", id))?);
+                    let die = match self.dice.get(&id){
+                        Some(die) => die,
+                        None => bail!("No die found with ID: {}", id)
+                    };
                     to_tray.add_reader(die);
                 }
 
@@ -187,7 +203,7 @@ impl Allocator{
     }
 
     ///Gets a list of die IDs given a DiceTarget enum.
-    pub fn get_die_ids_from_targets(&self, targets: DiceTargets) -> Option<Vec<usize>>{
+    pub fn get_die_ids_from_targets(&self, targets: &DiceTargets) -> Option<Vec<usize>>{
         let mut matching_ids = HashSet::new();
 
         match targets{
@@ -199,7 +215,7 @@ impl Allocator{
             DiceTargets::Index(indecies) => {
                 for index in indecies{
                     if matching_ids.contains(&index){
-                        matching_ids.insert(index);
+                        matching_ids.insert(*index);
                     }
                 }
             },
@@ -209,7 +225,8 @@ impl Allocator{
                         matching_ids.insert(die.get_id());
                     }
                 }
-            }
+            },
+            DiceTargets::None => ()
         }
 
         let matching_ids: Vec<usize> = matching_ids.into_iter().collect();
@@ -237,14 +254,18 @@ impl Allocator{
 
     ///Rolls the die with the given ID in place and returns a roll log.
     ///If the die has been assinged to a tray the tray will be updated.
-    pub fn roll_at(&mut self, tray_id: String, dice_targets: &[usize]) -> Result<TraySummary, String> {
-        if let Some(selected_tray) = self.trays.get_mut(&tray_id){
-            selected_tray.roll_at(dice_targets, &mut self.dice)
-                .map_err(|e| format!("{}", e))?;
-            Ok(selected_tray.build_summary())
+    pub fn roll_at(&mut self, tray_id: &Option<String>, dice_targets: &[usize]) -> anyhow::Result<()> {
+        let tray_label = match tray_id{
+            Some(label) => label,
+            None => &self.target_tray_label
+        };
+
+        if let Some(selected_tray) = self.trays.get_mut(tray_label){
+            selected_tray.roll_at(dice_targets, &mut self.dice)?;
+            Ok(())
         }
         else {
-            Err(format!("No tray found with ID: {} Cannot roll.", tray_id))
+            bail!("No tray found with ID: {} Cannot roll.", tray_label)
         }
     }
 
@@ -280,28 +301,35 @@ impl Allocator{
     }
 
     ///Gets a tray summary for the given tray ID.
-    pub fn get_tray_summary_at(&self, tray_id : String) -> Result<TraySummary, String>{
-        if let Some(tray) = self.trays.get(&tray_id){
+    pub fn get_tray_summary_at(&self, tray_id : &Option<String>) -> anyhow::Result<TraySummary>{
+        let tray_id = match tray_id{
+            Some(id) => id,
+            None => &self.target_tray_label
+        };
+        
+        if let Some(tray) = self.trays.get(tray_id){
             Ok(tray.build_summary())
         }
         else{
-            Err(format!("No tray found with id {}", tray_id))
+            bail!("No tray found with id {}", tray_id)
         }
     }
 
-    pub fn roll_tray(&self, tray_id : String) -> Result<TraySummary, String>{
+    pub fn roll_tray(&self, tray_id : String) -> anyhow::Result<TraySummary>{
         if let Some(tray) = self.trays.get(&tray_id){
             Ok(tray.build_summary())
         }
         else{
-            Err(format!("No tray found with id {}", tray_id))
+           bail!("No tray found with id {}", tray_id)
         }
     }
 
     ///Sorts a tray by its held readers in the given ordering and returns the tray summary.
-    pub fn sort_tray(&mut self, tray_id: &str, order: Ordering) -> Result<TraySummary, String> {
-        let tray = self.trays.get_mut(tray_id)
-            .ok_or_else(|| format!("No tray found with ID: {}", tray_id))?;
+    pub fn sort_tray(&mut self, tray_id: &str, order: Ordering) -> anyhow::Result<TraySummary> {
+        let tray = match self.trays.get_mut(tray_id){
+            Some(tray) => tray,
+            None => bail!("No tray with given label {} found.", tray_id)
+        };
 
         tray.sort(order);
 
@@ -379,6 +407,11 @@ impl DieSummary{
             result: die.get_current_result().clone()
         }
     }
+
+    pub fn print(&self){
+        println!("Die Summary:");
+        println!("id: {} | label: {} | faces: {} | current_face: {}", self.id, self.label, self.faces, self.current_face);
+    }
 }
 
 #[cfg(test)]
@@ -423,7 +456,7 @@ fn test_dice_from_list() -> Result<(), String>{
 }
 
 #[test]
-fn test_die_tray_sort() -> Result<(), String> {
+fn test_die_tray_sort() -> anyhow::Result<()> {
     let mut allocator = Allocator::new();
     let _ = allocator.create_tray("Sort Tray".to_string());
 
@@ -432,10 +465,10 @@ fn test_die_tray_sort() -> Result<(), String> {
     allocator.create_die(12, Some(33), Some("d12".to_string()), 10)?;
     allocator.create_die(6, Some(44), Some("d6".to_string()), 10)?;
 
-    allocator.add_die_reader(0, Some("Tray!".to_string()))?;
-    allocator.add_die_reader(1, Some("Tray!".to_string()))?;
-    allocator.add_die_reader(2, Some("Tray!".to_string()))?;
-    allocator.add_die_reader(3, Some("Tray!".to_string()))?;
+    allocator.add_die_reader(0, &Some("Tray!".to_string()))?;
+    allocator.add_die_reader(1, &Some("Tray!".to_string()))?;
+    allocator.add_die_reader(2, &Some("Tray!".to_string()))?;
+    allocator.add_die_reader(3, &Some("Tray!".to_string()))?;
 
     if let Ok(summary) = allocator.sort_tray("Tray!", Ordering::Greater){
         summary.print(); 
@@ -446,7 +479,7 @@ fn test_die_tray_sort() -> Result<(), String> {
 
 
 #[test]
-fn test_die_id_reuse_after_remove() -> Result<(), String> {
+fn test_die_id_reuse_after_remove() -> anyhow::Result<()> {
     let mut allocator = Allocator::new();
 
     allocator.create_die(6, Some(1), Some("a".to_string()), 25)?;

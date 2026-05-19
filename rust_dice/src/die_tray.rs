@@ -24,7 +24,7 @@ impl DieTray{
         }
     }
     
-    pub fn roll_all(&mut self, dice: &mut HashMap<usize, Die>) -> Result<TraySummary, String>{
+    pub fn roll_all(&mut self, dice: &mut HashMap<usize, Die>) -> anyhow::Result<TraySummary>{
         for reader in self.readers.iter_mut(){
             let die_id = reader.get_die_id();
             if let Some(die) = dice.get_mut(&die_id){
@@ -35,7 +35,7 @@ impl DieTray{
         Ok(self.build_summary())
     }
     
-    pub fn roll_at(&mut self, reader_ids: &[usize], dice: &mut HashMap<usize, Die>) -> Result<TraySummary, String>{
+    pub fn roll_at(&mut self, reader_ids: &[usize], dice: &mut HashMap<usize, Die>) -> anyhow::Result<TraySummary>{
         self.readers.iter_mut()
             .filter(|read| reader_ids.contains(&read.get_reader_id()))
             .for_each(|r|{
@@ -60,10 +60,11 @@ impl DieTray{
         TraySummary::new(self)
     }
 
-    pub fn add_reader(&mut self, die : &Die){
+    pub fn add_reader(&mut self, die : &Die) -> usize{
         let next_id = self.reader_id_gen.allocate();
         let new_reader = DieReader::new(die, next_id);
         self.readers.push(new_reader);
+        next_id
     }
 
     pub fn remove_readers_by_die_id(&mut self, die_id: usize){
@@ -84,8 +85,8 @@ impl DieTray{
         self.readers.retain(|dr| dr.get_reader_id() != die_id);
     }
 
-    pub fn remove_readers(&mut self, reader_ids: Vec<usize>) -> Option<Vec<usize>>{      
-        for id in &reader_ids{
+    pub fn remove_readers(&mut self, reader_ids: &Vec<usize>) -> Option<Vec<usize>>{      
+        for id in reader_ids{
             self.reader_id_gen.free(*id);
         }
 
@@ -130,7 +131,8 @@ impl DieTray{
                         found_ids.insert(reader.get_reader_id());
                     }
                 }
-            }
+            },
+            DiceTargets::None => ()
         }
 
         let found_ids: Vec<usize> = found_ids.into_iter().collect();
@@ -141,6 +143,10 @@ impl DieTray{
         else{
             None
         }
+    }
+
+    pub fn get_label(&self) -> &str{
+        &self.label
     }
 }
 

@@ -1,18 +1,13 @@
-mod cli_parser;
 mod logger;
-mod cli_command_handlers;
+mod dice_tray_cli_command_handlers;
 mod cli_data_manager;
 mod dice_tay_command_parser;
 
-use logger::{detailed_log_tray, detailed_log_dice};
-use cli_parser::{CliCommand};
-
-use std::io::Write;
-use anyhow::Error;
-
-use rust_dice::die::DiceDataList; 
+use logger::detailed_log_dice;
 use rust_dice::die_allocator::Allocator;
 use cli_data_manager::{save_dice, load_dice};
+use dice_tray_cli_command_handlers::handle_command;
+use dice_tay_command_parser::{get_command_string, process_commands};
 
 fn main() {
     println!("Welcome to Dice Tray!\n");
@@ -32,27 +27,27 @@ fn main() {
     println!("---DICE BAG---");
     let _ = detailed_log_dice(die_allocator.get_dice());
 
-	loop {
+	'outer: loop {
         println!();
 		println!("Enter your dice-tray command now.");
         println!("Use 'help' to see list of commands and 'exit' to save your dice bag and quit.");
         print!("> ");
-        //let command = get_command();
-        //println!("Echoing Command {}", &command);
+            let command_string = get_command_string();
+            let commands = match process_commands(&command_string){
+                Ok(commands) => commands,
+                Err(e) => {
+                    println!("No commands detected in input: {} | Errors: {:?}", command_string, e);
+                    Vec::new()
+                }
+            };
 
-
-        println!();
-	}
+        for command in commands {
+            if !handle_command(&mut die_allocator, command){
+                break 'outer;
+            }
+        }
+    }
+    println!("Goodbye!");
 }
 
-
-
-/* Exit LOGIC
-    let dice_bag_data = die_allocator.build_die_data_list(None);
-    match save_dice(&dice_bag_data){
-        Ok(())=> println!("Dice have been successfully saved to {}. Goodbye!", dice_bag_data.file_name),
-        Err(e) => println!("Failed to save dice with error {}. Goodbye!", e) 
-    }
-    break;
-*/
 

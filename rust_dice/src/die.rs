@@ -1,6 +1,7 @@
 use std::fmt;
 use std::u32;
 use serde::{Serialize, Deserialize};
+use anyhow::{Error, bail};
 
 #[derive(Serialize, Deserialize)]
 struct InternalRng {
@@ -212,21 +213,21 @@ impl fmt::Display for Die{
     }
 }
 
-///Builds and retuns a new die from the provided seed. 
-///Each face of the die has a base weight of std_weight + (0 - weight_varience). 
-///Higher varience will create more "unfair" dice.
+///Builds and returns a new die from the provided seed. 
+///Each face of the die has a base weight of std_weight + (0 - weight_variance). 
+///Higher variance will create more "unfair" dice.
 ///Once dice face weights are set they will persist for the lifetime of the die. 
-pub fn build_die(id: usize, label: Option<String>, faces: u32, seed: u64, std_weight: u32, weight_varience: u32) -> Result<Die, String>{
+pub fn build_die(id: usize, label: Option<String>, faces: u32, seed: u64, std_weight: u32, weight_variance: u32) -> anyhow::Result<Die>{
     if faces > 1000{
-        return Err(format!("Error: cannot create a die with over a thousand faces."));
+        bail!("Error: cannot create a die with over a thousand faces.");
     }
     else if std_weight <= 0 {
-        return Err(format!("Standard die weight must be greater than zero, recomend a value of 100."));
+        bail!("Standard die weight must be greater than zero, recommend a value of 100.");
     }
-    else if weight_varience <= 0 {
-        return Err(format!("Weight varience of new dice must be greater than zero, recomend a value of 25."));
+    else if weight_variance <= 0 {
+        bail!("Weight variance of new dice must be greater than zero, recommend a value of 25.");
     }
-    let mut die = Die::new(id, label, faces, seed, std_weight, weight_varience);
+    let mut die = Die::new(id, label, faces, seed, std_weight, weight_variance);
     die.roll();
     Ok(die)
 }
