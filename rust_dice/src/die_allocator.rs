@@ -131,11 +131,11 @@ impl Allocator{
     pub fn add_die_reader(&mut self, die_id: usize, tray_label: &Option<String>) -> anyhow::Result<usize> {
         
         let tray_label = match tray_label{
-            Some(label) => label,
-            None => &self.target_tray_label
+            Some(label) => label.to_string(),
+            None => self.target_tray_label.to_string()
         };
         
-        if !self.trays.contains_key(tray_label) {
+        if !self.trays.contains_key(&tray_label) {
             bail!("No tray found with label: {}", tray_label);
         }
 
@@ -144,7 +144,7 @@ impl Allocator{
             None => bail!("No die found with ID: {} | Cannot build a die reader.", die_id)
         };
 
-        let tray = match self.trays.get_mut(tray_label){
+        let tray = match self.trays.get_mut(&tray_label){
             Some(tray) => tray,
             None => bail!("No tray found with Label: {} | Cannot add die reader to tray.", tray_label)
         };
