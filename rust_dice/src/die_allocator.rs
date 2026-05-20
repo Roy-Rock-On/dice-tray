@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::die::{self, DiceDataList, Die, DieData, DieResult, build_die};
+use crate::die::{DiceDataList, Die, DieData, DieResult, build_die};
 use crate::die_targets::DiceTargets;
 use crate::die_tray::{DieTray, MoveSummary, TraySummary};
 use crate::id_generator::IdGenerator;
@@ -9,7 +9,7 @@ use std::cmp::{Ordering};
 use std::collections::{HashMap, HashSet};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use anyhow::{Error, bail};
+use anyhow::bail;
 
 //constants used to sutomaticaly weight the dice. 
 const STD_WEIGHT: u32 = 100;
@@ -39,7 +39,6 @@ impl Allocator{
     pub fn get_target_tray(&self) -> &str {
         &self.target_tray_label
     }
-
 
     pub fn set_target_tray(&mut self, new_target_tray: String) -> anyhow::Result<()> {
         if self.trays.contains_key(&new_target_tray){
@@ -255,7 +254,7 @@ impl Allocator{
         if let Some(tray) = self.trays.get(tray_id){
             match tray.get_reader_ids_by_targets(&targets){
                 Some(reader_ids) => Ok(reader_ids),
-                None => bail!("No die readers found in tray ID = {} at targets {}", tray_id, targets)
+                None => bail!("No die readers found in tray ID = {} at targets {:?}", tray_id, targets)
             }    
         }
         else{

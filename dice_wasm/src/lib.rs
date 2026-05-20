@@ -1,4 +1,4 @@
-use rust_dice::die_allocator::{Allocator};
+use rust_dice::{die_allocator::Allocator, die_tray::TraySummary};
 
 use wasm_bindgen::prelude::*;
 use serde_json;
@@ -50,21 +50,30 @@ impl DiceAllocatorHandle {
     /// Roll all dice in the tray
     #[wasm_bindgen]
     pub fn roll_tray(&mut self, tray_id: String) -> Result<String, JsValue> {
-        let tray_summary = self.app_allocator.roll_tray(tray_id);
+        let tray_summary = match self.app_allocator.roll_tray(tray_id){
+            Ok(summary) => summary,
+            Err(e) => return Err(JsValue::from_str(&e.to_string())) 
+        };
         serde_json::to_string(&tray_summary).map_err(|e| JsValue::from_str(&e.to_string()))
     }
 
     /// Clear all dice from the tray
     #[wasm_bindgen]
     pub fn clear_tray(&mut self, tray_id: String) -> Result<String, JsValue> {
-        let tray_summary = self.app_allocator.clear_readers_from_tray(tray_id)?;
+        let tray_summary = match self.app_allocator.clear_readers_from_tray(tray_id){
+            Ok(summary) => summary,
+            Err(e) => return Err(JsValue::from_str(&e.to_string()))
+        };
         serde_json::to_string(&tray_summary).map_err(|e| JsValue::from_str(&e.to_string()))
     }
 
     ///Gets the tray data used to update the tray.
     #[wasm_bindgen]
     pub fn get_tray_data(&self, tray_id: String) -> Result<String, JsValue> {
-        let tray_summary = self.app_allocator.get_tray_summary(tray_id)?;
+        let tray_summary = match self.app_allocator.get_tray_summary(&tray_id){
+            Ok(summary) => summary,
+            Err(e) => return Err(JsValue::from_str(&e.to_string()))
+        };
         serde_json::to_string(&tray_summary).map_err(|e| JsValue::from_str(&e.to_string()))
     }
 }

@@ -22,6 +22,7 @@ pub fn handle_command(allocator: &mut Allocator, command: DiceTrayCommand) -> bo
         DiceTrayCommand::RollDice(roll_dice_args) => process_roll_dice(allocator, roll_dice_args),
         DiceTrayCommand::ShowDiceBag => process_show_dice_bag(allocator),
         DiceTrayCommand::ShowTray(tray_label) => process_show_tray(allocator, &tray_label),
+        DiceTrayCommand::TargetTray(tray_label) => process_target_tray(allocator, &tray_label),
         DiceTrayCommand::Help => process_help_command(),
         DiceTrayCommand::Exit => return false,
     };
@@ -164,6 +165,14 @@ fn process_show_tray(allocator: &mut Allocator, tray_label: &str) -> anyhow::Res
     let summary = allocator.get_tray_summary(tray_label)?;
     println!("Showing tray:");
     detailed_log_tray(summary)?;
+    Ok(())
+}
+
+fn process_target_tray(allocator: &mut Allocator, tray_label: &str) -> anyhow::Result<()> {
+    let summary = allocator.get_tray_summary(tray_label)?;
+    println!("Showing tray:");
+    detailed_log_tray(summary)?;
+    allocator.set_target_tray(tray_label.to_string())?;
     Ok(())
 }
 

@@ -37,7 +37,7 @@ fn main() {
         println!();
 		println!("Enter your dice-tray command now.");
         println!("Use 'help' to see list of commands and 'exit' to save your dice bag and quit.");
-        print!("> ");
+        print!("{}> ", die_allocator.get_target_tray());
             let command_string = get_command_string();
             let commands = match process_commands(&command_string){
                 Ok(commands) => commands,

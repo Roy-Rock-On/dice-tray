@@ -53,6 +53,7 @@ fn parse_command(input_slice : &[&str], normalized_slice : &[&str]) -> anyhow::R
             "save" => parse_save_command(input_slice, normalized_slice),
             "load" => parse_load_command(input_slice, normalized_slice),
             "show" => parse_show_command(input_slice, normalized_slice),
+            "target" => parse_target_command(input_slice, normalized_slice),
             "reroll" => parse_roll_command(input_slice, normalized_slice),
             "exit" | "quit" => Ok(DiceTrayCommand::Exit),
             "help" => Ok(DiceTrayCommand::Help),
@@ -81,6 +82,7 @@ fn get_command_boundaries(command : &str) -> Vec<usize> {
             "exit" |
             "quit" |
             "help" |
+            "target" |
             "show" => boundaries.push(index),
             _ => ()
         }
@@ -494,6 +496,30 @@ fn parse_show_command(input_slice : &[&str], normalized_slice : &[&str]) -> anyh
     Ok(DiceTrayCommand::ShowDiceBag)
 }
 
+fn parse_target_command(input_slice : &[&str], normalized_slice : &[&str]) -> anyhow::Result<DiceTrayCommand> {
+        let mut normal_iter = normalized_slice.iter().enumerate().peekable();
+        let _ = normal_iter.next();
+        
+        while let Some((index, token)) = normal_iter.next() {
+        let complex_token = parse_complex_token(token)?;
+        match complex_token {
+            ComplexToken::Tray =>{
+                if let Some(input_token) = input_slice.get(index + 1){
+                    let label = parse_as_label(input_token)?;
+                    return Ok(DiceTrayCommand::ShowTray(label));
+                } 
+            }
+            _ =>{
+                if let Some(input_token) = input_slice.get(index){
+                    let label = parse_as_label(input_token)?;
+                    return Ok(DiceTrayCommand::TargetTray(label));
+                } 
+            }
+        }
+    }
+    bail!("'target' command has no tray label. Cannot target a tray without a label.");
+} 
+
 
 
 #[derive(Debug)]
@@ -616,6 +642,7 @@ pub enum DiceTrayCommand {
     MoveDice(MoveDiceArgs),
     RollDice(RollDiceArgs),
     ShowTray(String),
+    TargetTray(String),
     ShowDiceBag,
     Save(Option<PathBuf>),
     Load(Option<PathBuf>),
