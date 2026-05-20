@@ -111,9 +111,12 @@ fn process_move_dice(allocator: &mut Allocator, move_args: &MoveDiceArgs) -> any
         None => &allocator.get_target_tray().to_string()
     };
 
+    println!("DEBUG: 'move dice args' = {:?}", move_args);
+
     let to_tray_label = move_args.to_tray.as_deref();
 
     let reader_targets = allocator.get_reader_ids_by_targets(&from_tray_label, &move_args.dice_targets)?; 
+    println!("DEBUG: while processing move reader targets = {:?}", &reader_targets);
     let move_summary = allocator.move_reader(&from_tray_label, &reader_targets, to_tray_label)?;
 
     println!("Moved {} dice from tray: {} to tray: {:?}", reader_targets.len(), from_tray_label, to_tray_label);
@@ -152,7 +155,7 @@ fn process_roll_dice(allocator: &mut Allocator, roll_args: RollDiceArgs) -> anyh
 }
 
 fn process_show_dice_bag(allocator: &mut Allocator) -> anyhow::Result<()>{
-    println!("DICE BAG");
+    println!("---DICE BAG---");
     detailed_log_dice(allocator.get_dice())?;
     Ok(())
 }

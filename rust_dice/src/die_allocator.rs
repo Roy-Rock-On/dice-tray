@@ -23,13 +23,16 @@ pub struct Allocator{
 
 impl Allocator{
     ///Makes a new dice allocator for all your dice allocating needs.
-    pub fn new() -> Self{
-        Self { 
+    pub fn new() -> anyhow::Result<Self>{
+        let mut allocator = Self { 
             die_id_gen: IdGenerator::new(),
             dice: HashMap::new(),
             trays: HashMap::new(),
-            target_tray_label: "Main".to_string()
-        }
+            target_tray_label: "MAIN".to_string()
+        };
+        
+        allocator.create_tray("MAIN".to_string())?;
+        Ok(allocator)
     }
 
     ///Gets the target tray label. 
@@ -38,7 +41,7 @@ impl Allocator{
     }
 
 
-    pub fn set_target_tray(&mut self, new_target_tray: String) -> anyhow::Result<()>{
+    pub fn set_target_tray(&mut self, new_target_tray: String) -> anyhow::Result<()> {
         if self.trays.contains_key(&new_target_tray){
             self.target_tray_label = new_target_tray;  
             Ok(())
@@ -49,7 +52,7 @@ impl Allocator{
     }
 
     ///Makes a new tray to track and sort dice being rolled. Returns a summary of the new tray (which will be empty).
-    pub fn create_tray(&mut self, label: String) -> anyhow::Result<TraySummary>{
+    pub fn create_tray(&mut self, label: String) -> anyhow::Result<TraySummary> {
         if self.trays.contains_key(&label){
             bail!("Allocator already contains a tray with label: {} All tray labels must bey unique.", label)
         }
@@ -123,6 +126,14 @@ impl Allocator{
         };
 
         tray.clear_readers();
+
+        if self.trays.is_empty(){
+            println!("At least one tray must always exist in the allocator.");
+            println!("Creating new tray with label 'MAIN'");
+            self.create_tray("MAIN".to_string())?;
+            self.set_target_tray("MAIN".to_string())?;
+        }
+
         Ok(())
     }
 
@@ -214,7 +225,7 @@ impl Allocator{
             },
             DiceTargets::Index(indecies) => {
                 for index in indecies{
-                    if matching_ids.contains(&index){
+                    if self.dice.contains_key(&index){
                         matching_ids.insert(*index);
                     }
                 }
@@ -418,19 +429,21 @@ impl DieSummary{
 
 #[cfg(test)]
 #[test]
-fn test_new_tray(){
-    let mut allocator = Allocator::new();
-    let _ = allocator.create_tray("Best Tray".to_string());
-    let _ = allocator.create_tray("Worst Tray".to_string());
-    let _ = allocator.create_tray("Another Tray".to_string());
+fn test_new_tray() -> anyhow::Result<()> {
+    let mut allocator = Allocator::new()?;
+    let _ = allocator.create_tray("Best Tray".to_string())?;
+    let _ = allocator.create_tray("Worst Tray".to_string())?;
+    let _ = allocator.create_tray("Another Tray".to_string())?;
 
     for t in allocator.trays.values(){
         println!("{}", t);
     }
+
+    Ok(())
 }
 
 #[cfg(test)]
-fn test_build_allocator_from_file() -> Result<Allocator, String> {
+fn test_build_allocator_from_file() -> anyhow::Result<Allocator> {
     use std::fs;
     use std::path::PathBuf;
     use dotenv;
@@ -444,7 +457,7 @@ fn test_build_allocator_from_file() -> Result<Allocator, String> {
 
     let decoded_list: DiceDataList = serde_json::from_str(&die_file).unwrap();
     
-    let mut allocator = Allocator::new();
+    let mut allocator = Allocator::new()?;
     let _ = allocator.create_tray("THE TRAY".to_string());
     allocator.create_dice_from_list(decoded_list).unwrap();
     Ok(allocator)
@@ -459,7 +472,7 @@ fn test_dice_from_list() -> Result<(), String>{
 
 #[test]
 fn test_die_tray_sort() -> anyhow::Result<()> {
-    let mut allocator = Allocator::new();
+    let mut allocator = Allocator::new()?;
     let _ = allocator.create_tray("Sort Tray".to_string());
 
     allocator.create_die(20, Some(11), Some("d20".to_string()), 10)?;
@@ -482,7 +495,7 @@ fn test_die_tray_sort() -> anyhow::Result<()> {
 
 #[test]
 fn test_die_id_reuse_after_remove() -> anyhow::Result<()> {
-    let mut allocator = Allocator::new();
+    let mut allocator = Allocator::new()?;
 
     allocator.create_die(6, Some(1), Some("a".to_string()), 25)?;
     allocator.create_die(8, Some(2), Some("b".to_string()), 25)?;

@@ -36,12 +36,13 @@ impl DieTray{
     }
     
     pub fn roll_at(&mut self, reader_ids: &[usize], dice: &mut HashMap<usize, Die>) -> anyhow::Result<TraySummary>{
+        println!("DEBUG: Rolling ids {:?} for tray {}", reader_ids, self.get_label());
         self.readers.iter_mut()
             .filter(|read| reader_ids.contains(&read.get_reader_id()))
             .for_each(|r|{
                 let die_id: usize = r.get_die_id();
                 if let Some(die) = dice.get_mut(&die_id){
-                    die.roll();
+                    r.roll(die);
                 };
             });
 
@@ -91,16 +92,19 @@ impl DieTray{
         }
 
         let die_ids : Vec<usize> = self.readers.iter()
+            .filter(|dr| reader_ids.contains(&dr.get_reader_id()))
             .filter_map(|dr| Some(dr.get_die_id()))
             .collect();
 
+        println!("DEBUG: reader_IDs found matching index = {:?}", die_ids);
+
         self.readers.retain(|r| !reader_ids.contains(&r.get_reader_id()));
 
-        if die_ids.len() > 0{
-            Some(die_ids)
+        if die_ids.is_empty(){
+            None
         }
         else{
-            None
+            Some(die_ids)
         }
     }
 

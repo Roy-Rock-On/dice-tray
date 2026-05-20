@@ -53,7 +53,7 @@ impl DieReader {
 
 	///Asks the provided die to roll, update the reader and return a roll log- or error.
 	pub fn roll(&mut self, die: &mut Die) {
-		let log = die.roll();
+		die.roll();
         self.current_face = die.get_current_face();
         self.current_result = die.get_current_result().clone();
 	}

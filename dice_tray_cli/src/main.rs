@@ -19,7 +19,13 @@ fn main() {
         }
     };
 
-    let mut die_allocator = Allocator::new();
+    let mut die_allocator = match Allocator::new(){
+        Ok(alloc) => alloc,
+        Err(e) => {
+            println!("Dice allocator failed to initialize with error: {}", e);
+            panic!()
+        }
+    };
     die_allocator.create_dice_from_list(dice_list).unwrap();
 
     println!("Dice bag successfully loaded from file.");
