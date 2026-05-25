@@ -35,6 +35,27 @@ impl Allocator{
         Ok(allocator)
     }
 
+    ///Generates default dice if none can be loaded. 
+    pub fn generate_default_dice(&mut self){
+        let _ = self.create_die(4, None, None, 25);
+        let _ = self.create_die(6, None, None, 25);
+        let _ = self.create_die(8, None, None, 25);
+        let _ = self.create_die(10, None, None, 25);
+        let _ = self.create_die(12, None, None, 25);         
+        let _ = self.create_die(20, None, None, 25);
+        let _ = self.create_die(100, None, None, 25);
+    }
+
+    pub fn build_dice_data(&self) -> DiceDataList {
+        let mut dice_data = DiceDataList::new();
+        
+        for die in self.dice.values(){
+          dice_data.add_data(die.to_data());  
+        }
+
+        dice_data        
+    }
+
     ///Gets the target tray label. 
     pub fn get_target_tray(&self) -> &str {
         &self.target_tray_label
@@ -277,22 +298,6 @@ impl Allocator{
         else {
             bail!("No tray found with ID: {} Cannot roll.", tray_label)
         }
-    }
-
-    ///Iterates through all the dice in allocator and returns a dice data list for serilization.
-    pub fn build_die_data_list(&self, new_file_name: Option<String>) -> DiceDataList {
-        let file_name = match new_file_name{
-            Some(name) => name,
-            None => "DiceData".to_string()
-        };
-
-        let mut dice_data_list = DiceDataList::new(file_name);
-
-        for die in self.dice.values(){
-            dice_data_list.add_data(die.to_data());
-        } 
-        
-        dice_data_list
     }
 
     ///Gets a refrence to all the Die structs in the allocator.

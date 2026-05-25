@@ -283,16 +283,14 @@ pub struct DieData{
 
 #[derive(Serialize, Deserialize)]
 pub struct DiceDataList{
-    pub file_name: String,
     pub dice_data_vec: Vec<DieData>
 }
 
 impl DiceDataList{
     ///Creates a new dice data list for serilization into JSON.
     ///Lets dice be saved between sessions. 
-    pub fn new(file_name: String) -> Self{
+    pub fn new() -> Self{
         DiceDataList { 
-            file_name, 
             dice_data_vec: Vec::new() 
         }
     }
@@ -401,7 +399,7 @@ fn test_create_die_data() -> Result<(), std::io::Error>{
     println!("Data dir this = {:?}", data_dir);
     println!("exists: {}, is_dir: {}", data_dir.exists(), data_dir.is_dir());
 
-    let mut dice_data_list = DiceDataList::new("die_test".to_string());
+    let mut dice_data_list = DiceDataList::new();
     let mut die_zero = build_die(0, None, 4, 10, 100, 1).unwrap();
     die_zero.roll();
     let mut die_one = build_die(1, None, 6, 20, 100, 25).unwrap();
@@ -425,7 +423,7 @@ fn test_create_die_data() -> Result<(), std::io::Error>{
     dice_data_list.add_data(die_five.to_data());
     dice_data_list.add_data(die_six.to_data());
 
-    let file_path = data_dir.join(dice_data_list.file_name.clone());
+    let file_path = data_dir.join("test-dice-data.json");
     let die_list_json = serde_json::to_string_pretty(&dice_data_list)?;
 
     let mut test_file = fs::File::create(&file_path)?;

@@ -1,5 +1,7 @@
+use std::str::FromStr;
 use std::{fs, path};
-use std::io::Write;
+use std::io::{Write};
+use std::fs::{read_to_string};
 use std::path::{Path, PathBuf};
 
 use std::fs::create_dir_all;
@@ -8,59 +10,59 @@ use rust_dice::die::DiceDataList;
 use anyhow::{Error, bail};
 
 pub struct DiceTrayDataManager{
-    data_dir : Option<String>,
-    filename : Option<String>,
-    last_path : Option<PathBuf>
+    directory_path : PathBuf,
+    filename : String,
 }
 
 impl DiceTrayDataManager{
-    pub fn load_dice(&mut self, dir_path : Option<String>, file_name : Option<String>) -> Result<DiceDataList, Error>{
-        let path = match dir_path {
-            Some(s) => {
-                if !Path::new(&s).is_dir(){
-                    bail!("Cannot load dice as {} is not a valid directory." , s);
-                }
-                let new_path = PathBuf::from(s);
-                new_path
-            },
-            None => {
-                match self.last_path {
-                    Some(last) => last,
-                    None =>{
-                        let mut default_path = dirs::data_dir().unwrap();
-                        default_path.push("dice-tray");
-                        if !default_path.exists(){
-                            create_dir_all(default_path);
-                        }
-                        default_path
-                    }
-                }
-
-            }
+    pub fn new() -> anyhow::Result<Self> {
+        let mut data_dir = match dirs::data_dir(){
+            Some(path) => path,
+            None => bail!("Default data path not found.")
         };
+        data_dir.push("dice-tray");
 
-        if !path.is_dir(){
-
+        if !data_dir.exists(){
+            create_dir_all(&data_dir);
         }
+
+        Ok(Self {
+            directory_path: data_dir,
+            filename: "default-dice-tray-data.json".to_string(),
+        })
+    }
+
+        // Function to set a new file path
+    pub fn set_filepath(&mut self, path_string: String) -> anyhow::Result<()> {
+        let dir_path = PathBuf::from_str(&path_string)?;
+        if dir_path.is_dir(){
+            self.directory_path = dir_path;
+            Ok(())
+        }else{
+            bail!("Cannot set new data path {} does not point to a valid directory.", path_string);
+        }
+    }
+
+    pub fn set_filename(&mut self, mut filename_string: String) -> anyhow::Result<()> {
+        filename_string.push_str(".json");
+        let full_path = self.directory_path.join(filename_string);
         
-        let rel = PathBuf::from(std::env::var("DICE_DATA_PATH")?);
-        let data_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(rel);
+        if !full_path.is_file(){
+            fs::File::create(&full_path)?;
+        }
 
-        let file_path = data_dir.join("dice-tray-data");
+        Ok(())
+    }
+
+    pub fn load_dice(&self) -> anyhow::Result<DiceDataList>{
+        let file_path = self.directory_path.join(&self.filename);
         let die_file = read_to_string(&file_path)?;
-
         let decoded_list: DiceDataList = serde_json::from_str(&die_file)?;
         Ok(decoded_list)
     }
 
-    pub fn save_dice(&mut self, dice_bag: &DiceDataList, dir_path: Option<String>, filename : Option<String>) -> Result<(), Error>{
-        dotenv::from_filename("rust_dice/src/.env").unwrap();
-
-        let rel = PathBuf::from(std::env::var("DICE_DATA_PATH").unwrap());
-        let data_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(rel);
-        fs::create_dir_all(&data_dir)?;
-
-        let file_path = data_dir.join(dice_bag.file_name.clone());
+    pub fn save_dice(&mut self, dice_bag: &DiceDataList) -> Result<(), Error>{
+        let file_path = self.directory_path.join(&self.filename);
         let die_list_json = serde_json::to_string_pretty(&dice_bag)?;
 
         let mut save_file = fs::File::create(&file_path)?;
