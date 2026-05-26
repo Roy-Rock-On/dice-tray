@@ -1,6 +1,8 @@
 use rust_dice::{die_allocator::Allocator, die_tray::TraySummary};
 
+use anyhow::{Result, bail};
 use wasm_bindgen::prelude::*;
+use std::format;
 use serde_json;
 use web_sys;
 
@@ -17,10 +19,22 @@ pub struct DiceAllocatorHandle {
 #[wasm_bindgen]
 impl DiceAllocatorHandle {
     #[wasm_bindgen(constructor)]
-    pub fn new() -> Self {
-        Self {
-            app_allocator: Allocator::new()
-        }
+    pub fn new() -> Result<Self, JsValue>  {
+        let app_allocator = match Allocator::new(){
+            Ok(alloc) => alloc,
+            Err(e) => {
+                let error_str = format!("WASM Failed to create a die allocator handle. Error {}", e);
+                return Err(JsValue::from_str(&error_str))
+            } 
+
+        };
+
+
+        let alloc_handle = Self {
+            app_allocator
+        };
+
+        Ok(alloc_handle)
     }
 
     /// Add a die to the tray
@@ -37,7 +51,13 @@ impl DiceAllocatorHandle {
         // Log for debugging
         web_sys::console::log_1(&format!("Creating die with {} sides", sides).into());
         
-        let die_summary = self.app_allocator.create_die(sides, None, None, 50)?;
+        let die_summary = match self.app_allocator.create_die(sides, None, None, 50){
+            Ok(summary) => summary,
+            Err(e) => {
+                let error_str = format!("Failed to create die. Error {}", e);
+                return Err(JsValue::from_str(&error_str));
+            }
+        };
         serde_json::to_string(&die_summary).map_err(|e| JsValue::from_str(&e.to_string()))
     }
 
