@@ -8,13 +8,12 @@ use rust_dice::die_allocator::Allocator;
 use cli_data_manager::DiceTrayDataManager;
 use dice_tray_cli_command_handlers::handle_command;
 use dice_tay_command_parser::{get_command_string, process_commands};
-use serde_json::error::Category::Data;
 
 fn main(){
     println!("Welcome to Dice Tray!\n");
 
     //Create a data manager.
-    let cli_data_manager = match DiceTrayDataManager::new(){
+    let mut cli_data_manager = match DiceTrayDataManager::new(){
         Ok(data) => data,
         Err(e) => {
             println!("Failed to initializing data manager. PANIC! with error: {}", e);
@@ -32,10 +31,7 @@ fn main(){
     };
 
     match cli_data_manager.load_dice(){
-        Ok(list) => 
-        {
-            die_allocator.create_dice_from_list(dice_list)?;
-        },
+        Ok(list) => die_allocator.create_dice_from_list(list).unwrap(),
         Err(e) => {
             println!("Error loading dice from list. Error = {}", e);
             println!("Generating default dice data now.");
@@ -67,6 +63,11 @@ fn main(){
                 break 'outer;
             }
         }
+    }
+    println!("Saving dice data now.");
+    match cli_data_manager.save_dice(&die_allocator.build_dice_data()){
+        Ok(()) => println!("Saving dice data now. Directory: {}, Filename: {}", cli_data_manager.get_directory_str(), cli_data_manager.get_filename_str()),
+        Err(e) => println!("Failed to save dice data. Error {}", e)
     }
     println!("Goodbye!");
 }

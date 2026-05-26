@@ -43,6 +43,10 @@ impl DiceTrayDataManager{
         }
     }
 
+    pub fn get_directory_str(&self) -> &str {
+        self.directory_path.to_str().unwrap()
+    } 
+
     pub fn set_filename(&mut self, mut filename_string: String) -> anyhow::Result<()> {
         filename_string.push_str(".json");
         let full_path = self.directory_path.join(filename_string);
@@ -52,6 +56,10 @@ impl DiceTrayDataManager{
         }
 
         Ok(())
+    }
+
+    pub fn get_filename_str(&self) -> &str{
+        &self.filename
     }
 
     pub fn load_dice(&self) -> anyhow::Result<DiceDataList>{
