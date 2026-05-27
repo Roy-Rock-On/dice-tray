@@ -133,6 +133,20 @@
   justify-content: flex-end;
 }
 
+.dice-bag {
+  display: flex;
+  flex-direction: row-reverse;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px;
+  margin: 4px;
+  min-height: 2rem;
+  background: var(--brown);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  justify-content: flex-end;
+}
+
 .dice{
   aspect-ratio: 1;
   min-width: 3rem;

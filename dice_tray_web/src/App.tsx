@@ -1,17 +1,19 @@
 import { useState, useEffect } from 'react'
-import init, { DiceAllocatorHandle } from '../pkg/dice_wasm';
-import { createBox, motion } from "motion/react"
+import init, { DiceAllocatorHandle, init_panic_hook } from '../pkg/dice_wasm';
+import DiceBag from './DiceBag'
+import { motion } from "motion/react"
 
 import './App.css';
 
 function App() {
-  const [wasmReady, setWasmReady] = useState(false);
-  const [appHandle, setAppHandle] = useState(null);
+  const [wasmReady, setWasmReady] = useState<boolean>(false);
+  const [appHandle, setAppHandle] = useState<DiceAllocatorHandle | null>(null);
 
   useEffect(() => {
     const initWasm = async () => {
       try {
         await init(); // Initialize WASM module first
+        init_panic_hook();
         setWasmReady(true);
         const handle = new DiceAllocatorHandle();
         setAppHandle(handle);
@@ -23,7 +25,7 @@ function App() {
     initWasm();
   }, []);
 
-  if (!wasmReady) {
+  if (!wasmReady || !appHandle) {
     return (
       <div className="board">
         <h1>Dice Tray!</h1>
@@ -35,28 +37,10 @@ function App() {
     return (
       <div className="board">
         <h1>Dice Tray!</h1>
-        <div className="tray">
-          <motion.div
-            style={box}
-            whileHover={{scale: 1.2}}
-            whileTap={{scale:0.8}}
-            initial={{opacity: 0, scale: 0}}
-            animate={{rotate: 360, scale: 1, opacity: 1}}
-            transition={{duration: 1, repeat: 0}}
-          />
-        </div>
+        <DiceBag appHandle={appHandle}/>
       </div>
     )
   }
 }
-
-const box = {
-    align: "center",
-    width: 100,
-    height: 100,
-    backgroundColor: "red",
-    borderRadius: 5,
-}
  
-
 export default App

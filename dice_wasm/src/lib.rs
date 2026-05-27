@@ -7,8 +7,8 @@ use serde_json;
 use web_sys;
 
 #[wasm_bindgen]
-pub fn greet(msg: &str) -> String{
-    format!("{}", msg)
+pub fn init_panic_hook() {
+    console_error_panic_hook::set_once();
 }
 
 #[wasm_bindgen]
@@ -20,15 +20,14 @@ pub struct DiceAllocatorHandle {
 impl DiceAllocatorHandle {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Result<Self, JsValue>  {
+
         let app_allocator = match Allocator::new(){
             Ok(alloc) => alloc,
             Err(e) => {
                 let error_str = format!("WASM Failed to create a die allocator handle. Error {}", e);
                 return Err(JsValue::from_str(&error_str))
             } 
-
         };
-
 
         let alloc_handle = Self {
             app_allocator
@@ -39,7 +38,7 @@ impl DiceAllocatorHandle {
 
     /// Add a die to the tray
     #[wasm_bindgen]
-    pub fn create_die(&mut self, sides: u32) -> Result<String, JsValue> {
+    pub fn create_die(&mut self, sides: u32, seed: u64) -> Result<String, JsValue> {
         // Validate input
         if sides == 0 {
             return Err(JsValue::from_str("Die must have at least 1 side"));
@@ -51,7 +50,7 @@ impl DiceAllocatorHandle {
         // Log for debugging
         web_sys::console::log_1(&format!("Creating die with {} sides", sides).into());
         
-        let die_summary = match self.app_allocator.create_die(sides, None, None, 50){
+        let die_summary = match self.app_allocator.create_die(sides, Some(seed), None, 50){
             Ok(summary) => summary,
             Err(e) => {
                 let error_str = format!("Failed to create die. Error {}", e);
