@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "build-wasm": "wasm-pack build ../dice_wasm --target web --out-dir ../dice_tray_web/pkg",
-    "dev": "npm run build-wasm && vite",
-    "build": "npm run build-wasm && vite build",
+    "build-wasm-dev": "wasm-pack build ../dice_wasm --dev --target web --out-dir ../dice_tray_web/pkg",
+    "dev": "npm run build-wasm-dev && vite",
+    "build" : "npm run build-wasm && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },

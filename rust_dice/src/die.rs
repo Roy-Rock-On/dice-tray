@@ -144,7 +144,6 @@ impl Die{
             label: self.label.clone(), 
             faces: self.get_face_count(), 
             current_face: self.current_face,
-            result: self.current_result.clone()
         }
     } 
 
@@ -230,8 +229,7 @@ pub struct DieSummary{
     id: usize,
     label: String,
     faces: u32,
-    current_face: u32,
-    result: DieResult
+    current_face: u32
 }
 
 impl DieSummary{
@@ -241,7 +239,6 @@ impl DieSummary{
             label: die.get_label().to_string(),
             faces: die.get_face_count(),
             current_face: die.get_current_face(),
-            result: die.get_current_result().clone()
         }
     }
 

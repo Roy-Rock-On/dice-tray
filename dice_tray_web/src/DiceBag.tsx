@@ -1,17 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
-import {DiceAllocatorHandle} from '../pkg/dice_wasm';
+import { useDiceTray } from './DiceTrayContext'
 import { DieProps, Die } from './Die'
 import { genSeed } from './Utility';
-
-interface DiceBagProps {
-    appHandle: DiceAllocatorHandle;
-}
 
 interface DiceList{
     dice : DieProps[];
 }
 
-function DiceBag(app: DiceBagProps) {
+function DiceBag() {
+
+    const appHandle = useDiceTray();
+
     const hasInit = useRef(false);
     const [diceList, setDiceList] = useState<DiceList>({ dice: [] });
     const [isLoading, setIsLoading] = useState(true);
@@ -23,18 +22,18 @@ function DiceBag(app: DiceBagProps) {
 
         const addDice = async () => {
             try{
-                app.appHandle.create_die(4, genSeed());
-                app.appHandle.create_die(6, genSeed());
-                app.appHandle.create_die(8, genSeed());
-                app.appHandle.create_die(10, genSeed());
-                app.appHandle.create_die(12, genSeed());
-                app.appHandle.create_die(20, genSeed());
-                app.appHandle.create_die(100, genSeed());
+                appHandle.create_die(4, genSeed());
+                appHandle.create_die(6, genSeed());
+                appHandle.create_die(8, genSeed());
+                appHandle.create_die(10, genSeed());
+                appHandle.create_die(12, genSeed());
+                appHandle.create_die(20, genSeed());
+                appHandle.create_die(100, genSeed());
 
-                let diceList = app.appHandle.get_dice_data();
+                let diceList = appHandle.get_dice_data() as DiceList;
                 console.log("dice data = " + diceList);
                 
-                setDiceList({dice: JSON.parse(diceList).dice});
+                setDiceList(diceList);
 
             }catch(error){
                 console.error("Caught error while creating dice: ", error);
@@ -44,7 +43,7 @@ function DiceBag(app: DiceBagProps) {
         };
 
         addDice();
-    }, [app]);
+    });
     
     if (isLoading){
         return (

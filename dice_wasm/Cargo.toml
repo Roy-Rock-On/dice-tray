@@ -17,3 +17,6 @@ console_error_panic_hook = "*"
 
 [lib]
 crate-type = ["cdylib"]
+
+[target.wasm32-unknown-unknown]
+rustflags = [ "-C", "link-args=-z stack-size=15000000" ]

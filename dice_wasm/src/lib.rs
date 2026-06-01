@@ -4,13 +4,7 @@ use rust_dice::{die_allocator::Allocator, die_tray::TraySummary};
 use anyhow::{Result, bail};
 use wasm_bindgen::prelude::*;
 use std::format;
-use serde_json;
 use web_sys;
-
-#[wasm_bindgen]
-pub fn init_panic_hook() {
-    console_error_panic_hook::set_once();
-}
 
 #[wasm_bindgen]
 pub struct DiceAllocatorHandle {
@@ -38,7 +32,7 @@ impl DiceAllocatorHandle {
 
     /// Add a die to the tray
     #[wasm_bindgen]
-    pub fn create_die(&mut self, sides: u32, seed: u64) -> Result<String, JsValue> {
+    pub fn create_die(&mut self, sides: u32, seed: u64) -> Result<JsValue, JsValue> {
         // Validate input
         if sides == 0 {
             return Err(JsValue::from_str("Die must have at least 1 side"));
@@ -57,30 +51,32 @@ impl DiceAllocatorHandle {
                 return Err(JsValue::from_str(&error_str));
             }
         };
-        serde_json::to_string(&die_summary).map_err(|e| JsValue::from_str(&e.to_string()))
+        serde_wasm_bindgen::to_value(&die_summary).map_err(|e| JsValue::from_str(&e.to_string()))
     }
 
     #[wasm_bindgen]
-    pub fn get_dice_data(&self) -> Result<String, JsValue> {
+    pub fn get_dice_data(&self) -> Result<JsValue, JsValue> {
         let dice_data = self.app_allocator.get_dice_summary();
-        serde_json::to_string(&dice_data).map_err(|e| JsValue::from_str(&e.to_string()))
+        serde_wasm_bindgen::to_value(&dice_data).map_err(|e| JsValue::from_str(&e.to_string()))
     }
 
     /// Roll all dice in the tray
     #[wasm_bindgen]
-    pub fn roll_tray(&mut self, tray_id: String) -> Result<String, JsValue> {
+    pub fn roll_tray(&mut self, tray_id: String) -> Result<JsValue, JsValue> {
         let tray_summary = match self.app_allocator.roll_tray(tray_id){
             Ok(summary) => summary,
             Err(e) => return Err(JsValue::from_str(&e.to_string())) 
         };
-        serde_json::to_string(&tray_summary).map_err(|e| JsValue::from_str(&e.to_string()))
+        serde_wasm_bindgen::to_value(&tray_summary).map_err(|e| JsValue::from_str(&e.to_string()))
     }
 
     //rolls a die in the dice bag directly.
     #[wasm_bindgen]
-    pub fn roll_die(&mut self, die_id: usize) -> Result<String, JsValue> {
+    pub fn roll_die(&mut self, die_id: usize) -> Result<JsValue, JsValue> {
+        // Log for debugging
+        web_sys::console::log_1(&format!("Rolling die with ID = {}", die_id).into());
         match self.app_allocator.roll_die(die_id){
-            Ok(summary) => return serde_json::to_string(&summary)
+            Ok(summary) => return serde_wasm_bindgen::to_value(&summary)
                 .map_err(|e| JsValue::from_str(&e.to_string())),
             Err(e) => return Err(JsValue::from_str(&e.to_string()))
         }
@@ -88,21 +84,21 @@ impl DiceAllocatorHandle {
 
     /// Clear all dice from the tray
     #[wasm_bindgen]
-    pub fn clear_tray(&mut self, tray_id: String) -> Result<String, JsValue> {
+    pub fn clear_tray(&mut self, tray_id: String) -> Result<JsValue, JsValue> {
         let tray_summary = match self.app_allocator.clear_readers_from_tray(tray_id){
             Ok(summary) => summary,
             Err(e) => return Err(JsValue::from_str(&e.to_string()))
         };
-        serde_json::to_string(&tray_summary).map_err(|e| JsValue::from_str(&e.to_string()))
+        serde_wasm_bindgen::to_value(&tray_summary).map_err(|e| JsValue::from_str(&e.to_string()))
     }
 
     ///Gets the tray data used to update the tray.
     #[wasm_bindgen]
-    pub fn get_tray_data(&self, tray_id: String) -> Result<String, JsValue> {
+    pub fn get_tray_data(&self, tray_id: String) -> Result<JsValue, JsValue> {
         let tray_summary = match self.app_allocator.get_tray_summary(&tray_id){
             Ok(summary) => summary,
             Err(e) => return Err(JsValue::from_str(&e.to_string()))
         };
-        serde_json::to_string(&tray_summary).map_err(|e| JsValue::from_str(&e.to_string()))
+        serde_wasm_bindgen::to_value(&tray_summary).map_err(|e| JsValue::from_str(&e.to_string()))
     }
 }

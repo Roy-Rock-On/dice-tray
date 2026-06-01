@@ -1,31 +1,42 @@
-import { useState, useEffect } from 'react'
-import init, { DiceAllocatorHandle, init_panic_hook } from '../pkg/dice_wasm';
+import { useState, useEffect, useRef } from 'react'
+import init, { DiceAllocatorHandle } from '../pkg/dice_wasm';
 import DiceBag from './DiceBag'
-import { motion } from "motion/react"
+import { DiceTrayProvider } from './DiceTrayContext'
 
 import './App.css';
 
+let globalAppHandle: DiceAllocatorHandle | null = null;
+
 function App() {
+  const isInitializing = useRef(false);
   const [wasmReady, setWasmReady] = useState<boolean>(false);
-  const [appHandle, setAppHandle] = useState<DiceAllocatorHandle | null>(null);
 
   useEffect(() => {
+    if(globalAppHandle){
+      setWasmReady(true);
+      return;
+    }
+
+    if (isInitializing.current) return;
+    isInitializing.current = true;
+
+
     const initWasm = async () => {
       try {
-        await init(); // Initialize WASM module first
-        init_panic_hook();
+        await init();
+        globalAppHandle = new DiceAllocatorHandle;
         setWasmReady(true);
-        const handle = new DiceAllocatorHandle();
-        setAppHandle(handle);
       } catch (error) {
         console.error("Failed to initialize WASM:", error);
+      } finally {
+        isInitializing.current = false;
       }
     };
     
     initWasm();
   }, []);
 
-  if (!wasmReady || !appHandle) {
+  if (!wasmReady || !globalAppHandle) {
     return (
       <div className="board">
         <h1>Dice Tray!</h1>
@@ -35,10 +46,12 @@ function App() {
   }
   else{
     return (
-      <div className="board">
-        <h1>Dice Tray!</h1>
-        <DiceBag appHandle={appHandle}/>
-      </div>
+      <DiceTrayProvider appHandle={globalAppHandle}>
+        <div className="board">
+          <h1>Dice Tray!</h1>
+          <DiceBag />
+        </div>
+      </DiceTrayProvider>
     )
   }
 }
