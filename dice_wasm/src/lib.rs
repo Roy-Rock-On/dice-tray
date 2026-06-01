@@ -1,3 +1,4 @@
+use js_sys::{JSON, Number};
 use rust_dice::{die_allocator::Allocator, die_tray::TraySummary};
 
 use anyhow::{Result, bail};
@@ -20,7 +21,6 @@ pub struct DiceAllocatorHandle {
 impl DiceAllocatorHandle {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Result<Self, JsValue>  {
-
         let app_allocator = match Allocator::new(){
             Ok(alloc) => alloc,
             Err(e) => {
@@ -74,6 +74,16 @@ impl DiceAllocatorHandle {
             Err(e) => return Err(JsValue::from_str(&e.to_string())) 
         };
         serde_json::to_string(&tray_summary).map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+
+    //rolls a die in the dice bag directly.
+    #[wasm_bindgen]
+    pub fn roll_die(&mut self, die_id: usize) -> Result<String, JsValue> {
+        match self.app_allocator.roll_die(die_id){
+            Ok(summary) => return serde_json::to_string(&summary)
+                .map_err(|e| JsValue::from_str(&e.to_string())),
+            Err(e) => return Err(JsValue::from_str(&e.to_string()))
+        }
     }
 
     /// Clear all dice from the tray

@@ -3,6 +3,7 @@ use std::u32;
 use serde::{Serialize, Deserialize};
 use anyhow::{Error, bail};
 
+
 #[derive(Serialize, Deserialize)]
 struct InternalRng {
     seed: u64,
@@ -134,6 +135,17 @@ impl Die{
             total_weight: die_data.total_weight,
             internal_rng: InternalRng::new(die_data.last_rng_seed),
         }
+    }
+
+    ///produces a die summary that can be read by frontend readers.
+    pub fn to_summary(&self) -> DieSummary{
+        DieSummary { 
+            id: self.id,
+            label: self.label.clone(), 
+            faces: self.get_face_count(), 
+            current_face: self.current_face,
+            result: self.current_result.clone()
+        }
     } 
 
     // Private functions that run internal dice logic.
@@ -210,6 +222,32 @@ impl fmt::Display for Die{
             self.current_face,
             result_num
         )
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct DieSummary{
+    id: usize,
+    label: String,
+    faces: u32,
+    current_face: u32,
+    result: DieResult
+}
+
+impl DieSummary{
+    pub fn from_die(die: &Die) -> Self{
+        DieSummary { 
+            id: die.get_id(),
+            label: die.get_label().to_string(),
+            faces: die.get_face_count(),
+            current_face: die.get_current_face(),
+            result: die.get_current_result().clone()
+        }
+    }
+
+    pub fn print(&self){
+        println!("Die Summary:");
+        println!("id: {} | label: {} | faces: {} | current_face: {}", self.id, self.label, self.faces, self.current_face);
     }
 }
 

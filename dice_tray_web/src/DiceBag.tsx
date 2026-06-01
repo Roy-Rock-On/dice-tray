@@ -8,12 +8,13 @@ interface DiceBagProps {
 }
 
 interface DiceList{
-    Dice : DieProps[];
+    dice : DieProps[];
 }
 
 function DiceBag(app: DiceBagProps) {
     const hasInit = useRef(false);
-    const [diceList, setDiceList] = useState<DiceList>()
+    const [diceList, setDiceList] = useState<DiceList>({ dice: [] });
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect (() => {
         //clause to prevent double fire.
@@ -29,21 +30,41 @@ function DiceBag(app: DiceBagProps) {
                 app.appHandle.create_die(12, genSeed());
                 app.appHandle.create_die(20, genSeed());
                 app.appHandle.create_die(100, genSeed());
+
                 let diceList = app.appHandle.get_dice_data();
                 console.log("dice data = " + diceList);
+                
+                setDiceList({dice: JSON.parse(diceList).dice});
+
             }catch(error){
                 console.error("Caught error while creating dice: ", error);
+            }finally{
+                setIsLoading(false);
             }
         };
 
         addDice();
     }, [app]);
+    
+    if (isLoading){
+        return (
+            <div className="dice-bag">
+                <h1>Loading Dice...</h1>
+            </div>
+        )  
+    }
+    else{
+        return (
+            <div className="dice-bag">
+                {diceList.dice.map((die_summary)=>(
+                    <div key={die_summary.id}>
+                        <Die {...die_summary} />
+                    </div>
+                ))}
+            </div> 
+        )
 
-    return (
-        <div className="dice-bag">
-            <h1>Placeholder</h1>
-        </div>
-    )
+    }
 }
 
 export default DiceBag;

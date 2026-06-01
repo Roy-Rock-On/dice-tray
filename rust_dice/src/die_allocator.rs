@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::die::{DiceDataList, Die, DieData, DieResult, build_die};
+use crate::die::{DiceDataList, Die, DieData, DieSummary, build_die};
 use crate::die_targets::DiceTargets;
 use crate::die_tray::{DieTray, MoveSummary, TraySummary};
 use crate::id_generator::IdGenerator;
@@ -282,6 +282,15 @@ impl Allocator{
             bail!("No tray ID = {} found in application.", tray_id)
         }
     }
+    ///Rolls a die by die ID. Passing back a roll result. Used to roll dice in place- without a tray or tray reader.
+    pub fn roll_die(&mut self, die_id: usize) -> anyhow::Result<DieSummary> {
+        let die = match self.dice.get_mut(&die_id){
+            Some(die) => die,
+            None => bail!("No die with ID = {} found in dice bag.", die_id)
+        };
+        die.roll();
+        Ok(die.to_summary())
+    } 
 
     ///Rolls the die with the given ID in place and returns a roll log.
     ///If the die has been assinged to a tray the tray will be updated.
@@ -402,32 +411,6 @@ impl DiceSummary{
         DiceSummary{
             dice: die_summaries
         }
-    }
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct DieSummary{
-    id: usize,
-    label: String,
-    faces: u32,
-    current_face: u32,
-    result: DieResult
-}
-
-impl DieSummary{
-    pub fn from_die(die: &Die) -> Self{
-        DieSummary { 
-            id: die.get_id(),
-            label: die.get_label().to_string(),
-            faces: die.get_face_count(),
-            current_face: die.get_current_face(),
-            result: die.get_current_result().clone()
-        }
-    }
-
-    pub fn print(&self){
-        println!("Die Summary:");
-        println!("id: {} | label: {} | faces: {} | current_face: {}", self.id, self.label, self.faces, self.current_face);
     }
 }
 
