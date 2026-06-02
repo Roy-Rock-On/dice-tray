@@ -8,7 +8,6 @@ interface DiceList{
 }
 
 function DiceBag() {
-
     const appHandle = useDiceTray();
 
     const hasInit = useRef(false);

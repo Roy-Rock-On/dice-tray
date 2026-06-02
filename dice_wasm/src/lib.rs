@@ -15,6 +15,7 @@ pub struct DiceAllocatorHandle {
 impl DiceAllocatorHandle {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Result<Self, JsValue>  {
+        console_error_panic_hook::set_once();
         let app_allocator = match Allocator::new(){
             Ok(alloc) => alloc,
             Err(e) => {
