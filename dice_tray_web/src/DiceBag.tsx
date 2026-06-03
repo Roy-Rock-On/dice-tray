@@ -4,12 +4,24 @@ import { DieView } from './DieView'
 import { genSeed } from './Utility';
 import { DieProps } from './DataTypes';
 
-
 interface DiceList{
     dice : DieProps[];
 }
 
 function DiceBag() {
+    let selectedDieIds : Number[] = []; 
+
+    const selectDie = (dieID: Number, isSelected: boolean) => {
+        console.log("Select die is triggering!");
+        if (isSelected){
+            selectedDieIds = [...selectedDieIds, dieID]
+        }
+        else{
+            selectedDieIds = selectedDieIds.filter(id => dieID !== id);
+        }
+        console.log("Currently selected = " + selectedDieIds);
+    }
+
     const appHandle = useDiceTray();
 
     const hasInit = useRef(false);
@@ -59,7 +71,7 @@ function DiceBag() {
             <div className="dice-bag">
                 {diceList.dice.map((die_summary)=>(
                     <div key={die_summary.id}>
-                        <DieView dieProps={{...die_summary}} />
+                        <DieView dieProps={{...die_summary}} selectDie={selectDie} />
                     </div>
                 ))}
             </div> 
