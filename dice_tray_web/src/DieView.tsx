@@ -1,22 +1,21 @@
 import { useState} from "react";
 import { useDiceTray } from "./DiceTrayContext";
 import { DieShape } from "./DieShape";
-import { motion, useAnimation } from "framer-motion";
+import { motion } from "framer-motion";
+import { DieProps } from "./DataTypes";
 
-export interface DieProps {
-    id: number;  
-    label: string;
-    faces: number;
-    current_face: number;
-    result: string;
+interface DieViewProps {
+    dieProps: DieProps,
 }
 
-export function Die(props: DieProps) {
+
+export function DieView(props: DieViewProps) {
     const appHandle = useDiceTray();
-    const [dieProps, setDieProps] = useState<DieProps>(props);
+    const [dieProps, setDieProps] = useState<DieProps>(props.dieProps);
 
 
     let isRolling = false;
+    
     const rollDie = (() => {
         if(isRolling) return;
         isRolling = true;
@@ -33,13 +32,17 @@ export function Die(props: DieProps) {
 
     return (
         <motion.svg 
-            width={80}
-            height={80}
+            whileHover={{ scale: 1.05}}
+            whileDrag={{
+                scale: 1.1, 
+                cursor: "grabbing"
+            }}
+
+            width={60}
+            height={60}
             viewBox="0 0 100 100"
             style={{background: 'transparent'}}
             onClick={rollDie}
-
-            whileHover={{scale: 1.05}}
             whileTap={{scale:1.15}}
             transition={{
                 type:"spring",

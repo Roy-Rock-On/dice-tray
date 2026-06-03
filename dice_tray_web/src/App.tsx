@@ -47,9 +47,12 @@ function App() {
   else{
     return (
       <DiceTrayProvider appHandle={globalAppHandle}>
+        <h1>Dice Tray!</h1>    
         <div className="board">
-          <h1>Dice Tray!</h1>
           <DiceBag />
+          <div className="tray-board">
+
+          </div>
         </div>
       </DiceTrayProvider>
     )

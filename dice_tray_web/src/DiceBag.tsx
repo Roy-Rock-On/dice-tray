@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useDiceTray } from './DiceTrayContext'
-import { DieProps, Die } from './Die'
+import { DieView } from './DieView'
 import { genSeed } from './Utility';
+import { DieProps } from './DataTypes';
+
 
 interface DiceList{
     dice : DieProps[];
@@ -21,6 +23,7 @@ function DiceBag() {
 
         const addDice = async () => {
             try{
+                //Generate a set of dice to play with.
                 appHandle.create_die(4, genSeed());
                 appHandle.create_die(6, genSeed());
                 appHandle.create_die(8, genSeed());
@@ -56,7 +59,7 @@ function DiceBag() {
             <div className="dice-bag">
                 {diceList.dice.map((die_summary)=>(
                     <div key={die_summary.id}>
-                        <Die {...die_summary} />
+                        <DieView dieProps={{...die_summary}} />
                     </div>
                 ))}
             </div> 
