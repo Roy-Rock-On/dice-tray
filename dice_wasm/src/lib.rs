@@ -56,9 +56,9 @@ impl DiceAllocatorHandle {
     }
 
     #[wasm_bindgen]
-    pub fn get_dice_data(&self) -> Result<JsValue, JsValue> {
-        let dice_data = self.app_allocator.get_dice_summary();
-        serde_wasm_bindgen::to_value(&dice_data).map_err(|e| JsValue::from_str(&e.to_string()))
+    pub fn get_dice_state(&self) -> Result<JsValue, JsValue> {
+        let dice_state = self.app_allocator.get_dice_state();
+        serde_wasm_bindgen::to_value(&dice_state).map_err(|e| JsValue::from_str(&e.to_string()))
     }
 
     /// Roll all dice in the tray

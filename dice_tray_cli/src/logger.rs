@@ -15,15 +15,12 @@ struct DetailedDiceState {
     face_count: u32,
     #[table(title = "Current Face", justify = "Justify::Center")]
     current_face_string: u32,
-    #[table(title = "Result", justify = "Justify::Center")]
-    result_string: String,
 }
 
 impl PartialEq for DetailedDiceState {
     fn eq(&self, other: &Self) -> bool {
         self.face_count == other.face_count
             && self.current_face_string == other.current_face_string
-            && self.result_string == other.result_string
             && self.label == other.label
             && self.id == other.id
     }
@@ -42,7 +39,6 @@ impl Ord for DetailedDiceState {
         self.face_count
             .cmp(&other.face_count)
             .then_with(|| self.current_face_string.cmp(&other.current_face_string))
-            .then_with(|| self.result_string.cmp(&other.result_string))
             .then_with(|| self.label.cmp(&other.label))
             .then_with(|| self.id.cmp(&other.id))
     }
@@ -55,8 +51,7 @@ pub fn detailed_log_dice(dice_summary: Vec<&Die>) -> Result<(), Error>{
             id: die.get_id().to_string(),
             label: die.get_label().to_string(),
             face_count: die.get_face_count(),
-            current_face_string: die.get_current_face(),
-            result_string: die.get_current_result().to_string(),
+            current_face_string: die.get_current_face()
         })
         .collect();
 
@@ -75,7 +70,6 @@ pub fn detailed_log_tray(summery : TraySummary) -> Result<(), Error>{
             label: die.get_label().to_string(),
             face_count: die.get_face_count(),
             current_face_string: die.get_current_face(),
-            result_string: die.get_current_result().to_string(),
         })
         .collect();
 

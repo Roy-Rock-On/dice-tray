@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 
 use std::fs::create_dir_all;
 use serde_json;
-use rust_dice::die::DiceDataList;
+use rust_dice::die_data::DiceDataList;
 use anyhow::{Error, bail};
 
 pub struct DiceTrayDataManager{
