@@ -1,5 +1,13 @@
 use serde::{Serialize, Deserialize};
 
+///Enum used to control the sorting of dice states.
+pub enum DieSort{
+    FaceCount,
+    CurrentFace
+}
+
+
+
 /// Die state represents the current state of the die. 
 /// This is used to allow many DieReaders to use the same underlying Die.
 #[derive(Serialize, Deserialize)]
@@ -28,6 +36,22 @@ impl DiceState{
         DiceState{
             dice: die_states
         }
+    }
+
+    pub fn sort(&mut self, sort_method: DieSort){
+        match sort_method {
+            DieSort::FaceCount => {
+                self.dice.sort_by(|a, b|{
+                    a.faces.cmp(&b.faces)
+                })
+            },
+            DieSort::CurrentFace => {
+                self.dice.sort_by(|a, b|{
+                    a.current_face.cmp(&b.current_face)
+                })
+            }
+        }
+
     }
 }
 

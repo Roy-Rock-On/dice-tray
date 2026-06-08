@@ -1,7 +1,5 @@
-use serde::{Deserialize, Serialize};
-
 use crate::die::{Die, build_die};
-use crate::die_data::{DieState, DiceState, DieData, DiceDataList};
+use crate::die_data::{DieState, DiceState, DieData, DiceDataList, DieSort};
 use crate::die_targets::DiceTargets;
 use crate::die_tray::{DieTray, MoveSummary, TraySummary};
 use crate::id_generator::IdGenerator;
@@ -317,7 +315,9 @@ impl Allocator{
 
     ///Gets a state of all the dice in the allocator.
     pub fn get_dice_state(&self) -> DiceState{
-        DiceState::new(self.dice.values().map(|d| d.to_state()).collect())
+        let mut state = DiceState::new(self.dice.values().map(|d| d.to_state()).collect());
+        state.sort(DieSort::FaceCount);
+        state
     }
 
     ///Gets summaries for every tray.
