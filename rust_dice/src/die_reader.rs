@@ -1,5 +1,7 @@
+use std::rc::Rc;
+
 use serde::{Deserialize, Serialize};
-use crate::die::{Die, DieResult};
+use crate::die::Die;
 
 ///A lightweight tray-facing view into a die owned by the allocator.
 ///Readers can share the same underlying die by pointing at the same die_id.
@@ -10,7 +12,6 @@ pub struct DieReader {
     total_faces: u32,
     die_label: String, 
     current_face: u32,
-    current_result: DieResult
 }
 
 impl DieReader {
@@ -22,7 +23,6 @@ impl DieReader {
             total_faces: die.get_face_count(),
             die_label: die.get_label().to_string(),
             current_face: die.get_current_face(),
-            current_result: die.get_current_result().clone()
 		}
 	}
 
@@ -47,15 +47,10 @@ impl DieReader {
         self.current_face
     }
 
-    pub fn get_current_result(&self) -> &DieResult{
-        &self.current_result
-    }
-
 	///Asks the provided die to roll, update the reader and return a roll log- or error.
 	pub fn roll(&mut self, die: &mut Die) {
 		die.roll();
         self.current_face = die.get_current_face();
-        self.current_result = die.get_current_result().clone();
 	}
 }
 
@@ -63,7 +58,6 @@ impl PartialEq for DieReader {
     fn eq(&self, other: &Self) -> bool {
         self.total_faces == other.total_faces
             && self.current_face == other.current_face
-            && self.current_result.get_num().unwrap_or(0) == other.current_result.get_num().unwrap_or(0)
             && self.die_id == other.die_id
     }
 }
@@ -81,7 +75,48 @@ impl Ord for DieReader {
         self.total_faces
             .cmp(&other.total_faces)
             .then_with(|| self.current_face.cmp(&other.current_face))
-            .then_with(|| self.current_result.get_num().unwrap_or(0).cmp(&other.current_result.get_num().unwrap_or(0)))
             .then_with(|| self.die_id.cmp(&other.die_id))
+    }
+}
+
+//Die State - Is a copy of the current state of a die to be shown by a die reader.
+
+
+
+///Die Results and result types to be completed later.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+enum DieResultType{
+    Face,
+    Best,
+    Worst,
+    Sum
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum DieResult{
+    Face(u32),
+    Best(u32),
+    Worst(u32),
+    Sum(u32)
+}
+
+impl DieResult{
+    pub fn get_num(&self) -> Result<u32, String> {
+        match self {
+            DieResult::Best(x) => return Ok(*x),
+            DieResult::Face(x) => return Ok(*x),
+            DieResult::Sum(x) => return Ok(*x),
+            DieResult::Worst(x) => return Ok(*x),
+            _ => Err(format!("Cannot cast DieResult {:?} as number.", self))
+        }
+    }
+
+    pub fn to_string(&self) -> String {
+        match self{
+            DieResult::Best(x) => format!("Best = {}", x),
+            DieResult::Face(x) => format!("Face = {}", x),
+            DieResult::Worst(x) => format!("Worst = {}", x),
+            DieResult::Sum(x) => format!("Sum = {}", x)
+        }
     }
 }

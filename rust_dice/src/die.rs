@@ -1,7 +1,9 @@
 use std::fmt;
 use std::u32;
 use serde::{Serialize, Deserialize};
-use anyhow::{Error, bail};
+use anyhow::bail;
+
+use crate::die_data::{DieState, DieData, DiceDataList};
 
 
 #[derive(Serialize, Deserialize)]
@@ -53,8 +55,6 @@ pub struct Die {
     id: usize,
     label: String,
     current_face: u32,
-    result_type: DieResultType,
-    current_result: DieResult,
     face_weights: Vec<u32>,
     total_weight: u32,
     internal_rng: InternalRng,
@@ -71,7 +71,6 @@ impl Die{
             } 
         }
         let face_result = self.current_face;
-        self.set_die_result(face_result);
     }
 
     ///Gets the current result of the dice without modification of the rng.
@@ -79,25 +78,11 @@ impl Die{
         self.current_face
     }
 
-    pub fn get_current_result(&self) -> &DieResult{
-        &self.current_result
-    }
-
     /// Gets the total face count for the die.
     pub fn get_face_count(&self) -> u32{
         self.face_weights.len() as u32
     }
 
-    /// Sets the result type for a die.
-    fn set_result_type(&mut self, new_type: DieResultType){
-        let current_result = self.current_face;
-        self.current_result = match new_type{
-            DieResultType::Face => DieResult::Face(current_result),
-            DieResultType::Best => DieResult::Best(current_result),
-            DieResultType::Sum => DieResult::Sum(current_result),
-            DieResultType::Worst => DieResult::Worst(current_result)
-        };
-    }
 
     /// Returns the die ID, given by the die allocator at generation (or oterwise when the die is created). 
     /// This is session dependenant and is not saved when the die is serialized.
@@ -115,8 +100,6 @@ impl Die{
         DieData{
             label: self.label.clone(),
             current_face: self.current_face,
-            current_result: self.current_result.clone(),
-            result_type: self.result_type.clone(),
             face_weights: self.face_weights.clone(),
             total_weight: self.total_weight,
             last_rng_seed: self.internal_rng.get_current_seed(),
@@ -129,52 +112,21 @@ impl Die{
             id: die_id,
             label: die_data.label,
             current_face: die_data.current_face,
-            result_type: die_data.result_type,
-            current_result: die_data.current_result,
             face_weights: die_data.face_weights,
             total_weight: die_data.total_weight,
             internal_rng: InternalRng::new(die_data.last_rng_seed),
         }
     }
 
-    ///produces a die summary that can be read by frontend readers.
-    pub fn to_summary(&self) -> DieSummary{
-        DieSummary { 
+    ///produces a die state that can be read by frontend readers.
+    pub fn to_state(&self) -> DieState{
+        DieState { 
             id: self.id,
             label: self.label.clone(), 
             faces: self.get_face_count(), 
             current_face: self.current_face,
         }
     } 
-
-    // Private functions that run internal dice logic.
-    fn set_die_result(&mut self, face_result: u32){
-        let current_result_num = match self.current_result.get_num(){
-            Ok(num) => num,
-            Err(_) => 0
-        };
-
-        self.current_result = match &self.result_type{
-            DieResultType::Face => DieResult::Face(face_result),
-            DieResultType::Best => {
-                if face_result > current_result_num{
-                    DieResult::Best(face_result)
-                }
-                else{
-                    DieResult::Best(current_result_num)
-                }
-            },
-            DieResultType::Worst => {
-                if face_result < current_result_num{
-                    DieResult::Worst(face_result)
-                }
-                else{
-                    DieResult::Worst(current_result_num)
-                }
-            },
-            DieResultType::Sum => DieResult::Sum(current_result_num + face_result)
-        }
-    }
 
     fn new(id: usize, die_label: Option<String>, faces: u32, seed: u64, std_weight: u32, weight_varience: u32) -> Self {
         let face_weights = Self::map_face_weights(seed, faces, std_weight, weight_varience);
@@ -188,8 +140,6 @@ impl Die{
             id,
             label,
             current_face: 1,
-            result_type: DieResultType::Face,
-            current_result: DieResult::Face(1),
             face_weights : face_weights.0,
             total_weight : face_weights.1,
             internal_rng: InternalRng::new(seed),
@@ -211,40 +161,14 @@ impl Die{
 
 impl fmt::Display for Die{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result{
-        let result_num = self.current_result.get_num().unwrap_or(0);
         write!(
             f,
-            "{} - [id = {}, faces = d{}, current_face = {}, result = {}]",
+            "{} - [id = {}, faces = d{}, current_face = {}]",
             self.label,
             self.id,
             self.face_weights.len(),
             self.current_face,
-            result_num
         )
-    }
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct DieSummary{
-    id: usize,
-    label: String,
-    faces: u32,
-    current_face: u32
-}
-
-impl DieSummary{
-    pub fn from_die(die: &Die) -> Self{
-        DieSummary { 
-            id: die.get_id(),
-            label: die.get_label().to_string(),
-            faces: die.get_face_count(),
-            current_face: die.get_current_face(),
-        }
-    }
-
-    pub fn print(&self){
-        println!("Die Summary:");
-        println!("id: {} | label: {} | faces: {} | current_face: {}", self.id, self.label, self.faces, self.current_face);
     }
 }
 
@@ -267,78 +191,7 @@ pub fn build_die(id: usize, label: Option<String>, faces: u32, seed: u64, std_we
     Ok(die)
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-enum DieResultType{
-    Face,
-    Best,
-    Worst,
-    Sum
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub enum DieResult{
-    Face(u32),
-    Best(u32),
-    Worst(u32),
-    Sum(u32)
-}
-
-impl DieResult{
-    pub fn get_num(&self) -> Result<u32, String> {
-        match self {
-            DieResult::Best(x) => return Ok(*x),
-            DieResult::Face(x) => return Ok(*x),
-            DieResult::Sum(x) => return Ok(*x),
-            DieResult::Worst(x) => return Ok(*x),
-            _ => Err(format!("Cannot cast DieResult {:?} as number.", self))
-        }
-    }
-
-    pub fn to_string(&self) -> String {
-        match self{
-            DieResult::Best(x) => format!("Best = {}", x),
-            DieResult::Face(x) => format!("Face = {}", x),
-            DieResult::Worst(x) => format!("Worst = {}", x),
-            DieResult::Sum(x) => format!("Sum = {}", x)
-        }
-    }
-}
-
-
-#[derive(Serialize, Deserialize)]
-pub struct DieData{
-    label: String,
-    current_face: u32,
-    result_type: DieResultType,
-    current_result: DieResult,
-    face_weights: Vec<u32>,
-    total_weight: u32,
-    last_rng_seed: u64,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct DiceDataList{
-    pub dice_data_vec: Vec<DieData>
-}
-
-impl DiceDataList{
-    ///Creates a new dice data list for serilization into JSON.
-    ///Lets dice be saved between sessions. 
-    pub fn new() -> Self{
-        DiceDataList { 
-            dice_data_vec: Vec::new() 
-        }
-    }
-
-    ///Allows for adding data to a dice data list. 
-    ///Used to iterate through a series of dice for serilization.
-    pub fn add_data(&mut self, die_data: DieData){
-        self.dice_data_vec.push(die_data);
-    }
-}
-
 #[cfg(test)]
-
 #[test]
 fn random_number(){
     let mut rng = InternalRng::new(222);
@@ -362,7 +215,7 @@ fn die_test(){
     for i in 0..100000 {
         die.roll();
         counts[(die.current_face - 1) as usize] += 1;
-        println!("{} --- {}", i, die.current_result.get_num().unwrap());
+        println!("{} --- {}", i, die.current_face);
     }
 
     let sum_of_counts = {

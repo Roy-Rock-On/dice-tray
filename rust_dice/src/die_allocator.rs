@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-use crate::die::{DiceDataList, Die, DieData, DieSummary, build_die};
+use crate::die::{Die, build_die};
+use crate::die_data::{DieState, DiceState, DieData, DiceDataList};
 use crate::die_targets::DiceTargets;
 use crate::die_tray::{DieTray, MoveSummary, TraySummary};
 use crate::id_generator::IdGenerator;
@@ -11,7 +12,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use anyhow::bail;
 
-//constants used to sutomaticaly weight the dice. 
+//constants used to automatically weight the dice. 
 const STD_WEIGHT: u32 = 100;
 
 pub struct Allocator{
@@ -83,7 +84,7 @@ impl Allocator{
     }
 
     ///Creates a new die. Does not add the dice to any tray.
-    pub fn create_die(&mut self, faces: u32, seed: Option<u64>, label: Option<String>, varience: u32) -> anyhow::Result<DieSummary>{
+    pub fn create_die(&mut self, faces: u32, seed: Option<u64>, label: Option<String>, varience: u32) -> anyhow::Result<DieState>{
         let new_die_id = self.die_id_gen.allocate();
         
         let new_seed = match seed {
@@ -95,9 +96,9 @@ impl Allocator{
         };
 
         let new_die = build_die(new_die_id, label, faces, new_seed, STD_WEIGHT, varience)?;
-        let summary = DieSummary::from_die(&new_die);
+        let state = new_die.to_state();
         self.dice.insert(new_die_id, new_die);
-        Ok(summary)
+        Ok(state)
     }
 
     ///Creates a new die. 
@@ -121,7 +122,7 @@ impl Allocator{
     }
 
     ///Destroys dice in the dice bag, clearing any attached dice readers.
-    pub fn destroy_dice(&mut self, targets: Vec<usize>) -> anyhow::Result<DiceSummary>{
+    pub fn destroy_dice(&mut self, targets: Vec<usize>) -> anyhow::Result<DiceState>{
         for id in targets{
             if self.dice.contains_key(&id){
                 self.prune_readers_for_die(id);
@@ -130,7 +131,7 @@ impl Allocator{
             }
         }
 
-        Ok(self.get_dice_summaries())
+        Ok(self.get_dice_state())
     }
 
     ///Prunes all readers that point to a specific die from the reader store and all trays.
@@ -283,13 +284,13 @@ impl Allocator{
         }
     }
     ///Rolls a die by die ID. Passing back a roll result. Used to roll dice in place- without a tray or tray reader.
-    pub fn roll_die(&mut self, die_id: usize) -> anyhow::Result<DieSummary> {
+    pub fn roll_die(&mut self, die_id: usize) -> anyhow::Result<DieState> {
         let die = match self.dice.get_mut(&die_id){
             Some(die) => die,
             None => bail!("No die with ID = {} found in dice bag.", die_id)
         };
         die.roll();
-        Ok(die.to_summary())
+        Ok(die.to_state())
     } 
 
     ///Rolls the die with the given ID in place and returns a roll log.
@@ -314,9 +315,9 @@ impl Allocator{
         self.dice.values().collect()
     }
 
-    ///Gets a summary of all the dice in the allocator.
-    pub fn get_dice_summaries(&self) -> DiceSummary{
-        DiceSummary::new(self.dice.values().map(|d| DieSummary::from_die(d)).collect())
+    ///Gets a state of all the dice in the allocator.
+    pub fn get_dice_state(&self) -> DiceState{
+        DiceState::new(self.dice.values().map(|d| d.to_state()).collect())
     }
 
     ///Gets summaries for every tray.
@@ -370,15 +371,6 @@ impl Allocator{
         Ok(tray.build_summary())
     }
 
-    ///Returns a summary of all the dice in the Dice Bag.
-    pub fn get_dice_summary(&self) -> DiceSummary  {
-        let dice_summary = self.dice.values()
-            .map(|d| DieSummary::from_die(d))
-            .collect();
-
-        DiceSummary { dice : dice_summary }
-    }
-
     ///Prints a list of all dice in the allocator
     ///For use in CLI or debugging. 
     pub fn print_dice(&self){
@@ -396,21 +388,6 @@ impl Allocator{
 
         tray.build_summary().print();
         Ok(())
-    }
-}
-
-
-
-#[derive(Serialize, Deserialize)]
-pub struct DiceSummary{
-    dice: Vec<DieSummary>
-}
-
-impl DiceSummary{
-    pub fn new(die_summaries: Vec<DieSummary>) -> Self{
-        DiceSummary{
-            dice: die_summaries
-        }
     }
 }
 

@@ -70,9 +70,7 @@ function DiceBag() {
         return (
             <div className="dice-bag">
                 {diceList.dice.map((die_summary)=>(
-                    <div
-                        className='dice-space'
-                        key={die_summary.id}>
+                    <div key={die_summary.id}>
                         <DieView dieProps={{...die_summary}} selectDie={selectDie} />
                     </div>
                 ))}
