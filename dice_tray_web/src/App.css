@@ -94,7 +94,7 @@
   position: relative;
   flex-direction: column;
   align-self: left;
-  gap: 8px;
+  gap: auto;
   padding: 12px;
   margin: 4px;
   min-height: 2rem;
