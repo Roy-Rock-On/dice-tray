@@ -79,10 +79,6 @@ impl Ord for DieReader {
     }
 }
 
-//Die State - Is a copy of the current state of a die to be shown by a die reader.
-
-
-
 ///Die Results and result types to be completed later.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 enum DieResultType{
