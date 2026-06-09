@@ -1,5 +1,5 @@
 use js_sys::{JSON, Number};
-use rust_dice::{die_allocator::Allocator, die_tray::TraySummary};
+use rust_dice::{die_allocator::Allocator, die_data::DieState, die_data::DieSort, die_tray::TraySummary};
 
 use anyhow::{Result, bail};
 use wasm_bindgen::prelude::*;
@@ -56,8 +56,14 @@ impl DiceAllocatorHandle {
     }
 
     #[wasm_bindgen]
-    pub fn get_dice_state(&self) -> Result<JsValue, JsValue> {
-        let dice_state = self.app_allocator.get_dice_state();
+    pub fn get_dice_state(&self, sort_mode: String) -> Result<JsValue, JsValue> {
+        let sort = match sort_mode.trim(){
+            "result" => DieSort::CurrentFace,
+            "face" => DieSort::FaceCount,
+            _ => DieSort::FaceCount
+        };
+
+        let dice_state = self.app_allocator.get_dice_state(Some(sort));
         serde_wasm_bindgen::to_value(&dice_state).map_err(|e| JsValue::from_str(&e.to_string()))
     }
 

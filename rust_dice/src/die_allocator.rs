@@ -129,7 +129,7 @@ impl Allocator{
             }
         }
 
-        Ok(self.get_dice_state())
+        Ok(self.get_dice_state(None))
     }
 
     ///Prunes all readers that point to a specific die from the reader store and all trays.
@@ -314,11 +314,18 @@ impl Allocator{
     }
 
     ///Gets a state of all the dice in the allocator.
-    pub fn get_dice_state(&self) -> DiceState{
+    pub fn get_dice_state(&self, sort: Option<DieSort>) -> DiceState{
         let mut state = DiceState::new(self.dice.values().map(|d| d.to_state()).collect());
-        state.sort(DieSort::FaceCount);
+
+        let sort = match sort{
+            Some(sort) => sort,
+            None => DieSort::FaceCount 
+        };
+
+        state.sort(sort);
         state
     }
+
 
     ///Gets summaries for every tray.
     pub fn get_all_tray_summaries(&self) -> Vec<TraySummary>{
