@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import init, { DiceAllocatorHandle } from '../pkg/dice_wasm';
 import { DiceBag } from './DiceBag'
+import { DiceTray } from './DiceTray'
 import { DiceTrayProvider } from './DiceTrayContext'
 
 import './App.css';
@@ -19,7 +20,6 @@ function App() {
 
     if (isInitializing.current) return;
     isInitializing.current = true;
-
 
     const initWasm = async () => {
       try {
@@ -51,7 +51,7 @@ function App() {
         <div className="board">
           <DiceBag />
           <div className="tray-board">
-
+            <DiceTray trayId={"Damage"} rollRequest={[]} />
           </div>
         </div>
       </DiceTrayProvider>

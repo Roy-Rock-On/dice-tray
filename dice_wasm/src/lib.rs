@@ -61,6 +61,15 @@ impl DiceAllocatorHandle {
         serde_wasm_bindgen::to_value(&dice_state).map_err(|e| JsValue::from_str(&e.to_string()))
     }
 
+    #[wasm_bindgen]
+    pub fn new_tray(&mut self, tray_id: String) -> Result<JsValue, JsValue>{       
+        let tray_summary = match self.app_allocator.create_tray(tray_id){
+            Ok(summary) => summary,
+            Err(e) => return Err(JsValue::from_str(&e.to_string())) 
+        };
+        serde_wasm_bindgen::to_value(&tray_summary).map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+
     /// Roll all dice in the tray
     #[wasm_bindgen]
     pub fn roll_tray(&mut self, tray_id: String) -> Result<JsValue, JsValue> {
@@ -81,6 +90,17 @@ impl DiceAllocatorHandle {
                 .map_err(|e| JsValue::from_str(&e.to_string())),
             Err(e) => return Err(JsValue::from_str(&e.to_string()))
         }
+    }
+
+    #[wasm_bindgen]
+    pub fn roll_to_tray(&mut self, tray_id: String, die_id: usize, die_count: u32) -> Result<(), JsValue>{
+        for _ in 0..die_count{
+            match self.app_allocator.add_die_reader(die_id, &Some(tray_id.clone())){
+                Ok(_) => (),
+                Err(e) => return Err(JsValue::from_str(&e.to_string()))
+            };
+        }
+        Ok(())
     }
 
     /// Clear all dice from the tray

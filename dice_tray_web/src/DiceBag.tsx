@@ -30,7 +30,7 @@ export function DiceBag() {
     const [isLoading, setIsLoading] = useState(true);
     const [rollCount, setRollCount] = useState<number>(0);
 
-    const triggerRollNow = () => {
+    const triggerRoll = () => {
         setRollCount((prevCount) =>{
             return prevCount += 1;
         })
@@ -85,7 +85,7 @@ export function DiceBag() {
                 ))}
                 <button
                     className='button-prime'
-                    onClick={triggerRollNow}
+                    onClick={triggerRoll}
                 >
                     Roll!
                 </button>
