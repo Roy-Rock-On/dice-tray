@@ -1,17 +1,15 @@
-import { useState, useEffect, useRef, useCallback, memo } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useDiceTray } from './DiceTrayContext'
 import { DieView } from './DieView'
 import { genSeed } from './Utility';
 import { DieProps } from './DataTypes';
 
-interface DiceList{
-    dice : DieProps[];
-}
-
 export function DiceBag() {
     const appHandle = useDiceTray();
-
+    const [diceList, setDiceList] = useState<DieProps[]>([]);
     const [selectedDieIds, setSelectedDieIds] = useState<number[]>([]); 
+    const [rollCount, setRollCount] = useState<number>(0);
+
     console.log("Currently selected = " + selectedDieIds);
     
     const selectDie = useCallback((dieID: number, isSelected: boolean) => {       
@@ -26,15 +24,18 @@ export function DiceBag() {
     }, [])
 
     const hasInit = useRef(false);
-    const [diceList, setDiceList] = useState<DiceList>({ dice: [] });
     const [isLoading, setIsLoading] = useState(true);
-    const [rollCount, setRollCount] = useState<number>(0);
 
     const triggerRoll = () => {
-        setRollCount((prevCount) =>{
-            return prevCount += 1;
+        selectedDieIds.forEach((x) => {
+            appHandle.roll_die(x);
         })
-        console.log("Roll count = " + rollCount);
+        const diceList = appHandle.get_dice_state().dice as DieProps[];
+        setDiceList(diceList);
+        setRollCount((lastCount) => {
+            console.log("Roll count = " + lastCount);
+            return lastCount += 1;
+        })
     }
 
     useEffect (() => {
@@ -53,11 +54,8 @@ export function DiceBag() {
                 appHandle.create_die(20, genSeed());
                 appHandle.create_die(100, genSeed());
 
-                let diceList = appHandle.get_dice_state() as DiceList;
-                console.log("dice data = " + diceList);
-                
+                let diceList = appHandle.get_dice_state().dice as DieProps[];                
                 setDiceList(diceList);
-
             }catch(error){
                 console.error("Caught error while creating dice: ", error);
             }finally{
@@ -66,7 +64,7 @@ export function DiceBag() {
         };
 
         addDice();
-    });
+    }, []);
     
     if (isLoading){
         return (
@@ -78,9 +76,9 @@ export function DiceBag() {
     else{
         return (
             <div className="dice-bag">
-                {diceList.dice.map((die_summary)=>(
-                    <div key={die_summary.id}>
-                        <DieView dieProps={{...die_summary}} rollCount={rollCount} selectDie={selectDie} />
+                {diceList.map((die_state)=>(
+                    <div key={die_state.id}>
+                        <DieView dieState={{...die_state}} rollCount={rollCount} selectDie={selectDie} />
                     </div>
                 ))}
                 <button

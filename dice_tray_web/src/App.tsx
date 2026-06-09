@@ -51,7 +51,6 @@ function App() {
         <div className="board">
           <DiceBag />
           <div className="tray-board">
-            <DiceTray trayId={"Damage"} rollRequest={[]} />
           </div>
         </div>
       </DiceTrayProvider>

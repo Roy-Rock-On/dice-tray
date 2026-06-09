@@ -5,7 +5,14 @@ export interface DieProps {
     label: string;
     faces: number;
     current_face: number;
-    result: string;
+}
+
+export interface DieReaderProps {
+    die_id: number,
+    reader_id: number,
+    total_faces: number,
+    die_label: string,
+    current_face: number
 }
 
 ///Represents a roll request to pass to a dice-tray which will call the appHandle to create the die readers in WASM.

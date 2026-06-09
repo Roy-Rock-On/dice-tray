@@ -6,8 +6,6 @@ pub enum DieSort{
     CurrentFace
 }
 
-
-
 /// Die state represents the current state of the die. 
 /// This is used to allow many DieReaders to use the same underlying Die.
 #[derive(Serialize, Deserialize)]
