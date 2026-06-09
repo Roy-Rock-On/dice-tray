@@ -308,7 +308,7 @@ impl Allocator{
         }
     }
 
-    ///Gets a refrence to all the Die structs in the allocator.
+    ///Gets a reference to all the Die structs in the allocator.
     pub fn get_dice(&self) -> Vec<&Die>{
         self.dice.values().collect()
     }

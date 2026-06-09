@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import init, { DiceAllocatorHandle } from '../pkg/dice_wasm';
-import DiceBag from './DiceBag'
+import { DiceBag } from './DiceBag'
 import { DiceTrayProvider } from './DiceTrayContext'
 
 import './App.css';

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { useDiceTray } from './DiceTrayContext'
 import { DieView } from './DieView'
 import { genSeed } from './Utility';
@@ -8,25 +8,34 @@ interface DiceList{
     dice : DieProps[];
 }
 
-function DiceBag() {
-    let selectedDieIds : Number[] = []; 
-
-    const selectDie = (dieID: Number, isSelected: boolean) => {
-        console.log("Select die is triggering!");
-        if (isSelected){
-            selectedDieIds = [...selectedDieIds, dieID]
-        }
-        else{
-            selectedDieIds = selectedDieIds.filter(id => dieID !== id);
-        }
-        console.log("Currently selected = " + selectedDieIds);
-    }
-
+export function DiceBag() {
     const appHandle = useDiceTray();
+
+    const [selectedDieIds, setSelectedDieIds] = useState<number[]>([]); 
+    console.log("Currently selected = " + selectedDieIds);
+    
+    const selectDie = useCallback((dieID: number, isSelected: boolean) => {       
+        setSelectedDieIds((prevSelected) => {
+            if (isSelected){
+                return [...prevSelected, dieID]
+            }
+            else{
+                return prevSelected.filter(id => dieID !== id);
+            }
+        })
+    }, [])
 
     const hasInit = useRef(false);
     const [diceList, setDiceList] = useState<DiceList>({ dice: [] });
     const [isLoading, setIsLoading] = useState(true);
+    const [rollCount, setRollCount] = useState<number>(0);
+
+    const triggerRollNow = () => {
+        setRollCount((prevCount) =>{
+            return prevCount += 1;
+        })
+        console.log("Roll count = " + rollCount);
+    }
 
     useEffect (() => {
         //clause to prevent double fire.
@@ -44,7 +53,7 @@ function DiceBag() {
                 appHandle.create_die(20, genSeed());
                 appHandle.create_die(100, genSeed());
 
-                let diceList = appHandle.get_dice_data() as DiceList;
+                let diceList = appHandle.get_dice_state() as DiceList;
                 console.log("dice data = " + diceList);
                 
                 setDiceList(diceList);
@@ -71,13 +80,17 @@ function DiceBag() {
             <div className="dice-bag">
                 {diceList.dice.map((die_summary)=>(
                     <div key={die_summary.id}>
-                        <DieView dieProps={{...die_summary}} selectDie={selectDie} />
+                        <DieView dieProps={{...die_summary}} rollCount={rollCount} selectDie={selectDie} />
                     </div>
                 ))}
+                <button
+                    className='button-prime'
+                    onClick={triggerRollNow}
+                >
+                    Roll!
+                </button>
             </div> 
         )
 
     }
 }
-
-export default DiceBag;
