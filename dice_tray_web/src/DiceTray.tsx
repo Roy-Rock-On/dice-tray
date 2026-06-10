@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback} from "react";
-import { DieProps, RollRequest } from "./DataTypes";
+import { DieProps, DieReaderState, RollRequest } from "./DataTypes";
 import { useDiceTray } from "./DiceTrayContext";
-import { DieView } from "./DieView";
+import { DieReader } from "./DieReader";
 
 interface trayProps{
     trayId: string;
@@ -11,8 +11,9 @@ interface trayProps{
 export function DiceTray(props: trayProps){
     const hasInit = useRef<boolean>(false);
     const appHandle = useDiceTray();
-    const [diceReaders, setDiceReaders] = useState<DieProps[]>([]);
+    const [diceReaders, setDiceReaders] = useState<DieReaderState[]>([]);
 
+    //Initialization.
     useEffect(() => {
         if (hasInit.current) return;
         try{
@@ -24,9 +25,10 @@ export function DiceTray(props: trayProps){
         }
         finally{
             //just for now as a test.
-            appHandle.roll_to_tray(props.trayId, 0, 4);
+            appHandle.roll_to_tray(props.trayId, 0, 1);
+            appHandle.roll_to_tray(props.trayId, 1, 8);
             const traySummary = appHandle.roll_tray(props.trayId);
-            const dice = traySummary.tray_dice as DieProps[];
+            const dice = traySummary.tray_dice as DieReaderState[];
             setDiceReaders((prevDice) =>{
                 return [...prevDice, ...dice]
             })
@@ -48,16 +50,22 @@ export function DiceTray(props: trayProps){
         })
     }, [])
 
+    const rollDieReaders = () =>{
+
+    }
+
     useEffect(() => {
         console.log("received a roll request on tray = " + props.trayId);
     }, props.rollRequest)
+
+    
 
     return (
         <div className="tray-group">
           <div className="tray">
             {diceReaders.map((die_summary)=>(
-                <div key={die_summary.id}>
-                    <DieView dieProps={{...die_summary}} rollCount={0} selectDie={selectDie} />
+                <div key={die_summary.reader_id}>
+                    <DieReader dieReaderState={{...die_summary}} rollCount={0} selectDie={selectDie} />
                 </div>
             ))}
           </div>

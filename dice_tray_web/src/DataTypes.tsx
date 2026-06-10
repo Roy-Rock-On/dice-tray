@@ -7,7 +7,7 @@ export interface DieProps {
     current_face: number;
 }
 
-export interface DieReaderProps {
+export interface DieReaderState {
     die_id: number,
     reader_id: number,
     total_faces: number,

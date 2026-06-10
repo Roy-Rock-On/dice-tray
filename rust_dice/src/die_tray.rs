@@ -1,6 +1,7 @@
+use crate::die_data::DieSort;
 use crate::die_targets::DiceTargets;
 use crate::id_generator::IdGenerator;
-use crate::die_reader::{self, DieReader};
+use crate::die_reader::{DieReader};
 use crate::die::Die;
 
 use std::collections::{HashMap, HashSet};
@@ -32,7 +33,7 @@ impl DieTray{
             };
         }
 
-        Ok(self.build_summary())
+        Ok(self.build_summary(None))
     }
     
     pub fn roll_at(&mut self, reader_ids: &[usize], dice: &mut HashMap<usize, Die>) -> anyhow::Result<TraySummary>{
@@ -46,7 +47,7 @@ impl DieTray{
                 };
             });
 
-        Ok(self.build_summary())
+        Ok(self.build_summary(None))
     }
 
     pub fn sort(&mut self, order: Ordering){
@@ -57,13 +58,14 @@ impl DieTray{
         }
     }
 
-    pub fn build_summary(&self) -> TraySummary {
-        TraySummary::new(self)
+    pub fn build_summary(&self, sort: Option<DieSort>) -> TraySummary {
+        TraySummary::new(self, sort)
     }
 
-    pub fn add_reader(&mut self, die : &Die) -> usize{
+    pub fn add_reader(&mut self, should_roll : bool,  die : &mut Die) -> usize{
         let next_id = self.reader_id_gen.allocate();
-        let new_reader = DieReader::new(die, next_id);
+        let mut new_reader = DieReader::new(die, next_id);
+        if should_roll { new_reader.roll(die);}
         self.readers.push(new_reader);
         next_id
     }
@@ -174,10 +176,31 @@ pub struct TraySummary{
 }
 
 impl TraySummary{
-    pub fn new(tray: &DieTray) -> Self {
-        TraySummary { 
+    pub fn new(tray: &DieTray, sort : Option<DieSort>) -> Self {
+        let mut summary = TraySummary { 
             tray_label: tray.label.to_string(),
             tray_dice: tray.readers.clone()
+        };
+
+        if let Some(sort) = sort{
+            summary.sort_by(sort);
+        }
+
+        summary
+    }
+
+    fn sort_by(&mut self, sort : DieSort){
+        match sort{
+            DieSort::CurrentFace => {
+                self.tray_dice.sort_by(|a, b|{
+                    a.get_current_face().cmp(&b.get_current_face())
+                });
+            },
+            DieSort::FaceCount => {
+                self.tray_dice.sort_by(|a, b|{
+                    a.get_face_count().cmp(&b.get_face_count())
+                });
+            }
         }
     }
 

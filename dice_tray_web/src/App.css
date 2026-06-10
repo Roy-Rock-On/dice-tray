@@ -85,6 +85,7 @@
   border-radius: 8px;
 }
 
+/* Full Tray Board */
 .tray-board{
   display:flex;
   flex-direction: column;
@@ -98,27 +99,31 @@
   background: var(--bg-dark);
 }
 
+/* Tray and tools in a group. */
+.tray-group{
+  display: flex;
+  align-items: center;
+  width: 95%;
+  gap: 12px;            
+  padding: 8px 8px;
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+}
+
+/* buttons at the end of a tray. */
 .tray-tools{
   display:flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.tray-group{
-  display: flex;
-  align-items: center;
-  width: 95%;
-  gap: 12px;            
-  padding: 8px 16px;
-  background-color: #f5f5f5;
-  border: 1px solid #ddd;
-}
-
+/* tray itself and it's contents. */
 .tray {
   flex-grow: 1;
   display: flex;
   flex-direction: row-reverse;
   flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
   min-height: 70px;
   padding: 12px;
@@ -127,7 +132,7 @@
   background: var(--dark);
   border: 1px solid var(--border);
   border-radius: 8px;
-  justify-content: flex-end;
+  justify-content: center;
 }
 
 .dice-bag{

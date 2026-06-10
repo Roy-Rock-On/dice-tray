@@ -71,7 +71,7 @@ fn process_add_dice(allocator: &mut Allocator, add_args: AddDiceArgs) -> anyhow:
         let mut count = 0;
         for id in dice_targets{
             for _ in 0..add_args.number{
-                let reader_id = allocator.add_die_reader(id,&add_args.tray_target)?;
+                let reader_id = allocator.add_die_reader(add_args.should_roll, id,&add_args.tray_target)?;
                 if add_args.should_roll{
                     allocator.roll_at(add_args.tray_target.as_deref(), &[reader_id])?
                 }
@@ -118,7 +118,7 @@ fn process_move_dice(allocator: &mut Allocator, move_args: &MoveDiceArgs) -> any
 
     let reader_targets = allocator.get_reader_ids_by_targets(&from_tray_label, &move_args.dice_targets)?; 
     println!("DEBUG: while processing move reader targets = {:?}", &reader_targets);
-    let move_summary = allocator.move_reader(&from_tray_label, &reader_targets, to_tray_label)?;
+    let move_summary = allocator.move_reader(true, &from_tray_label, &reader_targets, to_tray_label)?;
 
     println!("Moved {} dice from tray: {} to tray: {:?}", reader_targets.len(), from_tray_label, to_tray_label);
     detailed_move_summary(move_summary)?;
@@ -132,7 +132,7 @@ fn process_remove_dice(allocator: &mut Allocator, remove_args: RemoveDiceArgs) -
     };
 
     let reader_targets = allocator.get_reader_ids_by_targets(&from_tray_label, &remove_args.dice_targets)?; 
-    let summery = allocator.move_reader(from_tray_label, &reader_targets, None)?;
+    let summery = allocator.move_reader(false, from_tray_label, &reader_targets, None)?;
 
     println!("Removing {} dice from tray: {}", reader_targets.len(), from_tray_label);
     detailed_move_summary(summery)?;
@@ -150,7 +150,7 @@ fn process_roll_dice(allocator: &mut Allocator, roll_args: RollDiceArgs) -> anyh
     allocator.roll_at(Some(in_tray_label), &reader_targets)?;
  
     println!("Rolled {} dice in tray {}", reader_targets.len(), in_tray_label);
-    let summery = allocator.get_tray_summary(&in_tray_label)?;
+    let summery = allocator.get_tray_summary(&in_tray_label, None)?;
     detailed_log_tray(summery)?;
     Ok(())
 }
@@ -162,14 +162,14 @@ fn process_show_dice_bag(allocator: &mut Allocator) -> anyhow::Result<()>{
 }
 
 fn process_show_tray(allocator: &mut Allocator, tray_label: &str) -> anyhow::Result<()> {
-    let summary = allocator.get_tray_summary(tray_label)?;
+    let summary = allocator.get_tray_summary(tray_label, None)?;
     println!("Showing tray:");
     detailed_log_tray(summary)?;
     Ok(())
 }
 
 fn process_target_tray(allocator: &mut Allocator, tray_label: &str) -> anyhow::Result<()> {
-    let summary = allocator.get_tray_summary(tray_label)?;
+    let summary = allocator.get_tray_summary(tray_label, None)?;
     println!("Showing tray:");
     detailed_log_tray(summary)?;
     allocator.set_target_tray(tray_label.to_string())?;
