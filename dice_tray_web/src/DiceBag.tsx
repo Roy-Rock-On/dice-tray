@@ -4,6 +4,7 @@ import { DieView } from './DieView'
 import { genSeed } from './Utility';
 import { DieProps } from './DataTypes';
 import { motion, AnimatePresence, MotionConfig, Reorder} from 'motion/react';
+import { div } from 'motion/react-client';
 
 export function DiceBag() {
     const appHandle = useDiceTray();
@@ -93,12 +94,14 @@ export function DiceBag() {
             <motion.div className="dice-bag">
                 <AnimatePresence mode="popLayout">
                     <Reorder.Group
+                        as="div"
                         values={diceList}
                         onReorder={setDiceList}
                         axis='y'
                     >
                     {diceList.map((die_state)=>(
-                        <Reorder.Item 
+                        <Reorder.Item
+                            as="div" 
                             key={die_state.id}
                             value={die_state}
                             layout
@@ -110,7 +113,9 @@ export function DiceBag() {
                                 cursor: "grabbing"
                             }}
                         >
-                            <DieView dieState={{...die_state}} rollCount={rollCount} selectDie={selectDie} />    
+                            <motion.div>
+                                <DieView dieState={{...die_state}} rollCount={rollCount} selectDie={selectDie} />    
+                            </motion.div>
                         </Reorder.Item>
                     ))}
                     </Reorder.Group>
