@@ -114,10 +114,29 @@ impl DiceAllocatorHandle {
         Ok(())
     }
 
-    /// Clear all dice readers from a
     #[wasm_bindgen]
-    pub fn clear_tray(&mut self, tray_id: String) -> Result<JsValue, JsValue> {
-        let tray_summary = match self.app_allocator.clear_readers_from_tray(tray_id){
+    pub fn roll_in_tray(&mut self, tray_id: String, reader_ids: Vec<usize>, sort_mode: String) -> Result<JsValue, JsValue>{
+        let die_sort = match sort_mode.trim(){
+            "result" => DieSort::CurrentFace,
+            "faces" => DieSort::FaceCount,
+            _ => DieSort::FaceCount
+        };
+        
+        match self.app_allocator.roll_at(Some(&tray_id), &reader_ids){
+            Ok(()) => (),
+            Err(e) => return Err(JsValue::from_str(&e.to_string()))
+        };
+        
+        match self.app_allocator.get_tray_summary(&tray_id, Some(die_sort)){
+            Ok(summary) => serde_wasm_bindgen::to_value(&summary).map_err(|e| JsValue::from_str(&e.to_string())),
+            Err(e) => return Err(JsValue::from_str(&e.to_string()))
+        }
+    }
+
+    /// Clear select dice readers from a tray.
+    #[wasm_bindgen]
+    pub fn clear_tray_readers(&mut self, reader_ids: Vec<usize>, tray_id: String) -> Result<JsValue, JsValue> {
+        let tray_summary = match self.app_allocator.move_reader(false, &tray_id, &reader_ids, None){
             Ok(summary) => summary,
             Err(e) => return Err(JsValue::from_str(&e.to_string()))
         };

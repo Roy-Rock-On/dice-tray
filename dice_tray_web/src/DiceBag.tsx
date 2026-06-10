@@ -3,10 +3,11 @@ import { useDiceTray } from './DiceTrayContext'
 import { DieView } from './DieView'
 import { genSeed } from './Utility';
 import { DieProps } from './DataTypes';
-import { motion, AnimatePresence, MotionConfig } from 'motion/react';
+import { motion, AnimatePresence, MotionConfig, Reorder} from 'motion/react';
 
 export function DiceBag() {
     const appHandle = useDiceTray();
+    
     const [diceList, setDiceList] = useState<DieProps[]>([]);
     const [selectedDieIds, setSelectedDieIds] = useState<number[]>([]); 
     const [rollCount, setRollCount] = useState<number>(0);
@@ -51,7 +52,6 @@ export function DiceBag() {
         setDiceList(diceList);
         setSortMode("result");
     }
-    
 
     useEffect (() => {
         //clause to prevent double fire.
@@ -92,16 +92,28 @@ export function DiceBag() {
         return (
             <motion.div className="dice-bag">
                 <AnimatePresence mode="popLayout">
+                    <Reorder.Group
+                        values={diceList}
+                        onReorder={setDiceList}
+                        axis='y'
+                    >
                     {diceList.map((die_state)=>(
-                        <motion.div 
+                        <Reorder.Item 
                             key={die_state.id}
+                            value={die_state}
                             layout
                             exit={{opacity: 0, scale: 0.9}}
                             transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                            whileDrag={{ 
+                                scale: 1.03, 
+                                boxShadow: "0 8px 16px rgba(0,0,0,0.1)",
+                                cursor: "grabbing"
+                            }}
                         >
-                            <DieView dieState={{...die_state}} rollCount={rollCount} selectDie={selectDie} />
-                        </motion.div>
+                            <DieView dieState={{...die_state}} rollCount={rollCount} selectDie={selectDie} />    
+                        </Reorder.Item>
                     ))}
+                    </Reorder.Group>
                 </AnimatePresence>
                 <button
                     className='button-prime'

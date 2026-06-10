@@ -76,6 +76,7 @@ function DieReaderComponent(props: DieReaderProps) {
         const nextSelect = !isSelected;
         setIsSelected(nextSelect);
         props.selectDie(props.dieReaderState.reader_id, nextSelect);
+        console.log("Selecting die reader with Id = " + props.dieReaderState.reader_id)
     });
 
     return (
