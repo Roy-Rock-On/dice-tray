@@ -39,6 +39,7 @@ function DieViewComponent(props: DieViewProps) {
     
     useEffect(() => {
         const handleRoll = async () => {
+            console.log(`Effect fired! Face: ${props.dieState.current_face}, Selected: ${props.isSelected}, Rolling: ${isRolling}`)
             setIsRolling(true);
             try{
                 let nextValue = props.dieState.current_face;
@@ -62,7 +63,10 @@ function DieViewComponent(props: DieViewProps) {
             }
         }
 
-        if(!props.isSelected || isRolling) return;
+        if(!props.isSelected || isRolling) {
+            console.log("Execution blocked by guard clause.");    
+            return;
+        }
         handleRoll();
     }, [props.dieState.current_face]);
     

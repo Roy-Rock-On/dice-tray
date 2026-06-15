@@ -15,6 +15,7 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
     const triggerBagRoll = useCallback(() => {
         diceState.forEach((die) => {
             if(diceSelection[die.id].isSelected){
+                console.log("Triggering roll for die with ID = " + die.id);
                 props.appHandle.roll_die(die.id);
             }
         })
