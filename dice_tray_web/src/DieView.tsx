@@ -1,13 +1,13 @@
 import {memo, useState, useEffect} from "react";
 import { DieShape } from "./DieShape";
 import { motion } from "framer-motion";
-import { DieProps } from "./DataTypes";
+import { DieState } from "./DataTypes";
 import { useAnimation } from "framer-motion";
 
 interface DieViewProps {
-    dieState: DieProps,
-    rollCount: number,
-    selectDie: (id: number, isSelected: boolean) => void;
+    dieState: DieState,
+    isSelected: boolean
+    toggleDieSelection: (id: number) => void;
 }
 
 const dieVariants = {
@@ -34,7 +34,6 @@ const dieTextVariants ={
 
 
 function DieViewComponent(props: DieViewProps) {
-    const [isSelected, setIsSelected] = useState<boolean>(false);
     const [dieResult, setDieResult] = useState<number>(props.dieState.current_face)
     const [isRolling, setIsRolling] = useState<boolean>(false);
     
@@ -63,25 +62,23 @@ function DieViewComponent(props: DieViewProps) {
             }
         }
 
-        if(!isSelected || isRolling) return;
+        if(!props.isSelected || isRolling) return;
         handleRoll();
-    }, [props.rollCount]);
+    }, [props.dieState.current_face]);
     
     const anim = useAnimation();
     useEffect(() => {
-        anim.start(isSelected ? "selected" : "unselected");
-    }, [isSelected, anim])
+        anim.start(props.isSelected ? "selected" : "unselected");
+    }, [props.isSelected, anim])
     
     const toggleSelect = (() => {
         console.log("Toggling select for die = " + props.dieState.id);
-        const nextSelect = !isSelected;
-        setIsSelected(nextSelect);
-        props.selectDie(props.dieState.id, nextSelect);
+        props.toggleDieSelection(props.dieState.id);
     });
 
     return (
         <motion.svg 
-            animate={isSelected ? "selected" : "unselected"}
+            animate={props.isSelected ? "selected" : "unselected"}
             variants={dieVariants}
             whileHover={{ scale: 1.05}}
             strokeWidth = {2}

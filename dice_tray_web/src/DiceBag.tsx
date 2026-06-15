@@ -1,145 +1,39 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { useDiceTray } from './DiceTrayContext'
 import { DieView } from './DieView'
-import { genSeed } from './Utility';
-import { DieProps } from './DataTypes';
+import { DieState, DieSelection} from './DataTypes';
 import { motion, AnimatePresence, MotionConfig, Reorder} from 'motion/react';
-import { div } from 'motion/react-client';
 
-export function DiceBag() {
-    const appHandle = useDiceTray();
-    
-    const [diceList, setDiceList] = useState<DieProps[]>([]);
-    const [selectedDieIds, setSelectedDieIds] = useState<number[]>([]); 
-    const [rollCount, setRollCount] = useState<number>(0);
-    const [sortMode, setSortMode] = useState<string>("face");
+interface DiceBagProps{
+    diceState: DieState[];
+    diceSelection: Record<number, DieSelection>;
+    isLoaded: boolean;
+    toggleDieSelection: (id: number) => void;
+}
 
-    console.log("Currently selected = " + selectedDieIds);
-    
-    const selectDie = useCallback((dieID: number, isSelected: boolean) => {       
-        setSelectedDieIds((prevSelected) => {
-            if (isSelected){
-                return [...prevSelected, dieID]
-            }
-            else{
-                return prevSelected.filter(id => dieID !== id);
-            }
-        })
-    }, [])
-
-    const hasInit = useRef(false);
-    const [isLoading, setIsLoading] = useState(true);
-
-    const triggerRoll = () => {
-        selectedDieIds.forEach((x) => {
-            appHandle.roll_die(x);
-        })
-        const diceList = appHandle.get_dice_state(sortMode).dice as DieProps[];
-        setDiceList(diceList);
-        setRollCount((lastCount) => {
-            console.log("Roll count = " + lastCount);
-            return lastCount += 1;
-        })
-    }
-
-    const sortByFace = () => {
-        const diceList = appHandle.get_dice_state("face").dice as DieProps[];
-        setDiceList(diceList);
-        setSortMode("face");
-    }
-
-    const sortByResult = () => {
-        const diceList = appHandle.get_dice_state("result").dice as DieProps[];
-        setDiceList(diceList);
-        setSortMode("result");
-    }
-
-    useEffect (() => {
-        //clause to prevent double fire.
-        if (hasInit.current) return;
-        hasInit.current = true;
-
-        const addDice = async () => {MotionConfig
-            try{
-                //Generate a set of dice to play with.
-                appHandle.create_die(4, genSeed());
-                appHandle.create_die(6, genSeed());
-                appHandle.create_die(8, genSeed());
-                appHandle.create_die(10, genSeed());
-                appHandle.create_die(12, genSeed());
-                appHandle.create_die(20, genSeed());
-                appHandle.create_die(100, genSeed());
-
-                let diceList = appHandle.get_dice_state("face").dice as DieProps[];                
-                setDiceList(diceList);
-            }catch(error){
-                console.error("Caught error while creating dice: ", error);
-            }finally{
-                setIsLoading(false);
-            }
-        };
-
-        addDice();
-    }, []);
-    
-    if (isLoading){
+export function DiceBag(props: DiceBagProps) {
+    if(!props.isLoaded){
         return (
-            <div className="dice-bag">
-                <h1>Loading Dice...</h1>
-            </div>
-        )  
-    }
-    else{
-        return (
-            <motion.div className="dice-bag">
-                <AnimatePresence mode="popLayout">
-                    <Reorder.Group
-                        as="div"
-                        values={diceList}
-                        onReorder={setDiceList}
-                        axis='y'
-                    >
-                    {diceList.map((die_state)=>(
-                        <Reorder.Item
-                            as="div" 
-                            key={die_state.id}
-                            value={die_state}
-                            layout
-                            exit={{opacity: 0, scale: 0.9}}
-                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                            whileDrag={{ 
-                                scale: 1.03, 
-                                boxShadow: "0 8px 16px rgba(0,0,0,0.1)",
-                                cursor: "grabbing"
-                            }}
-                        >
-                            <motion.div>
-                                <DieView dieState={{...die_state}} rollCount={rollCount} selectDie={selectDie} />    
-                            </motion.div>
-                        </Reorder.Item>
-                    ))}
-                    </Reorder.Group>
-                </AnimatePresence>
-                <button
-                    className='button-prime'
-                    onClick={triggerRoll}
-                >
-                    Roll!
-                </button>
-                <button
-                    className='button-prime'
-                    onClick={sortByFace}
-                >
-                    Face
-                </button>
-                <button
-                    className='button-prime'
-                    onClick={sortByResult}
-                >
-                    Result
-                </button>
-            </motion.div> 
+            <h1>Loading...</h1>
         )
-
     }
+
+    return (
+        <motion.div className="dice-bag">
+            <AnimatePresence mode="popLayout">
+                {props.diceState.map((die_state)=>(
+                    <motion.div
+                        key={die_state.id}
+                        layout
+                        exit={{opacity: 0, scale: 0.9}}
+                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                    >
+                        <DieView 
+                            dieState={die_state} 
+                            isSelected={props.diceSelection[die_state.id]?.isSelected ?? false} 
+                            toggleDieSelection={props.toggleDieSelection} 
+                        />    
+                    </motion.div>
+                ))}
+            </AnimatePresence>
+        </motion.div> 
+    )
 }

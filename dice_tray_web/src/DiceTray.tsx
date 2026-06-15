@@ -1,17 +1,16 @@
 import { useState, useEffect, useRef, useCallback} from "react";
-import { DieProps, DieReaderState, RollRequest } from "./DataTypes";
-import { useDiceTray } from "./DiceTrayContext";
+import { DieReaderState, DiceRequest } from "./DataTypes";
 import { DieReader } from "./DieReader";
 import { AnimatePresence, motion } from "motion/react";
 
 interface trayProps{
     trayId: string;
-    rollRequest: RollRequest[];
+    rollRequest: DiceRequest[];
 }
 
 export function DiceTray(props: trayProps){
+    /*
     const hasInit = useRef<boolean>(false);
-    const appHandle = useDiceTray();
     const [diceReaders, setDiceReaders] = useState<DieReaderState[]>([]);
     const [rollCount, setRollCount] = useState<number>(0);
 
@@ -20,17 +19,17 @@ export function DiceTray(props: trayProps){
         if (hasInit.current) return;
         try{
             console.log("initializing dice tray: " + props.trayId)
-            appHandle.new_tray(props.trayId);
+            //appHandle.new_tray(props.trayId);
         }
         catch{
             console.log("Failed to properly initialize dice tray with ID = " + props.trayId)
         }
         finally{
             //just for now as a test.
-            appHandle.roll_to_tray(props.trayId, 0, 1);
-            appHandle.roll_to_tray(props.trayId, 1, 8);
-            const traySummary = appHandle.roll_tray(props.trayId);
-            const dice = traySummary.tray_dice as DieReaderState[];
+            //appHandle.roll_to_tray(props.trayId, 0, 1);
+            //appHandle.roll_to_tray(props.trayId, 1, 8);
+            //const traySummary = appHandle.roll_tray(props.trayId);
+            //const dice = traySummary.tray_dice as DieReaderState[];
             setDiceReaders((prevDice) =>{
                 return [...prevDice, ...dice]
             })
@@ -106,4 +105,5 @@ export function DiceTray(props: trayProps){
           </div>
         </div>
     )
+        */
 }

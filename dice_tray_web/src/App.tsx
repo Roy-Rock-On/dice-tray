@@ -1,10 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef} from 'react'
 import init, { DiceAllocatorHandle } from '../pkg/dice_wasm';
-import { DiceBag } from './DiceBag'
-import { DiceTray } from './DiceTray'
-import { DiceTrayProvider } from './DiceTrayContext'
-
-import './App.css';
+import { DiceTrayAllocator } from './DiceTrayAllocator';
 
 let globalAppHandle: DiceAllocatorHandle | null = null;
 
@@ -36,25 +32,18 @@ function App() {
     initWasm();
   }, []);
 
+  ///Return component.
   if (!wasmReady || !globalAppHandle) {
     return (
       <div className="board">
         <h1>Dice Tray!</h1>
-        <p>Loading WASM...</p>
+        <p>Loading...</p>
       </div>
     )
   }
   else{
     return (
-      <DiceTrayProvider appHandle={globalAppHandle}>
-        <h1>Dice Tray!</h1>    
-        <div className="board">
-          <DiceBag />
-          <div className="tray-board">
-            <DiceTray trayId="main" rollRequest={[]} />
-          </div>
-        </div>
-      </DiceTrayProvider>
+      <DiceTrayAllocator appHandle={globalAppHandle} />
     )
   }
 }
