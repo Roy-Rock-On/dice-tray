@@ -136,16 +136,16 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
 
     // mount and return the app components.
     return (
-        <div>
-            <h1>Dice Tray!</h1>    
-            <div className="board">
-                <DiceBag 
-                    diceState={diceState} 
-                    isLoaded={isLoaded}
-                    diceSelection={diceSelection} 
-                    toggleDieSelection={toggleDieSelection}
-                />
-                <div className="tray-board">
+        <div className='board'>
+            <DiceBag 
+                diceState={diceState} 
+                isLoaded={isLoaded}
+                diceSelection={diceSelection} 
+                toggleDieSelection={toggleDieSelection}
+            />
+            <div className='tray-board'>
+                <div className='tray'>
+                    <h1>PLACEHOLDER!</h1>
                 </div>
             </div>
         </div>

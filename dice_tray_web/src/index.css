@@ -20,6 +20,9 @@
   --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
 
+  height: 100%;
+  margin: 0;
+  padding: 0;
   font: 18px/145% var(--sans);
   letter-spacing: 0.18px;
   color-scheme: light dark;

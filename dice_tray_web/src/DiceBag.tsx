@@ -17,7 +17,7 @@ export function DiceBag(props: DiceBagProps) {
     }
 
     return (
-        <motion.div className="dice-bag">
+        <div className='dice-bag'>
             <AnimatePresence mode="popLayout">
                 {props.diceState.map((die_state)=>(
                     <motion.div
@@ -34,6 +34,6 @@ export function DiceBag(props: DiceBagProps) {
                     </motion.div>
                 ))}
             </AnimatePresence>
-        </motion.div> 
+        </div> 
     )
 }

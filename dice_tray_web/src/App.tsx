@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef} from 'react'
 import init, { DiceAllocatorHandle } from '../pkg/dice_wasm';
 import { DiceTrayAllocator } from './DiceTrayAllocator';
+import './App.css'
 
 let globalAppHandle: DiceAllocatorHandle | null = null;
 
@@ -35,7 +36,7 @@ function App() {
   ///Return component.
   if (!wasmReady || !globalAppHandle) {
     return (
-      <div className="board">
+      <div>
         <h1>Dice Tray!</h1>
         <p>Loading...</p>
       </div>
@@ -43,7 +44,10 @@ function App() {
   }
   else{
     return (
-      <DiceTrayAllocator appHandle={globalAppHandle} />
+      <div id='root'>
+        <h1>Dice Tray!</h1>
+        <DiceTrayAllocator appHandle={globalAppHandle} />
+      </div>
     )
   }
 }

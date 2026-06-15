@@ -136,15 +136,18 @@
 }
 
 .dice-bag{
+  display: flex;
   position: relative;
   flex-direction: column;
-  align-self: left;
-  gap: auto;
+  align-self: flex-start;
+  gap: 8px;
   padding: 12px;
   margin: 4px;
   min-height: 2rem;
+  min-width: 120px;
   width: 10%;
-  background-color: var(--bg-dark);
+  min-height: 10rem;
+  background-color: var(--bg-dark, tomato);
 }
 
 .old-dice{
