@@ -7,6 +7,7 @@ interface DiceBagProps{
     diceSelection: Record<number, DieSelection>;
     isLoaded: boolean;
     toggleDieSelection: (id: number) => void;
+    triggerBagRoll: () => void;
 }
 
 export function DiceBag(props: DiceBagProps) {
@@ -34,6 +35,12 @@ export function DiceBag(props: DiceBagProps) {
                     </motion.div>
                 ))}
             </AnimatePresence>
+            <button 
+                className='button-prime'
+                onClick={props.triggerBagRoll}
+            >
+                Roll!
+            </button>
         </div> 
     )
 }

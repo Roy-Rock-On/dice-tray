@@ -12,7 +12,7 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
     ///Set dice state.
     const [diceState, setDiceState] = useState<DieState[]>([]);
 
-    const triggerBagRoll = () => {
+    const triggerBagRoll = useCallback(() => {
         diceState.forEach((die) => {
             if(diceSelection[die.id].isSelected){
                 props.appHandle.roll_die(die.id);
@@ -20,7 +20,7 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
         })
         const diceList = props.appHandle.get_dice_state("faces").dice as DieState[];
         setDiceState(diceList);
-    }
+    }, [])
 
     //Dice sorting
     /*
@@ -142,10 +142,11 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
                 isLoaded={isLoaded}
                 diceSelection={diceSelection} 
                 toggleDieSelection={toggleDieSelection}
+                triggerBagRoll={triggerBagRoll}
             />
             <div className='tray-board'>
                 <div className='tray'>
-                    <h1>PLACEHOLDER!</h1>
+
                 </div>
             </div>
         </div>
