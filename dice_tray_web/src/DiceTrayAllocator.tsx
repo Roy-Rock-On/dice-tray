@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import {DieState, DieReaderState, DiceRequest, DieSelection} from './DataTypes' 
+import {DieProps, DieDetails, DieReaderState, DiceRequest} from './DataTypes' 
 import { DiceBag } from './DiceBag';
 import { DiceAllocatorHandle } from '../pkg/dice_wasm';
 import { genSeed } from './Utility';
@@ -10,17 +10,86 @@ interface DiceTrayApplicationProps{
 
 export function DiceTrayAllocator(props: DiceTrayApplicationProps){
     ///Set dice state.
-    const [diceState, setDiceState] = useState<DieState[]>([]);
+    const [diceProps, setDiceProps] = useState<DieProps[]>([]);
+
+    ///Update dice details from WASM
+    const updateDiceProps = (diceList : DieDetails[]) => {
+        setDiceProps((prevProps) => {
+            const dieLookup = new Map<number, DieDetails>();
+            diceList.forEach((detail) => {
+                dieLookup.set(detail.id, detail);
+            });
+
+            const filteredProps =  prevProps.flatMap(prev => {
+                const newDetails = dieLookup.get(prev.id);
+                if (newDetails){
+                    dieLookup.delete(prev.id);
+                    return {
+                        ...prev,
+                        dieDetails: newDetails
+                    }
+                }
+                else {
+                    return [];
+                }
+            })
+
+            const newDiceProps: DieProps[] = Array.from(dieLookup.values()).map(newDetails => ({
+                id: newDetails.id,
+                isSelected: false,
+                dieCount: 0,
+                dieDetails: newDetails
+            }));
+
+            return [...filteredProps, ...newDiceProps]
+        })
+    }
 
     const triggerBagRoll = useCallback(() => {
-        diceState.forEach((die) => {
-            if(diceSelection[die.id].isSelected){
-                console.log("Triggering roll for die with ID = " + die.id);
-                props.appHandle.roll_die(die.id);
+        diceProps.forEach((die) => {
+            if(die.isSelected){
+                console.log("Triggering roll for die with ID = " + die.id + " current face = " + die.dieDetails.current_face);
+                let newDieDetails = props.appHandle.roll_die(die.id) as DieDetails;
+                console.log("New face = " + newDieDetails.current_face)
             }
         })
-        const diceList = props.appHandle.get_dice_state("faces").dice as DieState[];
-        setDiceState(diceList);
+        const diceList = props.appHandle.get_dice_state("faces").dice as DieDetails[];
+        updateDiceProps(diceList);
+    }, [diceProps, props.appHandle, updateDiceProps])
+
+    ///Set dice isSelected value.
+    const toggleDieSelection = useCallback((dieId: number) => {       
+        setDiceProps((prevProps) => {
+            return prevProps.map(prev => {
+                if(prev.id == dieId){
+                    const currentlySelected = prev.isSelected;
+                    return {
+                        ...prev,
+                        isSelected: !currentlySelected
+                    }
+                }
+                else{
+                    return prev;
+                }
+            })
+        })
+    }, [])
+
+    ///Set selected dice count
+    const setDiceCount = useCallback((dieId: number, newCount: number) =>{
+        setDiceProps((prevProps) => {
+            return prevProps.map(prev => {
+                if(prev.id == dieId){
+                    return {
+                        ...prev,
+                        dieCount: newCount
+                    }
+                }
+                else {
+                    return prev;
+                }
+            })
+        })
     }, [])
 
     //Dice sorting
@@ -38,70 +107,6 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
     }
     */
 
-
-    ///Set selected dice and count.
-    const [diceSelection, setDiceSelection] = useState<Record<number, DieSelection>>({});
-    const toggleDieSelection = useCallback((dieId: number) => {       
-        setDiceSelection((prevSelected) => {
-            const current = prevSelected[dieId] ?? {isSelected: false, count: 0};
-            return {
-                ...prevSelected,
-                [dieId]: {
-                    ...current,
-                    isSelected: !current.isSelected
-                }
-            }
-        })
-    }, [])
-
-    const setDieCount = useCallback((dieId: number, count: number) => {
-        setDiceSelection((prevSelected) => {
-            const current = prevSelected[dieId] ?? {isSelected: false, count:0};
-            return {
-                ...prevSelected,
-                [dieId]: {
-                    ...current,
-                    dieCount: count
-                }
-            }
-        })
-    }, [])
-
-    useEffect(() => {
-        console.log("diceState has updated.");
-        setDiceSelection((prevSelection) => {
-            const currentIds = new Set(diceState.map(die => die.id));
-            let hasChanges = false;
-            
-            const newSelection: Record<number, DieSelection> = {};
-            
-            for(const id in prevSelection){
-                const numericId = Number(id)
-                if (currentIds.has(numericId)){
-                    newSelection[numericId] = prevSelection[id];
-                }else{
-                    console.log("found changes in dice selection.")
-                    hasChanges = true;
-                }
-            }
-
-            for (const die of diceState) {
-                if (!(die.id in newSelection)) {
-                    console.log(`Found a brand new die: ID ${die.id}`);
-                    newSelection[die.id] = { isSelected: false, dieCount: 0 };
-                    hasChanges = true;
-                }
-            }
-
-            if(!hasChanges && Object.keys(newSelection).length === Object.keys(prevSelection).length){
-                console.log("old selection = " + prevSelection);
-                return prevSelection;
-            }
-
-            console.log("new dice selection = " + newSelection);
-            return newSelection;
-        });
-    }, [diceState])
 
      //initialization
     const [isLoaded, setIsLoaded] = useState(false);
@@ -123,8 +128,8 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
                 props.appHandle.create_die(20, genSeed());
                 props.appHandle.create_die(100, genSeed());
 
-                let diceList = props.appHandle.get_dice_state("face").dice as DieState[];                
-                setDiceState(diceList);
+                let diceList = props.appHandle.get_dice_state("face").dice as DieDetails[];                
+                updateDiceProps(diceList);
             }catch(error){
                 console.error("Caught error while creating dice: ", error);
             }finally{
@@ -139,9 +144,8 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
     return (
         <div className='board'>
             <DiceBag 
-                diceState={diceState} 
+                diceProps={diceProps} 
                 isLoaded={isLoaded}
-                diceSelection={diceSelection} 
                 toggleDieSelection={toggleDieSelection}
                 triggerBagRoll={triggerBagRoll}
             />

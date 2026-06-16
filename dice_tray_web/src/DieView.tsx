@@ -1,12 +1,11 @@
 import {memo, useState, useEffect} from "react";
 import { DieShape } from "./DieShape";
 import { motion } from "framer-motion";
-import { DieState } from "./DataTypes";
+import { DieProps } from "./DataTypes";
 import { useAnimation } from "framer-motion";
 
 interface DieViewProps {
-    dieState: DieState,
-    isSelected: boolean
+    dieProps: DieProps,
     toggleDieSelection: (id: number) => void;
 }
 
@@ -34,15 +33,14 @@ const dieTextVariants ={
 
 
 function DieViewComponent(props: DieViewProps) {
-    const [dieResult, setDieResult] = useState<number>(props.dieState.current_face)
+    const [dieResult, setDieResult] = useState<number>(props.dieProps.dieDetails.current_face)
     const [isRolling, setIsRolling] = useState<boolean>(false);
     
     useEffect(() => {
         const handleRoll = async () => {
-            console.log(`Effect fired! Face: ${props.dieState.current_face}, Selected: ${props.isSelected}, Rolling: ${isRolling}`)
             setIsRolling(true);
             try{
-                let nextValue = props.dieState.current_face;
+                let nextValue = props.dieProps.dieDetails.current_face;
                 await anim.start({
                     rotate: [0, 180, 360],
                     x: [0, -5, 5, 0],
@@ -62,27 +60,27 @@ function DieViewComponent(props: DieViewProps) {
                 setIsRolling(false);
             }
         }
-
-        if(!props.isSelected || isRolling) {
-            console.log("Execution blocked by guard clause.");    
+        
+        if(!props.dieProps.isSelected || isRolling) {   
             return;
         }
+        
         handleRoll();
-    }, [props.dieState.current_face]);
+    }, [props.dieProps.dieDetails]);
     
     const anim = useAnimation();
     useEffect(() => {
-        anim.start(props.isSelected ? "selected" : "unselected");
-    }, [props.isSelected, anim])
+        anim.start(props.dieProps.isSelected ? "selected" : "unselected");
+    }, [props.dieProps.isSelected, anim])
     
     const toggleSelect = (() => {
-        console.log("Toggling select for die = " + props.dieState.id);
-        props.toggleDieSelection(props.dieState.id);
+        console.log("Toggling select for die = " + props.dieProps.dieDetails.id);
+        props.toggleDieSelection(props.dieProps.dieDetails.id);
     });
 
     return (
         <motion.svg 
-            animate={props.isSelected ? "selected" : "unselected"}
+            animate={props.dieProps.isSelected ? "selected" : "unselected"}
             variants={dieVariants}
             whileHover={{ scale: 1.05}}
             strokeWidth = {2}
@@ -103,7 +101,7 @@ function DieViewComponent(props: DieViewProps) {
             }}
         >
             <motion.g animate={anim}>
-                <DieShape dieFaces={props.dieState.faces} dieColor="#1885cf"/>
+                <DieShape dieFaces={props.dieProps.dieDetails.faces} dieColor="#1885cf"/>
                 <motion.text
                     animate={isRolling ? "rolling" : "static"}
                     variants={dieTextVariants}
@@ -111,8 +109,7 @@ function DieViewComponent(props: DieViewProps) {
                     y="50"
                     strokeWidth={0} 
                     fill= {'#000305'}
-                    fontSize="24" 
-
+                    fontSize="24"
                     fontWeight="bold"
                     textAnchor="middle" 
                     dominantBaseline="central"

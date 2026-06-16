@@ -1,16 +1,17 @@
+///Represents a die along with data about how/what is selected.
+export interface DieProps {
+    id: number;
+    isSelected: boolean;
+    dieCount: number;
+    dieDetails: DieDetails;
+}
 
 ///Represents a die or a die reader. Holds dice information from WASM.
-export interface DieState {
+export interface DieDetails {
     id: number;  
     label: string;
     faces: number;
     current_face: number;
-}
-
-///Wrapper to get the selected status of a die in the bag. 
-export interface DieSelection{
-    isSelected: boolean,
-    dieCount: number
 }
 
 ///Represents a die reader that sits in a tray.
