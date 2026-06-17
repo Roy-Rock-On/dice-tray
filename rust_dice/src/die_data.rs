@@ -8,7 +8,7 @@ pub enum DieSort{
 
 /// Die state represents the current state of the die. 
 /// This is used to allow many DieReaders to use the same underlying Die.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct DieState{
     pub id: usize,
     pub label: String,
@@ -24,7 +24,7 @@ impl DieState{
 }
 
 ///Wrapper struct for a group of Dice States.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct DiceState{
     dice: Vec<DieState>
 }

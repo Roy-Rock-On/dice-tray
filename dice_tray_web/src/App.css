@@ -49,9 +49,22 @@
 
 /* FORM STYLES */
 .form{
-  max-width: '400px';
-  margin: '20px auto';
+  margin: 20px auto;
   font-family: 'sans-serif';
+
+  width: 450px;          
+  max-width: 90vw;       
+  
+  padding: 24px;
+  box-sizing: border-box; 
+
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.form form{
+  width: 100%
 }
 
 .form-label{
@@ -62,6 +75,7 @@
 .input-field{
    width: 100%;
    padding: 8px;
+   box-sizing: border-box;
 }
 
 .input-color{

@@ -7,6 +7,9 @@ interface DiceBagProps{
     isLoaded: boolean;
     toggleDieSelection: (id: number) => void;
     triggerBagRoll: () => void;
+    setDieCount: (id: number, newCount: number) => void;
+    openNewDieModal: () => void;
+    destroyDice: () => void;
 }
 
 export function DiceBag(props: DiceBagProps) {
@@ -29,6 +32,7 @@ export function DiceBag(props: DiceBagProps) {
                         <DieView 
                             dieProps={dieProp} 
                             toggleDieSelection={props.toggleDieSelection} 
+                            setDieCount={props.setDieCount}
                         />    
                     </motion.div>
                 ))}
@@ -37,7 +41,19 @@ export function DiceBag(props: DiceBagProps) {
                 className='button-prime'
                 onClick={props.triggerBagRoll}
             >
-                Roll!
+                ROLL
+            </button>
+            <button
+                className='button-prime'
+                onClick={props.openNewDieModal}
+            >
+                NEW DIE
+            </button>
+            <button
+                className='button-destructive'
+                onClick={props.destroyDice}
+            >
+                DESTROY
             </button>
         </div> 
     )

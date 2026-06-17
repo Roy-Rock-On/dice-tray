@@ -35,7 +35,7 @@ impl DiceAllocatorHandle {
 
     /// Add a die to the dice bag
     #[wasm_bindgen]
-    pub fn create_die(&mut self, sides: u32, seed: u64) -> Result<JsValue, JsValue> {
+    pub fn create_die(&mut self, sides: u32,  seed: u64, label: String, var: u32,) -> Result<JsValue, JsValue> {
         // Validate input
         if sides == 0 {
             return Err(JsValue::from_str("Die must have at least 1 side"));
@@ -47,7 +47,19 @@ impl DiceAllocatorHandle {
         // Log for debugging
         web_sys::console::log_1(&format!("Creating die with {} sides", sides).into());
         
-        let die_summary = match self.app_allocator.create_die(sides, Some(seed), None, 50){
+        let die_summary = match self.app_allocator.create_die(sides, Some(seed), Some(label), var){
+            Ok(summary) => summary,
+            Err(e) => {
+                let error_str = format!("Failed to create die. Error {}", e);
+                return Err(JsValue::from_str(&error_str));
+            }
+        };
+        serde_wasm_bindgen::to_value(&die_summary).map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+
+    #[wasm_bindgen]
+    pub fn destroy_dice(&mut self, ids: Vec<usize>) -> Result<JsValue, JsValue> {
+        let die_summary = match self.app_allocator.destroy_dice(ids){
             Ok(summary) => summary,
             Err(e) => {
                 let error_str = format!("Failed to create die. Error {}", e);
@@ -67,6 +79,7 @@ impl DiceAllocatorHandle {
         };
 
         let dice_state = self.app_allocator.get_dice_state(Some(sort));
+        web_sys::console::log_1(&format!("Found die stare {:?} sides", dice_state).into());
         serde_wasm_bindgen::to_value(&dice_state).map_err(|e| JsValue::from_str(&e.to_string()))
     }
 

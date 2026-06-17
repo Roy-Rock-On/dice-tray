@@ -1,13 +1,12 @@
 import { memo, useState, useEffect } from "react";
 import { DieShape } from "./DieShape";
 import { motion } from "framer-motion";
-import { DieReaderState } from "./DataTypes";
+import { DieReaderProps } from "./DataTypes";
 import { useAnimation } from "framer-motion";
 
-interface DieReaderProps {
-    dieReaderState: DieReaderState,
-    rollCount: number,
-    selectDie: (id: number, isSelected: boolean) => void;
+interface DieReaderViewProps {
+   readerProps: DieReaderProps,
+   toggleDieReaderSelection: (id: number) => void; 
 }
 
 const dieVariants = {
@@ -32,16 +31,15 @@ const dieTextVariants = {
     }
 }
 
-function DieReaderComponent(props: DieReaderProps) {
-    const [isSelected, setIsSelected] = useState<boolean>(false);
-    const [dieResult, setDieResult] = useState<number>(props.dieReaderState.current_face)
+function DieReaderComponent(props: DieReaderViewProps) {
+    const [dieResult, setDieResult] = useState<number>(props.readerProps.readerDetails.current_face)
     const [isRolling, setIsRolling] = useState<boolean>(false);
 
     useEffect(() => {
         const handleRoll = async () => {
             setIsRolling(true);
             try {
-                let nextValue = props.dieReaderState.current_face;
+                let nextValue = props.readerProps.readerDetails.current_face;
                 await anim.start({
                     rotate: [0, 180, 360],
                     x: [0, -5, 5, 0],
@@ -62,26 +60,24 @@ function DieReaderComponent(props: DieReaderProps) {
             }
         }
 
-        if (!isSelected || isRolling) return;
+        if (!props.readerProps.isSelected || isRolling) return;
         handleRoll();
-    }, [props.rollCount]);
+    }, [props.readerProps.readerDetails]);
 
     const anim = useAnimation();
     useEffect(() => {
-        anim.start(isSelected ? "selected" : "unselected");
-    }, [isSelected, anim])
+        anim.start(props.readerProps.isSelected ? "selected" : "unselected");
+    }, [props.readerProps.isSelected, anim])
 
     const toggleSelect = (() => {
-        console.log("Toggling select for die reader = " + props.dieReaderState.reader_id);
-        const nextSelect = !isSelected;
-        setIsSelected(nextSelect);
-        props.selectDie(props.dieReaderState.reader_id, nextSelect);
-        console.log("Selecting die reader with Id = " + props.dieReaderState.reader_id)
+        console.log("Toggling select for die reader = " + props.readerProps.id);
+        props.toggleDieReaderSelection(props.readerProps.id);
+        console.log("Selecting die reader with Id = " + props.readerProps.id)
     });
 
     return (
         <motion.svg
-            animate={isSelected ? "selected" : "unselected"}
+            animate={props.readerProps.isSelected ? "selected" : "unselected"}
             variants={dieVariants}
             whileHover={{ scale: 1.05 }}
             strokeWidth={2}
@@ -102,7 +98,7 @@ function DieReaderComponent(props: DieReaderProps) {
             }}
         >
             <motion.g animate={anim}>
-                <DieShape dieFaces={props.dieReaderState.total_faces} dieColor="#1885cf" />
+                <DieShape dieFaces={props.readerProps.readerDetails.total_faces} dieColor="#1885cf" />
                 <motion.text
                     animate={isRolling ? "rolling" : "static"}
                     variants={dieTextVariants}

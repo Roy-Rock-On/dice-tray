@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import {DieProps, DieDetails, DieReaderState, DiceRequest} from './DataTypes' 
+import { DieProps, DieDetails, NewDieRequest, DiceRequest } from './DataTypes' 
 import { DiceBag } from './DiceBag';
 import { DiceAllocatorHandle } from '../pkg/dice_wasm';
-import { genSeed } from './Utility';
+import { genSeed, toSafeNumberArray } from './Utility';
+import { NewDieModal } from './NewDieFrom';
 
 interface DiceTrayApplicationProps{
     appHandle: DiceAllocatorHandle
@@ -57,6 +58,21 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
         updateDiceProps(diceList);
     }, [diceProps, props.appHandle, updateDiceProps])
 
+    
+    const destroyDice = useCallback(() => {
+        const selectedDieIds: number[] = diceProps
+            .filter(die => die.isSelected)
+            .map(die => die.id);
+        try{
+            const safeIds = toSafeNumberArray(selectedDieIds);
+            const newDiceDetails = props.appHandle.destroy_dice(safeIds).dice as DieDetails[];
+            updateDiceProps(newDiceDetails);
+        }
+        catch{
+            console.error("Could not cast IDs safely while attempting to Destroy Dice.");
+        }
+    }, [diceProps, props.appHandle, updateDiceProps])
+
     ///Set dice isSelected value.
     const toggleDieSelection = useCallback((dieId: number) => {       
         setDiceProps((prevProps) => {
@@ -73,10 +89,10 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
                 }
             })
         })
-    }, [])
+    }, [diceProps])
 
     ///Set selected dice count
-    const setDiceCount = useCallback((dieId: number, newCount: number) =>{
+    const setDieCount = useCallback((dieId: number, newCount: number) =>{
         setDiceProps((prevProps) => {
             return prevProps.map(prev => {
                 if(prev.id == dieId){
@@ -90,25 +106,29 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
                 }
             })
         })
-    }, [])
+    }, [diceProps])
 
-    //Dice sorting
-    /*
-    const sortByFace = () => {
-        const diceList = appHandle.get_dice_state("face").dice as DieState[];
-        setDiceList(diceList);
-        setSortMode("face");
+    ///New Die Modal Form
+    const [isNewDieModalOpen, setIsNewDieModalOpen] = useState(false);
+
+    const openNewDieModal = () => {
+        console.log("New die modal is opening! I hope...");
+        setIsNewDieModalOpen(true);
     }
 
-    const sortByResult = () => {
-        const diceList = appHandle.get_dice_state("result").dice as DieState[];
-        setDiceList(diceList);
-        setSortMode("result");
+    const onSubmitNewDie = (newDieRequest: NewDieRequest) => {
+        props.appHandle.create_die(newDieRequest.sides, genSeed(), newDieRequest.label, newDieRequest.variance);
+        const newDieDetails = props.appHandle.get_dice_state("face").dice as DieDetails[];
+        updateDiceProps(newDieDetails);
+        setIsNewDieModalOpen(false);
     }
-    */
 
+    const onCloseNewDieFrom = () => {
+        setIsNewDieModalOpen(false);
+        console.log("New die form has been closed.");
+    }
 
-     //initialization
+    //initialization
     const [isLoaded, setIsLoaded] = useState(false);
     const firstInit = useRef(false);
 
@@ -119,15 +139,6 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
 
         const addDice = async () => {
             try{
-                //Generate a set of dice to play with.
-                props.appHandle.create_die(4, genSeed());
-                props.appHandle.create_die(6, genSeed());
-                props.appHandle.create_die(8, genSeed());
-                props.appHandle.create_die(10, genSeed());
-                props.appHandle.create_die(12, genSeed());
-                props.appHandle.create_die(20, genSeed());
-                props.appHandle.create_die(100, genSeed());
-
                 let diceList = props.appHandle.get_dice_state("face").dice as DieDetails[];                
                 updateDiceProps(diceList);
             }catch(error){
@@ -148,12 +159,20 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
                 isLoaded={isLoaded}
                 toggleDieSelection={toggleDieSelection}
                 triggerBagRoll={triggerBagRoll}
+                setDieCount={setDieCount}
+                openNewDieModal={openNewDieModal}
+                destroyDice={destroyDice}
             />
             <div className='tray-board'>
                 <div className='tray'>
 
                 </div>
             </div>
+            <NewDieModal
+                isOpen={isNewDieModalOpen}
+                onSubmitNewDie={onSubmitNewDie}
+                onClose={onCloseNewDieFrom}
+            />
         </div>
     )
 }

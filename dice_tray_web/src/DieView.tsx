@@ -7,6 +7,7 @@ import { useAnimation } from "framer-motion";
 interface DieViewProps {
     dieProps: DieProps,
     toggleDieSelection: (id: number) => void;
+    setDieCount: (id: number, newCount: number) => void;
 }
 
 const dieVariants = {
@@ -73,10 +74,21 @@ function DieViewComponent(props: DieViewProps) {
         anim.start(props.dieProps.isSelected ? "selected" : "unselected");
     }, [props.dieProps.isSelected, anim])
     
+
+    const tempBundleSelection = (() =>{
+        toggleSelect();
+        setDieCount();
+    });
+
     const toggleSelect = (() => {
         console.log("Toggling select for die = " + props.dieProps.dieDetails.id);
         props.toggleDieSelection(props.dieProps.dieDetails.id);
     });
+
+    const setDieCount = (() => {
+        console.log("Setting die count to 1 as a test.");
+        props.setDieCount(props.dieProps.id, 1);
+    })
 
     return (
         <motion.svg 
@@ -92,7 +104,7 @@ function DieViewComponent(props: DieViewProps) {
                 overflow: 'visible'
             }}
 
-            onClick={toggleSelect}
+            onClick={tempBundleSelection}
             whileTap={{scale:1.15}}
             transition={{
                 type:"spring",
