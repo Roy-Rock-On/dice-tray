@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { DieProps, DieDetails, NewDieRequest, DiceRequest } from './DataTypes' 
+import { DieProps, DieDetails, NewDieRequest, DiceRequest, TrayProps } from './DataTypes' 
 import { DiceBag } from './DiceBag';
 import { DiceAllocatorHandle } from '../pkg/dice_wasm';
 import { genSeed, toSafeNumberArray } from './Utility';
 import { NewDieModal } from './NewDieFrom';
+import { DiceTray } from './DiceTray';
 
 interface DiceTrayApplicationProps{
     appHandle: DiceAllocatorHandle
@@ -108,6 +109,11 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
         })
     }, [diceProps])
 
+    const [trayList, setTrayList] = useState<TrayProps[]>();
+
+
+    const rollTray = () => {};
+
     ///New Die Modal Form
     const [isNewDieModalOpen, setIsNewDieModalOpen] = useState(false);
 
@@ -164,9 +170,13 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
                 destroyDice={destroyDice}
             />
             <div className='tray-board'>
-                <div className='tray'>
-
-                </div>
+                <DiceTray 
+                    trayId='main'
+                    isSelected={false}
+                    rollRequest={[]}
+                    readerProps={[]}
+                    rollTray={rollTray}
+                />
             </div>
             <NewDieModal
                 isOpen={isNewDieModalOpen}

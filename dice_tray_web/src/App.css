@@ -120,13 +120,14 @@
   width: 95%;
   gap: 12px;            
   padding: 8px 8px;
-  background-color: #f5f5f5;
-  border: 1px solid #ddd;
+  background-color: #c1baba;
+  border: 1px solid #3b3a3a;
 }
 
 /* buttons at the end of a tray. */
 .tray-tools{
   display:flex;
+  align-self: flex-end;
   flex-direction: column;
   gap: 6px;
 }

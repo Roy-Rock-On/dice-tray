@@ -23,7 +23,6 @@ export interface DieReaderProps{
 
 ///Represents a die reader. Holds dice information from WASM.
 export interface DieReaderDetails {
-    id: number,
     reader_id: number,
     total_faces: number,
     die_label: string,
@@ -36,6 +35,13 @@ export interface DiceRequest{
     dieCount: number
 }
 
+export interface TrayProps{
+    trayId: string;
+    isSelected: boolean;
+    rollRequest: DiceRequest[];
+    readerProps: DieReaderProps[];
+    rollTray: () => void; 
+}
 
 ///New die data. Used to prompt the application to create a new die.
 export interface NewDieRequest{

@@ -13,7 +13,6 @@ pub struct DiceAllocatorHandle {
 
 #[wasm_bindgen]
 impl DiceAllocatorHandle {
-
     ///Constructor for the overall appHandle.
     #[wasm_bindgen(constructor)]
     pub fn new() -> Result<Self, JsValue>  {
@@ -33,6 +32,7 @@ impl DiceAllocatorHandle {
         Ok(alloc_handle)
     }
 
+    /* DICE STUFF */
     /// Add a die to the dice bag
     #[wasm_bindgen]
     pub fn create_die(&mut self, sides: u32,  seed: u64, label: String, var: u32,) -> Result<JsValue, JsValue> {
@@ -69,6 +69,18 @@ impl DiceAllocatorHandle {
         serde_wasm_bindgen::to_value(&die_summary).map_err(|e| JsValue::from_str(&e.to_string()))
     }
 
+    ///rolls a die in the dice bag directly.
+    #[wasm_bindgen]
+    pub fn roll_die(&mut self, die_id: usize) -> Result<JsValue, JsValue> {
+        // Log for debugging
+        web_sys::console::log_1(&format!("Rolling die with ID = {}", die_id).into());
+        match self.app_allocator.roll_die(die_id){
+            Ok(summary) => return serde_wasm_bindgen::to_value(&summary)
+                .map_err(|e| JsValue::from_str(&e.to_string())),
+            Err(e) => return Err(JsValue::from_str(&e.to_string()))
+        }
+    }
+
     ///Gets the dice state of all dice in the bag.
     #[wasm_bindgen]
     pub fn get_dice_state(&self, sort_mode: String) -> Result<JsValue, JsValue> {
@@ -83,6 +95,8 @@ impl DiceAllocatorHandle {
         serde_wasm_bindgen::to_value(&dice_state).map_err(|e| JsValue::from_str(&e.to_string()))
     }
 
+
+    /* TRAY STUFF */
     ///Creates a new dice tray with the given name.
     #[wasm_bindgen]
     pub fn new_tray(&mut self, tray_id: String) -> Result<JsValue, JsValue>{       
@@ -93,38 +107,20 @@ impl DiceAllocatorHandle {
         serde_wasm_bindgen::to_value(&tray_summary).map_err(|e| JsValue::from_str(&e.to_string()))
     }
 
-    /// Roll all dice in the tray with the matching ID.
-    #[wasm_bindgen]
-    pub fn roll_tray(&mut self, tray_id: String) -> Result<JsValue, JsValue> {
-        let tray_summary = match self.app_allocator.roll_tray(tray_id){
-            Ok(summary) => summary,
-            Err(e) => return Err(JsValue::from_str(&e.to_string())) 
-        };
-        serde_wasm_bindgen::to_value(&tray_summary).map_err(|e| JsValue::from_str(&e.to_string()))
-    }
-
-    ///rolls a die in the dice bag directly.
-    #[wasm_bindgen]
-    pub fn roll_die(&mut self, die_id: usize) -> Result<JsValue, JsValue> {
-        // Log for debugging
-        web_sys::console::log_1(&format!("Rolling die with ID = {}", die_id).into());
-        match self.app_allocator.roll_die(die_id){
-            Ok(summary) => return serde_wasm_bindgen::to_value(&summary)
-                .map_err(|e| JsValue::from_str(&e.to_string())),
-            Err(e) => return Err(JsValue::from_str(&e.to_string()))
-        }
-    }
-
     ///Adds and rolls die readers to a tray.
     #[wasm_bindgen]
-    pub fn roll_to_tray(&mut self, tray_id: String, die_id: usize, die_count: u32) -> Result<(), JsValue>{
+    pub fn roll_to_tray(&mut self, tray_id: String, die_id: usize, die_count: u32) -> Result<JsValue, JsValue>{
         for _ in 0..die_count{
             match self.app_allocator.add_die_reader(true, die_id, &Some(tray_id.clone())){
                 Ok(_) => (),
                 Err(e) => return Err(JsValue::from_str(&e.to_string()))
             };
         }
-        Ok(())
+
+        match self.app_allocator.get_tray_summary(&tray_id, None){
+            Ok(summary) => serde_wasm_bindgen::to_value(&summary).map_err(|e| JsValue::from_str(&e.to_string())),
+            Err(e) => return Err(JsValue::from_str(&e.to_string()))
+        }
     }
 
     #[wasm_bindgen]
@@ -158,7 +154,7 @@ impl DiceAllocatorHandle {
 
     ///Gets the tray data used to update the tray.
     #[wasm_bindgen]
-    pub fn get_tray_data(&self, tray_id: String, sort_mode: String) -> Result<JsValue, JsValue> {
+    pub fn get_tray_summary(&self, tray_id: String, sort_mode: String) -> Result<JsValue, JsValue> {
         let die_sort = match sort_mode.trim(){
             "result" => DieSort::CurrentFace,
             "faces" => DieSort::FaceCount,
@@ -170,5 +166,10 @@ impl DiceAllocatorHandle {
             Err(e) => return Err(JsValue::from_str(&e.to_string()))
         };
         serde_wasm_bindgen::to_value(&tray_summary).map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+
+    pub fn get_all_tray_summaries(&self) -> Result<JsValue, JsValue> {
+        let summaries = self.app_allocator.get_all_tray_summaries();
+        serde_wasm_bindgen::to_value(&summaries).map_err(|e| JsValue::from_str(&e.to_string()))
     }
 }
