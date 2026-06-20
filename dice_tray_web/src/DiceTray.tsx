@@ -4,61 +4,30 @@ import { DieReader } from "./DieReader";
 import { AnimatePresence, motion } from "motion/react";
 import { DiceAllocatorHandle } from '../pkg/dice_wasm';
 
-export function DiceTray(props: TrayProps){
-    const [readerProps, setReaderProps] = useState<DieReaderProps[]>([]);
-
-    const updateReaderProps = (readerList: DieReaderDetails[]) => {
-        setReaderProps((prevProps) => {
-            const readerLookup = new Map<number, DieReaderDetails>();
-            readerList.forEach((detail) => {
-                readerLookup.set(detail.reader_id, detail);
-            });
-
-            const filteredProps = prevProps.flatMap(prev => {
-                const newDetails = readerLookup.get(prev.id);
-                if (newDetails){
-                    readerLookup.delete(prev.id);
-                    return {
-                        ...prev,
-                        readerDetails: newDetails
-                    }
-                }
-                else {
-                    return [];
-                }
-            })
-
-            const newReaderProps: DieReaderProps[] = Array.from(readerLookup.values()).map(newDetails => ({
-                id: newDetails.reader_id,
-                isSelected: false,
-                readerDetails: newDetails
-            }));
-
-            return [...filteredProps, ...newReaderProps]
-        })
+const trayVariants = {
+    selected: {
+        scale: 1.20,
+        stroke: '#ffffff'
+    },
+    unselected: {
+        scale: 1,
+        stroke: '#000000'
     }
+}
 
-    const toggleReaderSelection = useCallback((readerId: number) =>{
-        setReaderProps((prevProps) => {
-            return prevProps.map(prev => {
-                if (prev.id == readerId){
-                    const currentlySelected = prev.isSelected;
-                    return {
-                        ...prev,
-                        isSelected: !currentlySelected
-                    }
-                }
-                else{
-                    return prev;
-                }
-            })
-        })
-    }, [readerProps])
+
+export function DiceTray(props: TrayProps){
+
+    const selectTray = () => {
+        props.toggleSelection(props.trayId)
+    }
 
     return (
         <div className='tray-group'>
             <motion.div
                 className='tray'
+                animate={props.isSelected ? "selected" : "unselected"}
+                variants={trayVariants}
                 whileHover={{
                     scale: 1.02,
                     boxShadow: '0px 10px 30px rgba(244, 242, 247, 0.3)'
@@ -68,9 +37,12 @@ export function DiceTray(props: TrayProps){
                     stiffness: 300,
                     damping: 20
                 }}
+                role="button"
+                tabIndex={0}
+                onClick={selectTray}
             >
                 <AnimatePresence mode='popLayout'>
-                    {readerProps.map((readerProp) => (
+                    {props.readerProps.map((readerProp) => (
                         <motion.div
                             key={readerProp.id}
                             layout
@@ -79,7 +51,7 @@ export function DiceTray(props: TrayProps){
                         >
                             <DieReader
                                 readerProps={readerProp}
-                                toggleDieReaderSelection={toggleReaderSelection}
+                                //toggleDieReaderSelection={toggleReaderSelection}
                             />
                         </motion.div>
                     ))}

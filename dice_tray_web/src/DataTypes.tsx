@@ -46,6 +46,7 @@ export interface TrayProps{
     isSelected: boolean;
     readerProps: DieReaderProps[];
     rollTray: () => void; 
+    toggleSelection: (trayId: string) => void;
 }
 
 export function spreadTrayDetails(trayProps: TrayProps, readerDetails: DieReaderDetails[]): TrayProps{

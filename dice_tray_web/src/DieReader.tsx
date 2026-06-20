@@ -6,7 +6,7 @@ import { useAnimation } from "framer-motion";
 
 interface DieReaderViewProps {
    readerProps: DieReaderProps,
-   toggleDieReaderSelection: (id: number) => void; 
+   //toggleDieReaderSelection: (id: number) => void; 
 }
 
 const dieVariants = {
@@ -71,7 +71,7 @@ function DieReaderComponent(props: DieReaderViewProps) {
 
     const toggleSelect = (() => {
         console.log("Toggling select for die reader = " + props.readerProps.id);
-        props.toggleDieReaderSelection(props.readerProps.id);
+        //props.toggleDieReaderSelection(props.readerProps.id);
         console.log("Selecting die reader with Id = " + props.readerProps.id)
     });
 

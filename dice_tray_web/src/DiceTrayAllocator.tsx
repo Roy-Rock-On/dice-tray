@@ -179,7 +179,8 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
             trayId: newTrayDetails.tray_label as string,
             isSelected: false,
             readerProps: [],
-            rollTray: rollTray
+            rollTray: rollTray,
+            toggleSelection: toggleTraySelection
         };
 
         setTrayList((prevList) => {
@@ -260,9 +261,16 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
                              isSelected={tray.isSelected}
                              readerProps={tray.readerProps}
                              rollTray={rollTray}
+                             toggleSelection={toggleTraySelection}
                         />
                     </div>
                 ))}
+                <button
+                    className='button-prime'
+                    onClick={openNewTrayModal}
+                >
+                    New Tray
+                </button>
             </div>
             <NewDieModal
                 isOpen={isNewDieModalOpen}
