@@ -1,9 +1,18 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { DieProps, DieDetails, TrayProps, DieReaderDetails, NewDieRequest, spreadTrayDetails } from './DataTypes' 
+import { 
+        DieProps,
+        DieDetails,
+        TrayProps,
+        DieReaderDetails,
+        NewDieRequest,
+        NewTrayRequest,
+        spreadTrayDetails
+    } from './DataTypes' 
 import { DiceBag } from './DiceBag';
 import { DiceAllocatorHandle } from '../pkg/dice_wasm';
 import { genSeed, toSafeNumberArray } from './Utility';
 import { NewDieModal } from './NewDieFrom';
+import { NewTrayModal } from './NewTrayForm';
 import { DiceTray } from './DiceTray';
 
 interface DiceTrayApplicationProps{
@@ -110,6 +119,27 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
     }, [diceProps])
 
     const [trayList, setTrayList] = useState<TrayProps[]>();
+    const newDiceTray = () => {
+
+    }
+
+    const toggleTraySelection = useCallback((trayId: string) =>{
+        setTrayList(prevTrayList => {
+            prevTrayList?.map(tray => {
+                if (tray.trayId === trayId){
+                    return {
+                        ...tray,
+                        isSelected: !tray.isSelected
+                    }
+                }
+                else{
+                    return tray;
+                }
+            })
+        })
+        
+    }, [trayList, props.appHandle] )
+
     const rollTray = useCallback(() => {
         const selectedTrayProps : TrayProps | undefined = trayList?.find(tray => tray.isSelected) as TrayProps;
         if (!selectedTrayProps){
@@ -134,6 +164,36 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
         })
 
     }, [trayList, props.appHandle]);
+
+    ///New Tray Modal Form
+    const [isNewTrayModalOpen, setIsNewTrayModalOpen] = useState(false);
+
+    const openNewTrayModal = () => {
+        console.log("New tray modal is opening!");
+        setIsNewTrayModalOpen(true);
+    }
+
+    const onSubmitNewTray = (newTrayRequest: NewTrayRequest) => {
+        const newTrayDetails = props.appHandle.new_tray(newTrayRequest.label);
+        const newTrayProps: TrayProps = {
+            trayId: newTrayDetails.tray_label as string,
+            isSelected: false,
+            readerProps: [],
+            rollTray: rollTray
+        };
+
+        setTrayList((prevList) => {
+            const currentList = prevList ?? [];
+            return [...currentList, newTrayProps];
+        })
+
+        setIsNewTrayModalOpen(false);
+    }
+
+    const onCloseNewTrayForm = () => {
+        setIsNewTrayModalOpen(false);
+        console.log("New tray form has been closed.");
+    }
 
     ///New Die Modal Form
     const [isNewDieModalOpen, setIsNewDieModalOpen] = useState(false);
@@ -191,17 +251,28 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
                 destroyDice={destroyDice}
             />
             <div className='tray-board'>
-                <DiceTray 
-                    trayId='main'
-                    isSelected={false}
-                    readerProps={[]}
-                    rollTray={rollTray}
-                />
+                {trayList?.map((tray) => (
+                    <div 
+                        key={tray.trayId}
+                    >
+                        <DiceTray
+                             trayId={tray.trayId}
+                             isSelected={tray.isSelected}
+                             readerProps={tray.readerProps}
+                             rollTray={rollTray}
+                        />
+                    </div>
+                ))}
             </div>
             <NewDieModal
                 isOpen={isNewDieModalOpen}
                 onSubmitNewDie={onSubmitNewDie}
                 onClose={onCloseNewDieFrom}
+            />
+            <NewTrayModal
+                isOpen={isNewTrayModalOpen}
+                onSubmitNewTray={onSubmitNewTray}
+                onClose={onCloseNewTrayForm}
             />
         </div>
     )

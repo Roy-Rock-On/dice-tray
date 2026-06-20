@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { DieReaderProps, DieReaderDetails, DiceRequest, TrayProps } from "./DataTypes";
+import { DieReaderProps, DieReaderDetails, TrayProps } from "./DataTypes";
 import { DieReader } from "./DieReader";
 import { AnimatePresence, motion } from "motion/react";
 import { DiceAllocatorHandle } from '../pkg/dice_wasm';

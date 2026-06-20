@@ -36,6 +36,11 @@ export interface NewDieRequest{
     variance: number 
 }
 
+///Represents a requerst to make a new tray. Very simple for now.
+export interface NewTrayRequest{
+    label: string
+}
+
 export interface TrayProps{
     trayId: string;
     isSelected: boolean;

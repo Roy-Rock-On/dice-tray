@@ -107,6 +107,14 @@ impl DiceAllocatorHandle {
         serde_wasm_bindgen::to_value(&tray_summary).map_err(|e| JsValue::from_str(&e.to_string()))
     }
 
+    #[wasm_bindgen]
+    pub fn destroy_tray(&mut self, tray_id: String) -> Result<(), JsValue>{
+        match self.app_allocator.destroy_tray(&tray_id){
+            Ok(_) => Ok(()),
+            Err(e) => return Err(JsValue::from_str(&e.to_string()))
+        }
+    }
+
     ///Adds and rolls die readers to a tray.
     #[wasm_bindgen]
     pub fn roll_to_tray(&mut self, tray_id: String, die_id: usize, die_count: u32) -> Result<JsValue, JsValue>{
