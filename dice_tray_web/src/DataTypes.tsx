@@ -30,22 +30,48 @@ export interface DieReaderDetails {
 }
 
 ///Represents a roll request to pass to a dice-tray which will call the appHandle to create the die readers in WASM.
-export interface DiceRequest{
-    dieId: number,
-    dieCount: number
+export interface NewDieRequest{
+    label: string,
+    sides: number,
+    variance: number 
 }
 
 export interface TrayProps{
     trayId: string;
     isSelected: boolean;
-    rollRequest: DiceRequest[];
     readerProps: DieReaderProps[];
     rollTray: () => void; 
 }
 
-///New die data. Used to prompt the application to create a new die.
-export interface NewDieRequest{
-    label: string,
-    sides: number,
-    variance: number
-} 
+export function spreadTrayDetails(trayProps: TrayProps, readerDetails: DieReaderDetails[]): TrayProps{
+    const readerLookup = new Map<number, DieReaderDetails>();
+    readerDetails.forEach((detail) => {
+        readerLookup.set(detail.reader_id, detail);
+    })
+
+    const filteredReaderProps = trayProps.readerProps.flatMap(prev => {
+        const newDetails = readerLookup.get(prev.id);
+        if(newDetails){
+            return {
+                ...prev,
+                readerDetails: newDetails
+            }
+        }
+        else{
+            return [];
+        }
+    });
+
+    const newReaderProps: DieReaderProps[] = Array.from(readerLookup.values()).map(newDetails => ({
+        id: newDetails.reader_id,
+        isSelected: false,
+        readerDetails: newDetails
+    }));
+
+    const dieReaderProps = [...filteredReaderProps, ...newReaderProps];
+
+    return {
+        ...trayProps,
+        readerProps: dieReaderProps 
+    }
+}

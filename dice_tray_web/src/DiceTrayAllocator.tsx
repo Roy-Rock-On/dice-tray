@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { DieProps, DieDetails, NewDieRequest, DiceRequest, TrayProps } from './DataTypes' 
+import { DieProps, DieDetails, TrayProps, DieReaderDetails, NewDieRequest, spreadTrayDetails } from './DataTypes' 
 import { DiceBag } from './DiceBag';
 import { DiceAllocatorHandle } from '../pkg/dice_wasm';
 import { genSeed, toSafeNumberArray } from './Utility';
@@ -110,9 +110,30 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
     }, [diceProps])
 
     const [trayList, setTrayList] = useState<TrayProps[]>();
+    const rollTray = useCallback(() => {
+        const selectedTrayProps : TrayProps | undefined = trayList?.find(tray => tray.isSelected) as TrayProps;
+        if (!selectedTrayProps){
+            console.error("No tray list available.");
+            throw new Error("Tray selection failed.");
+        }
 
+        const trayLabel = selectedTrayProps.trayId;
+        const readerIds = selectedTrayProps.readerProps
+            .filter(readerProp => readerProp.isSelected)
+            .map(readerProp => readerProp.id);
+        
+        const newTrayDetails = props.appHandle.roll_in_tray(trayLabel, toSafeNumberArray(readerIds), "result")
+            .tray_dice as DieReaderDetails[];
 
-    const rollTray = () => {};
+        const newTrayProps = spreadTrayDetails(selectedTrayProps, newTrayDetails)
+
+        setTrayList(prevTrayList => {
+            prevTrayList?.map(tray =>{
+                tray.trayId === selectedTrayProps.trayId ? newTrayProps : tray
+            });
+        })
+
+    }, [trayList, props.appHandle]);
 
     ///New Die Modal Form
     const [isNewDieModalOpen, setIsNewDieModalOpen] = useState(false);
@@ -173,7 +194,6 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
                 <DiceTray 
                     trayId='main'
                     isSelected={false}
-                    rollRequest={[]}
                     readerProps={[]}
                     rollTray={rollTray}
                 />
