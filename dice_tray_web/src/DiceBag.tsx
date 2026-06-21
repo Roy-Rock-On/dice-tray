@@ -1,9 +1,9 @@
 import { DieView } from './DieView'
-import { DieProps } from './DataTypes';
+import { DieData } from './DieDataTypes';
 import { motion, AnimatePresence, MotionConfig, Reorder} from 'motion/react';
 
 interface DiceBagProps{
-    diceProps: DieProps[];
+    diceData: DieData[];
     isLoaded: boolean;
     toggleDieSelection: (id: number) => void;
     triggerBagRoll: () => void;
@@ -22,15 +22,15 @@ export function DiceBag(props: DiceBagProps) {
     return (
         <div className='dice-bag'>
             <AnimatePresence mode="popLayout">
-                {props.diceProps.map((dieProp)=>(
+                {props.diceData.map((dieData)=>(
                     <motion.div
-                        key={dieProp.id}
+                        key={dieData.id}
                         layout
                         exit={{opacity: 0, scale: 0.9}}
                         transition={{ type: "spring", stiffness: 500, damping: 30 }}
                     >
                         <DieView 
-                            dieProps={dieProp} 
+                            dieData={dieData} 
                             toggleDieSelection={props.toggleDieSelection} 
                             setDieCount={props.setDieCount}
                         />    

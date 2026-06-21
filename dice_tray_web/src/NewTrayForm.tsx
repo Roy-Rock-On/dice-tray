@@ -1,5 +1,5 @@
 import React, {useState, useRef, useEffect} from "react";
-import { NewTrayRequest }  from "./DataTypes";
+import { NewTrayRequest }  from "./TrayDataTypes";
 
 interface NewTrayFormProps {
   isOpen: boolean,

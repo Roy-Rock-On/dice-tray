@@ -1,5 +1,5 @@
 import React, {useState, useRef, useEffect} from "react";
-import { NewDieRequest }  from "./DataTypes";
+import { NewDieRequest }  from "./DieDataTypes";
 
 interface NewDieFormProps {
   isOpen: boolean,

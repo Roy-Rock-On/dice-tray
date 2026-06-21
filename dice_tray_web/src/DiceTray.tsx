@@ -1,8 +1,14 @@
 import { useState, useEffect, useCallback } from 'react'
-import { DieReaderProps, DieReaderDetails, TrayProps } from "./DataTypes";
+import { TrayData, DieReaderData, DieReaderDetails } from "./TrayDataTypes";
 import { DieReader } from "./DieReader";
 import { AnimatePresence, motion } from "motion/react";
-import { DiceAllocatorHandle } from '../pkg/dice_wasm';
+
+interface TrayProps {
+    trayData: TrayData,
+    rollTray: (trayId: string) => void;
+    toggleTraySelection: (trayId: string) => void;
+    toggleReaderSelection: (trayId: string, readerId: number) => void;
+}
 
 const trayVariants = {
     selected: {
@@ -15,18 +21,21 @@ const trayVariants = {
     }
 }
 
-
 export function DiceTray(props: TrayProps){
+    //Add the tray ID and pass the data up.
+    const toggleDieReaderSelection = useCallback((readerId: number) => {
+        props.toggleReaderSelection(props.trayData.trayId, readerId);
+    }, [props.trayData, props.toggleReaderSelection, props.toggleTraySelection])
 
     const selectTray = () => {
-        props.toggleSelection(props.trayId)
+        props.toggleTraySelection(props.trayData.trayId);
     }
 
     return (
         <div className='tray-group'>
             <motion.div
                 className='tray'
-                animate={props.isSelected ? "selected" : "unselected"}
+                animate={props.trayData.isSelected ? "selected" : "unselected"}
                 variants={trayVariants}
                 whileHover={{
                     scale: 1.02,
@@ -42,7 +51,7 @@ export function DiceTray(props: TrayProps){
                 onClick={selectTray}
             >
                 <AnimatePresence mode='popLayout'>
-                    {props.readerProps.map((readerProp) => (
+                    {props.trayData.readerData.map((readerProp) => (
                         <motion.div
                             key={readerProp.id}
                             layout
@@ -50,8 +59,8 @@ export function DiceTray(props: TrayProps){
                             transition={{ type: "spring", stiffness: 500, damping: 30 }}
                         >
                             <DieReader
-                                readerProps={readerProp}
-                                //toggleDieReaderSelection={toggleReaderSelection}
+                                readerData={readerProp}
+                                toggleSelection={toggleDieReaderSelection}
                             />
                         </motion.div>
                     ))}
