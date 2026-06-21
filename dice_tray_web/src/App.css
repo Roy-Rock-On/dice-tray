@@ -103,8 +103,7 @@
 .tray-board{
   display:flex;
   flex-direction: column;
-  flex-wrap: wrap;
-  align-content: center;
+  align-items: stretch;
   gap: 8px;
   padding: 12px;
   margin: 18px;
@@ -115,9 +114,11 @@
 
 /* Tray and tools in a group. */
 .tray-group{
+  flex-grow: 1;
   display: flex;
   align-items: center;
   width: 95%;
+  box-sizing: border-box;
   gap: 12px;            
   padding: 8px 8px;
   background-color: #c1baba;
@@ -143,7 +144,6 @@
   min-height: 70px;
   padding: 12px;
   margin: 4px;
-  width: 95%;
   background: var(--dark);
   border: 1px solid var(--border);
   border-radius: 8px;

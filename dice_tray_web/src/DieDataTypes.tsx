@@ -21,6 +21,12 @@ export interface NewDieRequest{
     variance: number 
 }
 
+///An array of reader requests to add dice readers to a tray. 
+export interface ReaderRequest{
+    dieId: number,
+    dieCount: number
+}
+
 export function spreadDieDetails(dieData: DieData[], dieDetails: DieDetails[]): DieData[]{
     const dieLookup = new Map<number, DieDetails>();
         dieDetails.forEach((detail) => {
@@ -49,4 +55,24 @@ export function spreadDieDetails(dieData: DieData[], dieDetails: DieDetails[]): 
         }));
 
         return [...filteredData, ...newDiceData]
+}
+
+export function getReaderRequest(dieData: DieData[]): ReaderRequest[] | null {
+    const readerRequests: ReaderRequest[]  = dieData.flatMap((die) => {
+        if (die.isSelected){
+            return {
+                dieId: die.id,
+                dieCount: die.dieCount
+            };
+        }
+        return [];
+    });
+
+    if(readerRequests.length === 0) {
+        console.log("No reader requests found.");
+        return null;
+    }
+
+    console.log("Reader requests found = " + readerRequests.length);
+    return readerRequests;
 }

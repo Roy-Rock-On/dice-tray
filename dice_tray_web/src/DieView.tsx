@@ -103,7 +103,6 @@ function DieViewComponent(props: DieViewProps) {
                 background: 'transparent',
                 overflow: 'visible'
             }}
-
             onClick={tempBundleSelection}
             whileTap={{scale:1.15}}
             transition={{

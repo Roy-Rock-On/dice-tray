@@ -12,12 +12,10 @@ interface TrayProps {
 
 const trayVariants = {
     selected: {
-        scale: 1.20,
-        stroke: '#ffffff'
+        outline: "4px solid #ffffff",
     },
     unselected: {
-        scale: 1,
-        stroke: '#000000'
+        outline: "1px solid #000000",
     }
 }
 
@@ -35,6 +33,7 @@ export function DiceTray(props: TrayProps){
         <div className='tray-group'>
             <motion.div
                 className='tray'
+                style={{ overflow: 'visible' }}
                 animate={props.trayData.isSelected ? "selected" : "unselected"}
                 variants={trayVariants}
                 whileHover={{

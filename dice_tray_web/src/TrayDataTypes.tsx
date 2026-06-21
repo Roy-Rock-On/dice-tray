@@ -34,6 +34,7 @@ export function spreadTrayDetails(trayData: TrayData, readerDetails: DieReaderDe
     const filteredReaderProps = trayData.readerData.flatMap(prev => {
         const newDetails = readerLookup.get(prev.id);
         if(newDetails){
+            readerLookup.delete(prev.id);
             return {
                 ...prev,
                 readerDetails: newDetails
