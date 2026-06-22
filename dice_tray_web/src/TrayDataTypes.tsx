@@ -1,6 +1,5 @@
 ///Represents a die reader along with the selected status of the die reader.
 export interface DieReaderData{
-    id: number,
     isSelected: boolean,
     readerDetails: DieReaderDetails
 }
@@ -32,9 +31,9 @@ export function spreadTrayDetails(trayData: TrayData, readerDetails: DieReaderDe
     })
 
     const filteredReaderProps = trayData.readerData.flatMap(prev => {
-        const newDetails = readerLookup.get(prev.id);
+        const newDetails = readerLookup.get(prev.readerDetails.reader_id);
         if(newDetails){
-            readerLookup.delete(prev.id);
+            readerLookup.delete(prev.readerDetails.reader_id);
             return {
                 ...prev,
                 readerDetails: newDetails

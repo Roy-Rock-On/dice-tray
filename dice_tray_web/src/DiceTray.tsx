@@ -52,7 +52,7 @@ export function DiceTray(props: TrayProps){
                 <AnimatePresence mode='popLayout'>
                     {props.trayData.readerData.map((readerProp) => (
                         <motion.div
-                            key={readerProp.id}
+                            key={readerProp.readerDetails.reader_id}
                             layout
                             exit={{opacity:0, scale: 0.9}}
                             transition={{ type: "spring", stiffness: 500, damping: 30 }}

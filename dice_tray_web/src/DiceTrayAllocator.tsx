@@ -30,11 +30,6 @@ interface DiceTrayApplicationProps{
 export function DiceTrayAllocator(props: DiceTrayApplicationProps){
     ///Set dice state.
     const [diceData, setDiceData] = useState<DieData[]>([]);
-    const readerRequest: ReaderRequest[] | null = null; 
-
-    useEffect(() => {
-
-    }, [diceData])
 
     ///Update dice details from WASM
     const updateDiceData = (diceDetails : DieDetails[]) => {
@@ -87,6 +82,18 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
             })
         })
     }, [diceData])
+
+    const clearDieSelection = () => {
+        console.log("Clearing dice selection now.");
+        setDiceData((prevProps) => {
+            return prevProps.map(prev => {
+                return {
+                    ...prev,
+                    isSelected: false
+                }
+            })
+        })
+    }
 
     ///Set selected dice count
     const setDieCount = useCallback((dieId: number, newCount: number) =>{
@@ -146,12 +153,41 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
                     })
                 })
             });
+            clearDieSelection();
         }
 
     }, [trayList, diceData, props.appHandle] )
 
     const toggleReaderSelection = useCallback((trayId: string, readerId: number) =>{
-        console.log("Reader selection toggled.");
+        setTrayList(prevTrayList => {
+            if (!prevTrayList) { return prevTrayList; }
+
+            return prevTrayList.map(tray => {
+                if(tray.trayId === trayId){
+                    return {
+                        ...tray,
+                        readerData: tray.readerData.map((reader) => {
+                            if (reader.readerDetails.reader_id === readerId) {
+                                return {
+                                    ...reader,
+                                    isSelected: !reader.isSelected
+                                };
+                            }
+                            return { ...reader }; // Return unchanged reader clone
+                        })
+                    };
+                }
+                else{
+                    return {
+                        ...tray,
+                        readerData: tray.readerData.map((reader) => ({
+                            ...reader,
+                            isSelected: false
+                        }))
+                    };
+                }
+            })
+        })
     }, [trayList, props.appHandle])
 
     const rollTray = useCallback(() => {
@@ -163,8 +199,8 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
 
         const trayLabel = selectedTrayData.trayId;
         const readerIds = selectedTrayData.readerData
-            .filter(readerProp => readerProp.isSelected) 
-            .map(readerProp => readerProp.id);
+            .filter(readerData => readerData.isSelected) 
+            .map(readerData => readerData.readerDetails.reader_id);
         
         const newTrayDetails = props.appHandle.roll_in_tray(trayLabel, toSafeNumberArray(readerIds), "result").tray_dice as DieReaderDetails[];
         const newTrayData = spreadTrayDetails(selectedTrayData, newTrayDetails)
