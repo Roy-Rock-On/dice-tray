@@ -9,6 +9,7 @@ interface TrayProps {
     removeFromTray: (trayId : string) => void;
     toggleTraySelection: (trayId: string) => void;
     toggleReaderSelection: (trayId: string, readerId: number) => void;
+    onTrayRollComplete: (trayId: string, readerId: number) => void;
 }
 
 const trayVariants = {
@@ -25,6 +26,10 @@ export function DiceTray(props: TrayProps){
     const toggleDieReaderSelection = useCallback((readerId: number) => {
         props.toggleReaderSelection(props.trayData.trayId, readerId);
     }, [props.trayData, props.toggleReaderSelection, props.toggleTraySelection])
+
+    const onReaderRollComplete = useCallback((readerId: number) => {
+        props.onTrayRollComplete(props.trayData.trayId, readerId);
+    }, [props.trayData, props.onTrayRollComplete])
 
     const selectTray = () => {
         props.toggleTraySelection(props.trayData.trayId);
@@ -70,6 +75,7 @@ export function DiceTray(props: TrayProps){
                             <DieReader
                                 readerData={readerProp}
                                 toggleSelection={toggleDieReaderSelection}
+                                onRollComplete={onReaderRollComplete}
                             />
                         </motion.div>
                     ))}

@@ -6,7 +6,8 @@ import {
     NewDieRequest,
     ReaderRequest,
     spreadDieDetails,
-    getReaderRequest
+    getReaderRequest,
+    DiceAction
 } from './DieDataTypes'
 
 import {
@@ -114,6 +115,22 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
             })
         })
     }, [diceData])
+
+    const onRollComplete = useCallback((dieId: number) => {
+        setDiceData((prevData) => {
+            return prevData.map(prev => {
+                if(prev.id === dieId){
+                    return{
+                        ...prev,
+                        action: DiceAction.None
+                    }
+                }
+                else{
+                    return prev;
+                }
+            })
+        })
+    }, [diceData]) 
 
     //#endregion
 
@@ -229,11 +246,11 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
 
     }, [trayList, props.appHandle]);
 
-    const removeFromTray = useCallback((trayId: String) => {
+    const removeFromTray = useCallback((trayId: string) => {
         setTrayList(prevTrayList => {
             const selectedTrayData : TrayData | undefined = prevTrayList?.find(tray => tray.trayId === trayId);
             if (!selectedTrayData){
-                console.error("No tray list available.");
+                console.error("No tray list available during remove from tray.");
                 throw new Error("Tray selection failed.");
             }
 
@@ -251,6 +268,40 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
             });
         })
     }, [trayList, props.appHandle])
+
+    const trayRollComplete = useCallback((trayId: string, readerId: number) => {
+        setTrayList(prevTrayList => {
+            const targetTray = prevTrayList?.find(tray => tray.trayId === trayId);
+            if (!targetTray){
+                console.error("No tray list available during trayRollComplete.");
+                throw new Error("Tray selection failed.");
+            }
+
+            return prevTrayList?.map(tray => {
+                if (tray.trayId === trayId){
+                    const newReaderData = tray.readerData.map((data) => {
+                        if(data.readerDetails.reader_id === readerId){
+                            return {
+                                ...data,
+                                action: DiceAction.None
+                            }
+                        }
+                        else{
+                            return data;
+                        }
+                    })
+                    return {
+                        ...tray,
+                        readerData: newReaderData
+                    }
+                }
+                else{
+                    return tray;
+                }
+            });
+        })
+    }, [trayList, props.appHandle])
+
     //#endregion
 
     //#region NEW TRAY MODAL
@@ -341,6 +392,8 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
                 setDieCount={setDieCount}
                 openNewDieModal={openNewDieModal}
                 destroyDice={destroyDice}
+                setDiceBag={setDiceData}
+                onRollComplete={onRollComplete}
             />
             <div className='tray-board'>
                 {trayList?.map((tray) => (
@@ -353,6 +406,7 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
                              removeFromTray={removeFromTray}
                              toggleTraySelection={toggleTraySelection}
                              toggleReaderSelection={toggleReaderSelection}
+                             onTrayRollComplete={trayRollComplete}
                         />
                     </div>
                 ))}

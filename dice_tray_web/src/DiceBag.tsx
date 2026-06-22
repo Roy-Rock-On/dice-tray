@@ -10,6 +10,8 @@ interface DiceBagProps{
     setDieCount: (id: number, newCount: number) => void;
     openNewDieModal: () => void;
     destroyDice: () => void;
+    setDiceBag: React.Dispatch<React.SetStateAction<DieData[]>>;
+    onRollComplete: (dieId: number) => void;
 }
 
 export function DiceBag(props: DiceBagProps) {
@@ -21,22 +23,35 @@ export function DiceBag(props: DiceBagProps) {
 
     return (
         <div className='dice-bag'>
-            <AnimatePresence mode="popLayout">
-                {props.diceData.map((dieData)=>(
-                    <motion.div
-                        key={dieData.id}
-                        layout
-                        exit={{opacity: 0, scale: 0.9}}
-                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                    >
-                        <DieView 
-                            dieData={dieData} 
-                            toggleDieSelection={props.toggleDieSelection} 
-                            setDieCount={props.setDieCount}
-                        />    
-                    </motion.div>
-                ))}
-            </AnimatePresence>
+            <Reorder.Group 
+                as="div"
+                axis="y" // Use "y" if your dice stack vertically, or leave it if it's a grid (see note below)
+                values={props.diceData} 
+                onReorder={props.setDiceBag} // 2. This callback must update your state array
+                className="dice-container" // You can style this like your old container if needed
+            >
+                <AnimatePresence mode="popLayout">
+                    {props.diceData.map((dieData)=>(
+                        <Reorder.Item
+                            as="div"
+                            key={dieData.id}
+                            value={dieData}
+                            layout
+                            exit={{opacity: 0, scale: 0.9}}
+                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                        >
+                            <div style={{ width: 60, height: 60, overflow: 'visible', gap: 12 }}>
+                                <DieView 
+                                    dieData={dieData} 
+                                    toggleDieSelection={props.toggleDieSelection} 
+                                    setDieCount={props.setDieCount}
+                                    onRollComplete={props.onRollComplete}
+                                /> 
+                            </div>   
+                        </Reorder.Item>
+                    ))}
+                </AnimatePresence>
+            </Reorder.Group>
             <button 
                 className='button-prime'
                 onClick={props.triggerBagRoll}

@@ -2,15 +2,16 @@ import { memo, useState, useEffect } from "react";
 import { DieShape } from "./DieShape";
 import { motion } from "framer-motion";
 import { DieReaderData } from "./TrayDataTypes";
-import { useAnimation } from "framer-motion";
+import { useAnimation, Variants } from "framer-motion";
 import { DiceAction } from "./DieDataTypes";
 
 interface DieReaderProps {
    readerData: DieReaderData,
    toggleSelection: (id: number) => void; 
+   onRollComplete: (readerId: number) => void;
 }
 
-const dieVariants = {
+const dieSelectionVariants: Variants = {
     selected: {
         scale: 1.20,
         stroke: '#ffffff'
@@ -21,63 +22,42 @@ const dieVariants = {
     }
 }
 
-const dieTextVariants = {
+const dieTextVariants: Variants ={
     rolling: {
         opacity: 0,
-        transition: { duration: 0.1 }
+        transition: {duration: 0}
     },
     static: {
-        opacity: 1,
-        transition: { duration: 0.1 }
+        opacity : 1,
+        transition: {duration: 0.2}
     }
 }
 
+const dieActionVariants: Variants = {
+    rolling: {
+        rotate: [0, 180, 360],
+        x: [0, -5, 5, 0],
+        transition: {duration: 0.4, ease: "easeIn"}
+    },
+    static: {
+        rotate: 0,
+        x: 0
+    }
+};
+
 function DieReaderComponent(props: DieReaderProps) {
-    const [dieResult, setDieResult] = useState<number>(props.readerData.readerDetails.current_face)
-    const [isRolling, setIsRolling] = useState<boolean>(false);
-
-    useEffect(() => {
-        const handleRoll = async () => {
-            setIsRolling(true);
-            try {
-                let nextValue = props.readerData.readerDetails.current_face;
-                await anim.start({
-                    rotate: [0, 180, 360],
-                    x: [0, -5, 5, 0],
-                    transition: { duration: 0.4, ease: "easeIn" }
-                });
-
-                setDieResult(nextValue);
-
-                await anim.start({
-                    scale: [1, 1.2, 1],
-                    transition: { duration: 0.2 }
-                });
-            }
-            catch (error) {
-                console.log("Error rolling die:", error);
-            } finally {
-                setIsRolling(false);
-            }
-        }
-
-        if (props.readerData.action !== DiceAction.Roll || isRolling) return;
-        handleRoll();
-    }, [props.readerData.readerDetails]);
-
-    const anim = useAnimation();
-    useEffect(() => {
-        anim.start(props.readerData.isSelected ? "selected" : "unselected");
-    }, [props.readerData.isSelected, anim])
-
     const toggleSelect = (() => {
         props.toggleSelection(props.readerData.readerDetails.reader_id);
     });
 
+    const isRollingAction = props.readerData.action === DiceAction.Roll;
+    const selectionState = props.readerData.isSelected ? "selected" : "unselected";
+    const actionState = isRollingAction ? "rolling" : "static"
+
     return (
         <motion.svg
-            animate={props.readerData.isSelected ? "selected" : "unselected"}
-            variants={dieVariants}
+            animate={[selectionState, actionState]}
+            variants={dieSelectionVariants}
             whileHover={{ scale: 1.05 }}
             strokeWidth={2}
             width={60}
@@ -96,10 +76,18 @@ function DieReaderComponent(props: DieReaderProps) {
                 damping: 15
             }}
         >
-            <motion.g animate={anim}>
+            <motion.g 
+                animate={actionState}
+                variants={dieActionVariants}
+                onAnimationComplete={() => {
+                    if(isRollingAction){
+                        props.onRollComplete(props.readerData.readerDetails.reader_id);
+                    }
+                }}
+            >
                 <DieShape dieFaces={props.readerData.readerDetails.total_faces} dieColor="#1885cf" />
                 <motion.text
-                    animate={isRolling ? "rolling" : "static"}
+                    animate={actionState}
                     variants={dieTextVariants}
                     x="50"
                     y="50"
@@ -112,7 +100,7 @@ function DieReaderComponent(props: DieReaderProps) {
                     dominantBaseline="central"
                     style={{ userSelect: 'none' }}
                 >
-                    {dieResult}
+                    {props.readerData.readerDetails.current_face}
                 </motion.text>
             </motion.g>
         </motion.svg>
