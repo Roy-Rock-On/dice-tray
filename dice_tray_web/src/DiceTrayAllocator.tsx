@@ -28,6 +28,7 @@ interface DiceTrayApplicationProps{
 }
 
 export function DiceTrayAllocator(props: DiceTrayApplicationProps){
+    //#region DICE BAG
     ///Set dice state.
     const [diceData, setDiceData] = useState<DieData[]>([]);
 
@@ -114,6 +115,9 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
         })
     }, [diceData])
 
+    //#endregion
+
+    //#region TRAY LIST
     const [trayList, setTrayList] = useState<TrayData[]>();
     const toggleTraySelection = useCallback((trayId: string) =>{
         const rollRequest = getReaderRequest(diceData);
@@ -247,7 +251,9 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
             });
         })
     }, [trayList, props.appHandle])
+    //#endregion
 
+    //#region NEW TRAY MODAL
     ///New Tray Modal Form
     const [isNewTrayModalOpen, setIsNewTrayModalOpen] = useState(false);
 
@@ -276,7 +282,9 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
         setIsNewTrayModalOpen(false);
         console.log("New tray form has been closed.");
     }
+    //#endregion
 
+    //#region NEW DIE MODAL
     ///New Die Modal Form
     const [isNewDieModalOpen, setIsNewDieModalOpen] = useState(false);
 
@@ -296,7 +304,9 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
         setIsNewDieModalOpen(false);
         console.log("New die form has been closed.");
     }
+    //#endregion
 
+    //#region INITIALIZATION
     //initialization
     const [isLoaded, setIsLoaded] = useState(false);
     const firstInit = useRef(false);
@@ -318,8 +328,9 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
 
         addDice();
     }, []);
+    //#endregion
 
-    // mount and return the app components.
+    //#region COMPONENT RETURN
     return (
         <div className='board'>
             <DiceBag 
@@ -364,5 +375,6 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
             />
         </div>
     )
+    //#endregion
 }
 
