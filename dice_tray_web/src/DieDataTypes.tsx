@@ -1,7 +1,14 @@
+///Used to animate the dice based on what they are doing- can be extended for more animations.
+export enum DiceAction{
+    None,
+    Roll, 
+}
+
 ///Represents a die along with data about how/what is selected.
 export interface DieData {
     id: number;
     isSelected: boolean;
+    action: DiceAction;
     dieCount: number;
     dieDetails: DieDetails;
 }
@@ -27,7 +34,7 @@ export interface ReaderRequest{
     dieCount: number
 }
 
-export function spreadDieDetails(dieData: DieData[], dieDetails: DieDetails[]): DieData[]{
+export function spreadDieDetails(dieData: DieData[], dieDetails: DieDetails[], rolledDice: number[]): DieData[]{
     const dieLookup = new Map<number, DieDetails>();
         dieDetails.forEach((detail) => {
             dieLookup.set(detail.id, detail);
@@ -39,6 +46,7 @@ export function spreadDieDetails(dieData: DieData[], dieDetails: DieDetails[]): 
                 dieLookup.delete(prev.id);
                 return {
                     ...prev,
+                    action: rolledDice.includes(prev.id) ? DiceAction.Roll : DiceAction.None,
                     dieDetails: newDetails
                 }
             }
@@ -49,6 +57,7 @@ export function spreadDieDetails(dieData: DieData[], dieDetails: DieDetails[]): 
 
         const newDiceData: DieData[] = Array.from(dieLookup.values()).map(newDetails => ({
             id: newDetails.id,
+            action: rolledDice.includes(newDetails.id) ? DiceAction.Roll : DiceAction.None,
             isSelected: false,
             dieCount: 0,
             dieDetails: newDetails

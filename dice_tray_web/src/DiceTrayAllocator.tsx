@@ -32,22 +32,24 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
     const [diceData, setDiceData] = useState<DieData[]>([]);
 
     ///Update dice details from WASM
-    const updateDiceData = (diceDetails : DieDetails[]) => {
+    const updateDiceData = (diceDetails : DieDetails[], rolledDice: number[]) => {
         setDiceData((prevData) => {
-           return spreadDieDetails(prevData, diceDetails)
+           return spreadDieDetails(prevData, diceDetails, rolledDice)
         })
     }
 
     const triggerBagRoll = useCallback(() => {
+        const rolledList: number[] = [];
         diceData.forEach((die) => {
             if(die.isSelected){
                 console.log("Triggering roll for die with ID = " + die.id + " current face = " + die.dieDetails.current_face);
+                rolledList.push(die.id);
                 let newDieDetails = props.appHandle.roll_die(die.id) as DieDetails;
                 console.log("New face = " + newDieDetails.current_face)
             }
         })
         const diceList = props.appHandle.get_dice_state("faces").dice as DieDetails[];
-        updateDiceData(diceList);
+        updateDiceData(diceList, rolledList);
     }, [diceData, props.appHandle, updateDiceData])
 
     
@@ -58,7 +60,7 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
         try{
             const safeIds = toSafeNumberArray(selectedDieIds);
             const newDiceDetails = props.appHandle.destroy_dice(safeIds).dice as DieDetails[];
-            updateDiceData(newDiceDetails);
+            updateDiceData(newDiceDetails, []);
         }
         catch{
             console.error("Could not cast IDs safely while attempting to Destroy Dice.");
@@ -135,12 +137,20 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
             })  
         }else{
             console.log("Here's where we should trigger a tray roll and update the tray.");
+            ///Get a list of previous ID to tag dice as rolling.
+            const prevReaderIds: number [] = [];
+            const selectedTray = trayList?.find(tray => tray.trayId === trayId);
+            selectedTray?.readerData.forEach((data) => {
+                prevReaderIds.push(data.readerDetails.reader_id);
+            });
+
             rollRequest.forEach((req) =>{
                 const newReaderDetails = props.appHandle.roll_to_tray(trayId, req.dieId, req.dieCount).tray_dice as DieReaderDetails[];
+                const newReaderIds: number[] = newReaderDetails.filter(detail => !prevReaderIds.includes(detail.reader_id)).map(detail => detail.reader_id);
                 setTrayList(prevTrayList => {
                     return prevTrayList?.map(tray => {
                         if (tray.trayId === trayId){
-                            const newData = spreadTrayDetails(tray, newReaderDetails);
+                            const newData = spreadTrayDetails(tray, newReaderDetails, newReaderIds);
                             newData.isSelected = true;
                             return newData;
                         }
@@ -190,28 +200,53 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
         })
     }, [trayList, props.appHandle])
 
-    const rollTray = useCallback(() => {
-        const selectedTrayData : TrayData | undefined = trayList?.find(tray => tray.isSelected) as TrayData;
-        if (!selectedTrayData){
-            console.error("No tray list available.");
-            throw new Error("Tray selection failed.");
-        }
-
-        const trayLabel = selectedTrayData.trayId;
-        const readerIds = selectedTrayData.readerData
-            .filter(readerData => readerData.isSelected) 
-            .map(readerData => readerData.readerDetails.reader_id);
-        
-        const newTrayDetails = props.appHandle.roll_in_tray(trayLabel, toSafeNumberArray(readerIds), "result").tray_dice as DieReaderDetails[];
-        const newTrayData = spreadTrayDetails(selectedTrayData, newTrayDetails)
-
+    const rollTray = useCallback((trayId: String) => {
         setTrayList(prevTrayList => {
-            prevTrayList?.map(tray =>{
-                tray.trayId === selectedTrayData.trayId ? newTrayData : tray
+            const selectedTrayData : TrayData | undefined = prevTrayList?.find(tray => tray.trayId === trayId);
+            if (!selectedTrayData){
+                console.error("No tray list available.");
+                throw new Error("Tray selection failed.");
+            }
+
+            const trayLabel = selectedTrayData.trayId;
+            const readerIds = selectedTrayData.readerData
+                .filter(readerData => readerData.isSelected) 
+                .map(readerData => readerData.readerDetails.reader_id);
+            
+            const newTrayDetails = props.appHandle.roll_in_tray(trayLabel, toSafeNumberArray(readerIds), "result").tray_dice as DieReaderDetails[];
+            const newTrayData = spreadTrayDetails(selectedTrayData, newTrayDetails, readerIds);
+
+            if (!prevTrayList) return prevTrayList;
+
+            return prevTrayList?.map(tray =>{
+                return tray.trayId === selectedTrayData.trayId ? newTrayData : tray;
             });
         })
 
     }, [trayList, props.appHandle]);
+
+    const removeFromTray = useCallback((trayId: String) => {
+        setTrayList(prevTrayList => {
+            const selectedTrayData : TrayData | undefined = prevTrayList?.find(tray => tray.trayId === trayId);
+            if (!selectedTrayData){
+                console.error("No tray list available.");
+                throw new Error("Tray selection failed.");
+            }
+
+            const trayLabel = selectedTrayData.trayId;
+            const readerIds = selectedTrayData.readerData
+                .filter(readerData => readerData.isSelected) 
+                .map(readerData => readerData.readerDetails.reader_id);
+            
+            const newTrayDetails = props.appHandle.clear_tray_readers(toSafeNumberArray(readerIds), trayLabel).tray_dice as DieReaderDetails[];
+            const newTrayData = spreadTrayDetails(selectedTrayData, newTrayDetails, []);
+            if (!prevTrayList) return prevTrayList;
+
+            return prevTrayList?.map(tray =>{
+                return tray.trayId === selectedTrayData.trayId ? newTrayData : tray;
+            });
+        })
+    }, [trayList, props.appHandle])
 
     ///New Tray Modal Form
     const [isNewTrayModalOpen, setIsNewTrayModalOpen] = useState(false);
@@ -253,7 +288,7 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
     const onSubmitNewDie = (newDieRequest: NewDieRequest) => {
         props.appHandle.create_die(newDieRequest.sides, genSeed(), newDieRequest.label, newDieRequest.variance);
         const newDieDetails = props.appHandle.get_dice_state("face").dice as DieDetails[];
-        updateDiceData(newDieDetails);
+        updateDiceData(newDieDetails, []);
         setIsNewDieModalOpen(false);
     }
 
@@ -267,14 +302,13 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
     const firstInit = useRef(false);
 
     useEffect (() => {
-        //clause to prevent double fire.
         if (firstInit.current) return;
         firstInit.current = true;
 
         const addDice = async () => {
             try{
                 let diceList = props.appHandle.get_dice_state("face").dice as DieDetails[];                
-                updateDiceData(diceList);
+                updateDiceData(diceList, []);
             }catch(error){
                 console.error("Caught error while creating dice: ", error);
             }finally{
@@ -305,6 +339,7 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
                         <DiceTray
                              trayData={tray}
                              rollTray={rollTray}
+                             removeFromTray={removeFromTray}
                              toggleTraySelection={toggleTraySelection}
                              toggleReaderSelection={toggleReaderSelection}
                         />

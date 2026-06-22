@@ -1,6 +1,9 @@
+import { DiceAction } from "./DieDataTypes";
+
 ///Represents a die reader along with the selected status of the die reader.
 export interface DieReaderData{
     isSelected: boolean,
+    action: DiceAction,
     readerDetails: DieReaderDetails
 }
 
@@ -24,7 +27,7 @@ export interface TrayData{
 }
 
 ///Takes DieReaderDetails and spreads them out into trayData. Returning new tray data to trigger updates. 
-export function spreadTrayDetails(trayData: TrayData, readerDetails: DieReaderDetails[]): TrayData{
+export function spreadTrayDetails(trayData: TrayData, readerDetails: DieReaderDetails[], rolledDice: number[]): TrayData{
     const readerLookup = new Map<number, DieReaderDetails>();
     readerDetails.forEach((detail) => {
         readerLookup.set(detail.reader_id, detail);
@@ -36,6 +39,7 @@ export function spreadTrayDetails(trayData: TrayData, readerDetails: DieReaderDe
             readerLookup.delete(prev.readerDetails.reader_id);
             return {
                 ...prev,
+                action: rolledDice.includes(newDetails.reader_id) ? DiceAction.Roll : DiceAction.None,
                 readerDetails: newDetails
             }
         }
@@ -46,6 +50,7 @@ export function spreadTrayDetails(trayData: TrayData, readerDetails: DieReaderDe
 
     const newReaderProps: DieReaderData[] = Array.from(readerLookup.values()).map(newDetails => ({
         id: newDetails.reader_id,
+        action: rolledDice.includes(newDetails.reader_id) ? DiceAction.Roll : DiceAction.None,
         isSelected: false,
         readerDetails: newDetails
     }));

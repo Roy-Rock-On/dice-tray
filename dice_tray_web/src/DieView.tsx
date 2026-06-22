@@ -1,7 +1,7 @@
 import {memo, useState, useEffect} from "react";
 import { DieShape } from "./DieShape";
 import { motion } from "framer-motion";
-import { DieData } from "./DieDataTypes";
+import { DieData, DiceAction } from "./DieDataTypes";
 import { useAnimation } from "framer-motion";
 
 interface DieViewProps {
@@ -62,7 +62,7 @@ function DieViewComponent(props: DieViewProps) {
             }
         }
         
-        if(!props.dieData.isSelected || isRolling) {   
+        if(props.dieData.action !== DiceAction.Roll || isRolling) {   
             return;
         }
         

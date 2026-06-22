@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "motion/react";
 interface TrayProps {
     trayData: TrayData,
     rollTray: (trayId: string) => void;
+    removeFromTray: (trayId : string) => void;
     toggleTraySelection: (trayId: string) => void;
     toggleReaderSelection: (trayId: string, readerId: number) => void;
 }
@@ -27,6 +28,15 @@ export function DiceTray(props: TrayProps){
 
     const selectTray = () => {
         props.toggleTraySelection(props.trayData.trayId);
+    }
+
+    const triggerTrayRoll = () => {
+        props.rollTray(props.trayData.trayId);
+    }
+
+    const triggerTrayRemoval = () => {
+        console.log("readers slated for removal.")
+        props.removeFromTray(props.trayData.trayId);
     }
 
     return (
@@ -66,8 +76,18 @@ export function DiceTray(props: TrayProps){
                 </AnimatePresence>
             </motion.div>
             <div className='tray-tools'>
-                <button className='button-prime'>Click</button>
-                <button className='button-destructive'>Click</button>
+                <button 
+                    className='button-prime'
+                    onClick={triggerTrayRoll}
+                >
+                    Roll
+                </button>
+                <button 
+                    className='button-destructive'
+                    onClick={triggerTrayRemoval}
+                >
+                    Remove
+                </button>
             </div>
         </div>
     )

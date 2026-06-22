@@ -195,8 +195,21 @@ impl Allocator{
         }
     }
 
+    ///Removes selected Readers from the given tray.
+    pub fn remove_readers(&mut self, tray_label : &str, reader_ids: &Vec<usize>) -> anyhow::Result<TraySummary> {
+        if let Some(tray) = self.trays.get_mut(tray_label){
+            tray.remove_readers(reader_ids);
+            let summary = tray.build_summary(None);
+            Ok(summary)
+        }
+        else {
+            bail!("No tray found with ID: {}", tray_label);
+        }
+    }
+
     ///Moves a reader to a different tray.
     ///tray_id takes an option. None will remove the reader from its current tray and reader store.
+    ///but it dosen't actually work right now ?
     pub fn move_reader(&mut self, should_roll : bool, from_tray: &str, reader_ids: &Vec<usize>, to_tray: Option<&str>) -> anyhow::Result<MoveSummary> {
         let removal_tray = match self.trays.get_mut(from_tray){
             Some(tray) => tray,

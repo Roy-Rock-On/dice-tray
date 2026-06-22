@@ -153,7 +153,7 @@ impl DiceAllocatorHandle {
     /// Clear select dice readers from a tray.
     #[wasm_bindgen]
     pub fn clear_tray_readers(&mut self, reader_ids: Vec<usize>, tray_id: String) -> Result<JsValue, JsValue> {
-        let tray_summary = match self.app_allocator.move_reader(false, &tray_id, &reader_ids, None){
+        let tray_summary = match self.app_allocator.remove_readers(&tray_id, &reader_ids){
             Ok(summary) => summary,
             Err(e) => return Err(JsValue::from_str(&e.to_string()))
         };

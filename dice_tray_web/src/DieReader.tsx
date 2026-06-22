@@ -1,8 +1,9 @@
 import { memo, useState, useEffect } from "react";
 import { DieShape } from "./DieShape";
 import { motion } from "framer-motion";
-import { DieReaderData, DieReaderDetails } from "./TrayDataTypes";
+import { DieReaderData } from "./TrayDataTypes";
 import { useAnimation } from "framer-motion";
+import { DiceAction } from "./DieDataTypes";
 
 interface DieReaderProps {
    readerData: DieReaderData,
@@ -60,7 +61,7 @@ function DieReaderComponent(props: DieReaderProps) {
             }
         }
 
-        if (!props.readerData.isSelected || isRolling) return;
+        if (props.readerData.action !== DiceAction.Roll || isRolling) return;
         handleRoll();
     }, [props.readerData.readerDetails]);
 
@@ -70,9 +71,7 @@ function DieReaderComponent(props: DieReaderProps) {
     }, [props.readerData.isSelected, anim])
 
     const toggleSelect = (() => {
-        console.log("Toggling select for die reader = " + props.readerData.id);
-        props.toggleSelection(props.readerData.id);
-        console.log("Selecting die reader with Id = " + props.readerData.id)
+        props.toggleSelection(props.readerData.readerDetails.reader_id);
     });
 
     return (
