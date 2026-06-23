@@ -2,14 +2,16 @@ import { useState, useEffect, useCallback } from 'react'
 import { TrayData, DieReaderData, DieReaderDetails } from "./TrayDataTypes";
 import { DieReader } from "./DieReader";
 import { AnimatePresence, motion } from "motion/react";
+import { DiceAllocatorHandle } from '../pkg/dice_wasm';
 
 interface TrayProps {
     trayData: TrayData,
-    rollTray: (trayId: string) => void;
-    removeFromTray: (trayId : string) => void;
-    toggleTraySelection: (trayId: string) => void;
-    toggleReaderSelection: (trayId: string, readerId: number) => void;
-    onTrayRollComplete: (trayId: string, readerId: number) => void;
+    appHandle: DiceAllocatorHandle,
+    rollTray: (trayId: string) => void,
+    removeFromTray: (trayId : string) => void,
+    toggleTraySelection: (trayId: string) => void,
+    toggleReaderSelection: (trayId: string, readerId: number) => void,
+    onTrayRollComplete: (trayId: string, readerId: number) => void
 }
 
 const trayVariants = {
