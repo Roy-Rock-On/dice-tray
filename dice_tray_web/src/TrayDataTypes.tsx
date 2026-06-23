@@ -1,4 +1,4 @@
-import { DiceAction, ReaderRequest } from "./DieDataTypes";
+import { DiceAction, RollRequest } from "./DieDataTypes";
 
 ///Represents a die reader along with the selected status of the die reader.
 export interface DieReaderData{
@@ -24,7 +24,7 @@ export interface NewTrayRequest{
 export interface TrayData{
     trayId: string;
     isSelected: boolean;
-    readerRequest: ReaderRequest[];
+    rollRequest: RollRequest | undefined;
     //readerData: DieReaderData[];
 }
 

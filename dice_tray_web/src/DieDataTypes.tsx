@@ -28,6 +28,12 @@ export interface NewDieRequest{
     variance: number 
 }
 
+///Represents a request to a tray to roll new die readers. 
+export interface RollRequest{
+    lastRequestId: number,
+    request: ReaderRequest[]
+}
+
 ///An array of reader requests to add dice readers to a tray. 
 export interface ReaderRequest{
     dieId: number,
@@ -66,7 +72,7 @@ export function spreadDieDetails(dieData: DieData[], dieDetails: DieDetails[], r
         return [...filteredData, ...newDiceData]
 }
 
-export function getReaderRequest(dieData: DieData[]): ReaderRequest[] {
+export function getRollRequest(dieData: DieData[], requestId: number): RollRequest {
     const readerRequests: ReaderRequest[]  = dieData.flatMap((die) => {
         if (die.isSelected){
             return {
@@ -76,12 +82,8 @@ export function getReaderRequest(dieData: DieData[]): ReaderRequest[] {
         }
         return [];
     });
-
-    if(readerRequests.length === 0) {
-        console.log("No reader requests found.");
-        return [];
+    return  {
+        lastRequestId: requestId,
+        request: readerRequests
     }
-
-    console.log("Reader requests found = " + readerRequests.length);
-    return readerRequests;
 }

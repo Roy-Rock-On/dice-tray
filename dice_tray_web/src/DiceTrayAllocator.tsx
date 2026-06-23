@@ -4,9 +4,9 @@ import {
     DieData,
     DieDetails,
     NewDieRequest,
-    ReaderRequest,
+    RollRequest,
     spreadDieDetails,
-    getReaderRequest,
+    getRollRequest,
     DiceAction
 } from './DieDataTypes'
 
@@ -134,10 +134,12 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
 
     //#region TRAY LIST
     const [trayList, setTrayList] = useState<TrayData[]>();
-    
+    const requestCount = useRef<number>(0);
+
     const toggleTraySelection = useCallback((trayId: string) =>{
-        const rollRequest: ReaderRequest[] = getReaderRequest(diceData);
-        if (!rollRequest){
+        requestCount.current += 1;
+        const rollRequest: RollRequest = getRollRequest(diceData, requestCount.current);
+        if (rollRequest.request.length <= 0){
             console.log("No roll requests found. Triggering tray selection toggle.")
             setTrayList(prevTrayList => {
                 return prevTrayList?.map(tray => {
@@ -162,15 +164,18 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
                     if (prev.trayId === trayId){
                         return {
                             ...prev,
-                            readerRequest: rollRequest
+                            isSelected: true,
+                            rollRequest: rollRequest
                         }
                     }
                     else{
-                        return prev
+                        return {
+                            ...prev,
+                            isSelected: false
+                        }
                     }
                 })
             })
-
             clearDieSelection();
         }
 
@@ -192,7 +197,7 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
         const newTrayProps: TrayData = {
             trayId: newTrayDetails.tray_label as string,
             isSelected: false,
-            readerRequest: []
+            rollRequest: undefined
         };
 
         setTrayList((prevList) => {

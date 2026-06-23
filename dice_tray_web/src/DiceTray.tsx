@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, memo } from 'react'
+import { useState, useEffect, useCallback, memo, useRef } from 'react'
 import { TrayData, DieReaderData, DieReaderDetails, spreadReaderDetails } from "./TrayDataTypes";
 import { DieReader } from "./DieReader";
 import { AnimatePresence, motion } from "motion/react";
@@ -23,45 +23,44 @@ const trayVariants = {
 
 export function DiceTrayComponent(props: TrayProps){
     const [dieReaders, setDieReaders] = useState<DieReaderData[]>();
+    const lastRollRequest = useRef<number>(0);
 
     const selectTray = () => {
         props.toggleTraySelection(props.trayData.trayId);
     }
 
     const triggerTrayRoll = () => {
+        const selectedReaderIds = (dieReaders ?? []).filter(reader => reader.isSelected).map(reader => reader.readerDetails.reader_id);
+        const newReaderDetails = props.appHandle.roll_in_tray(props.trayData.trayId, toSafeNumberArray(selectedReaderIds), "face").tray_dice as DieReaderDetails[];
         setDieReaders((prevReaders) => {
-            const selectedReaderIds = (prevReaders ?? []).filter(reader => reader.isSelected).map(reader => reader.readerDetails.reader_id);
-            const newReaderDetails = props.appHandle.roll_in_tray(props.trayData.trayId, toSafeNumberArray(selectedReaderIds), "face").tray_dice as DieReaderDetails[];
             return spreadReaderDetails((prevReaders ?? []), newReaderDetails, selectedReaderIds);
         });
     }
 
     useEffect(() => {
-        setDieReaders((prevReaders) => {
-            const newRollRequests : ReaderRequest[] = props.trayData.readerRequest;
-            newRollRequests.forEach((request) => {
-                props.appHandle.roll_to_tray(props.trayData.trayId, request.dieId, request.dieCount);
-            } );
+        if(!props.trayData.rollRequest) return;
+        if(lastRollRequest.current === props.trayData.rollRequest.lastRequestId) return;
+        lastRollRequest.current = props.trayData.rollRequest?.lastRequestId;
 
-            const newReaderDetails = props.appHandle.get_tray_summary(props.trayData.trayId, "result").tray_dice as DieReaderDetails[];
+        const newReaderRequests : ReaderRequest[] = props.trayData.rollRequest.request;
+        newReaderRequests.forEach((request) => {
+            props.appHandle.roll_to_tray(props.trayData.trayId, request.dieId, request.dieCount);
+        });
+
+        const newReaderDetails = props.appHandle.get_tray_summary(props.trayData.trayId, "result").tray_dice as DieReaderDetails[];
+
+        setDieReaders((prevReaders) => {
             const oldReaderIds = prevReaders?.map(reader => reader.readerDetails.reader_id); 
             const rolledReaderIds = newReaderDetails.filter(detail => !oldReaderIds?.includes(detail.reader_id)).map(detail => detail.reader_id);
-            
             return spreadReaderDetails((prevReaders ?? []), newReaderDetails, rolledReaderIds);
         }); 
-    }, [props.trayData.readerRequest])
+    }, [props.trayData.rollRequest])
 
     const triggerTrayRemoval = () => {
+        const selectedReaderIds = (dieReaders ?? []).filter(reader => reader.isSelected).map(reader => reader.readerDetails.reader_id);
+        const newReaderDetails = props.appHandle.clear_tray_readers(toSafeNumberArray(selectedReaderIds), props.trayData.trayId).tray_dice as DieReaderDetails[];
         setDieReaders((prevReaders) => {
-            const selectedReaderIds = (prevReaders ?? []).filter(reader => reader.isSelected).map(reader => reader.readerDetails.reader_id);
-            props.appHandle.clear_tray_readers(toSafeNumberArray(selectedReaderIds), props.trayData.trayId);
-            return prevReaders?.flatMap((prev) =>{
-                if (selectedReaderIds.includes(prev.readerDetails.reader_id)){
-                    return [];
-                }else{
-                    return prev;
-                }
-            })
+            return spreadReaderDetails((prevReaders ?? []), newReaderDetails, []);
         })
     }
 
