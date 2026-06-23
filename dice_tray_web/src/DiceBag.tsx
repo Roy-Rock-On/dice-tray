@@ -1,6 +1,6 @@
 import { DieView } from './DieView'
 import { DieData } from './DieDataTypes';
-import { motion, AnimatePresence, MotionConfig, Reorder} from 'motion/react';
+import { AnimatePresence, Reorder} from 'motion/react';
 
 interface DiceBagProps{
     diceData: DieData[];
@@ -30,7 +30,7 @@ export function DiceBag(props: DiceBagProps) {
                 onReorder={props.setDiceBag} // 2. This callback must update your state array
                 className="dice-container" // You can style this like your old container if needed
             >
-                <AnimatePresence mode="popLayout">
+                <AnimatePresence mode="sync">
                     {props.diceData.map((dieData)=>(
                         <Reorder.Item
                             as="div"

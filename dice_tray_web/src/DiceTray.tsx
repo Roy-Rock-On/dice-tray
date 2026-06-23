@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, memo, useRef } from 'react'
 import { TrayData, DieReaderData, DieReaderDetails, spreadReaderDetails } from "./TrayDataTypes";
 import { DieReader } from "./DieReader";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, Reorder } from "motion/react";
 import { DiceAllocatorHandle } from '../pkg/dice_wasm';
 import { toSafeNumberArray } from './Utility';
 import { DiceAction, ReaderRequest } from './DieDataTypes';
@@ -98,7 +98,11 @@ export function DiceTrayComponent(props: TrayProps){
 
     return (
         <div className='tray-group'>
-            <motion.div
+            <Reorder.Group
+                as="div"
+                axis="x"
+                values={dieReaders ?? []}
+                onReorder={setDieReaders}
                 className='tray'
                 style={{ overflow: 'visible' }}
                 animate={props.trayData.isSelected ? "selected" : "unselected"}
@@ -116,23 +120,26 @@ export function DiceTrayComponent(props: TrayProps){
                 tabIndex={0}
                 onClick={selectTray}
             >
-                <AnimatePresence mode='popLayout'>
+                <AnimatePresence mode='sync'>
                     {dieReaders?.map((readerData) => (
-                        <motion.div
+                        <Reorder.Item
                             key={readerData.readerDetails.reader_id}
+                            value={readerData}
                             layout
                             exit={{opacity:0, scale: 0.9}}
                             transition={{ type: "spring", stiffness: 500, damping: 30 }}
                         >
-                            <DieReader
-                                readerData={readerData}
-                                toggleSelection={toggleReaderSelection}
-                                onRollComplete={readerRollComplete}
-                            />
-                        </motion.div>
+                            <div style={{ width: 60, height: 60, overflow: 'visible', gap: 12 }}>
+                                <DieReader
+                                    readerData={readerData}
+                                    toggleSelection={toggleReaderSelection}
+                                    onRollComplete={readerRollComplete}
+                                />
+                            </div>
+                        </Reorder.Item>
                     ))}
                 </AnimatePresence>
-            </motion.div>
+            </Reorder.Group>
             <div className='tray-tools'>
                 <button 
                     className='button-prime'
