@@ -12,9 +12,7 @@ import {
 
 import {
     TrayData,
-    DieReaderDetails,
     NewTrayRequest,
-    spreadTrayDetails,
 } from './TrayDataTypes'
     
 import { DiceBag } from './DiceBag';
@@ -136,8 +134,9 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
 
     //#region TRAY LIST
     const [trayList, setTrayList] = useState<TrayData[]>();
+    
     const toggleTraySelection = useCallback((trayId: string) =>{
-        const rollRequest = getReaderRequest(diceData);
+        const rollRequest: ReaderRequest[] = getReaderRequest(diceData);
         if (!rollRequest){
             console.log("No roll requests found. Triggering tray selection toggle.")
             setTrayList(prevTrayList => {
@@ -158,149 +157,24 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
             })  
         }else{
             console.log("Here's where we should trigger a tray roll and update the tray.");
-            ///Get a list of previous ID to tag dice as rolling.
-            const prevReaderIds: number [] = [];
-            const selectedTray = trayList?.find(tray => tray.trayId === trayId);
-            selectedTray?.readerData.forEach((data) => {
-                prevReaderIds.push(data.readerDetails.reader_id);
-            });
-
-            rollRequest.forEach((req) =>{
-                const newReaderDetails = props.appHandle.roll_to_tray(trayId, req.dieId, req.dieCount).tray_dice as DieReaderDetails[];
-                const newReaderIds: number[] = newReaderDetails.filter(detail => !prevReaderIds.includes(detail.reader_id)).map(detail => detail.reader_id);
-                setTrayList(prevTrayList => {
-                    return prevTrayList?.map(tray => {
-                        if (tray.trayId === trayId){
-                            const newData = spreadTrayDetails(tray, newReaderDetails, newReaderIds);
-                            newData.isSelected = true;
-                            return newData;
+            setTrayList((prevList) => {
+                return prevList?.map((prev) => {
+                    if (prev.trayId === trayId){
+                        return {
+                            ...prev,
+                            readerRequest: rollRequest
                         }
-                        else{
-                            return{
-                                ...tray,
-                                isSelected: false
-                            }
-                        }
-                    })
+                    }
+                    else{
+                        return prev
+                    }
                 })
-            });
+            })
+
             clearDieSelection();
         }
 
     }, [trayList, diceData, props.appHandle] )
-
-    const toggleReaderSelection = useCallback((trayId: string, readerId: number) =>{
-        setTrayList(prevTrayList => {
-            if (!prevTrayList) { return prevTrayList; }
-
-            return prevTrayList.map(tray => {
-                if(tray.trayId === trayId){
-                    return {
-                        ...tray,
-                        readerData: tray.readerData.map((reader) => {
-                            if (reader.readerDetails.reader_id === readerId) {
-                                return {
-                                    ...reader,
-                                    isSelected: !reader.isSelected
-                                };
-                            }
-                            return { ...reader }; // Return unchanged reader clone
-                        })
-                    };
-                }
-                else{
-                    return {
-                        ...tray,
-                        readerData: tray.readerData.map((reader) => ({
-                            ...reader,
-                            isSelected: false
-                        }))
-                    };
-                }
-            })
-        })
-    }, [trayList, props.appHandle])
-
-    const rollTray = useCallback((trayId: String) => {
-        setTrayList(prevTrayList => {
-            const selectedTrayData : TrayData | undefined = prevTrayList?.find(tray => tray.trayId === trayId);
-            if (!selectedTrayData){
-                console.error("No tray list available.");
-                throw new Error("Tray selection failed.");
-            }
-
-            const trayLabel = selectedTrayData.trayId;
-            const readerIds = selectedTrayData.readerData
-                .filter(readerData => readerData.isSelected) 
-                .map(readerData => readerData.readerDetails.reader_id);
-            
-            const newTrayDetails = props.appHandle.roll_in_tray(trayLabel, toSafeNumberArray(readerIds), "result").tray_dice as DieReaderDetails[];
-            const newTrayData = spreadTrayDetails(selectedTrayData, newTrayDetails, readerIds);
-
-            if (!prevTrayList) return prevTrayList;
-
-            return prevTrayList?.map(tray =>{
-                return tray.trayId === selectedTrayData.trayId ? newTrayData : tray;
-            });
-        })
-
-    }, [trayList, props.appHandle]);
-
-    const removeFromTray = useCallback((trayId: string) => {
-        setTrayList(prevTrayList => {
-            const selectedTrayData : TrayData | undefined = prevTrayList?.find(tray => tray.trayId === trayId);
-            if (!selectedTrayData){
-                console.error("No tray list available during remove from tray.");
-                throw new Error("Tray selection failed.");
-            }
-
-            const trayLabel = selectedTrayData.trayId;
-            const readerIds = selectedTrayData.readerData
-                .filter(readerData => readerData.isSelected) 
-                .map(readerData => readerData.readerDetails.reader_id);
-            
-            const newTrayDetails = props.appHandle.clear_tray_readers(toSafeNumberArray(readerIds), trayLabel).tray_dice as DieReaderDetails[];
-            const newTrayData = spreadTrayDetails(selectedTrayData, newTrayDetails, []);
-            if (!prevTrayList) return prevTrayList;
-
-            return prevTrayList?.map(tray =>{
-                return tray.trayId === selectedTrayData.trayId ? newTrayData : tray;
-            });
-        })
-    }, [trayList, props.appHandle])
-
-    const trayRollComplete = useCallback((trayId: string, readerId: number) => {
-        setTrayList(prevTrayList => {
-            const targetTray = prevTrayList?.find(tray => tray.trayId === trayId);
-            if (!targetTray){
-                console.error("No tray list available during trayRollComplete.");
-                throw new Error("Tray selection failed.");
-            }
-
-            return prevTrayList?.map(tray => {
-                if (tray.trayId === trayId){
-                    const newReaderData = tray.readerData.map((data) => {
-                        if(data.readerDetails.reader_id === readerId){
-                            return {
-                                ...data,
-                                action: DiceAction.None
-                            }
-                        }
-                        else{
-                            return data;
-                        }
-                    })
-                    return {
-                        ...tray,
-                        readerData: newReaderData
-                    }
-                }
-                else{
-                    return tray;
-                }
-            });
-        })
-    }, [trayList, props.appHandle])
 
     //#endregion
 
@@ -318,7 +192,7 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
         const newTrayProps: TrayData = {
             trayId: newTrayDetails.tray_label as string,
             isSelected: false,
-            readerData: [],
+            readerRequest: []
         };
 
         setTrayList((prevList) => {
@@ -401,12 +275,9 @@ export function DiceTrayAllocator(props: DiceTrayApplicationProps){
                         key={tray.trayId}
                     >
                         <DiceTray
-                             trayData={tray}
-                             rollTray={rollTray}
-                             removeFromTray={removeFromTray}
-                             toggleTraySelection={toggleTraySelection}
-                             toggleReaderSelection={toggleReaderSelection}
-                             onTrayRollComplete={trayRollComplete}
+                            appHandle={props.appHandle}
+                            trayData={tray}
+                            toggleTraySelection={toggleTraySelection}
                         />
                     </div>
                 ))}

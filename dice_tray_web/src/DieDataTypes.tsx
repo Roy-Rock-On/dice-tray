@@ -66,7 +66,7 @@ export function spreadDieDetails(dieData: DieData[], dieDetails: DieDetails[], r
         return [...filteredData, ...newDiceData]
 }
 
-export function getReaderRequest(dieData: DieData[]): ReaderRequest[] | null {
+export function getReaderRequest(dieData: DieData[]): ReaderRequest[] {
     const readerRequests: ReaderRequest[]  = dieData.flatMap((die) => {
         if (die.isSelected){
             return {
@@ -79,7 +79,7 @@ export function getReaderRequest(dieData: DieData[]): ReaderRequest[] | null {
 
     if(readerRequests.length === 0) {
         console.log("No reader requests found.");
-        return null;
+        return [];
     }
 
     console.log("Reader requests found = " + readerRequests.length);

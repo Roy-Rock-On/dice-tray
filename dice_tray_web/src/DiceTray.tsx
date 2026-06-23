@@ -1,17 +1,15 @@
-import { useState, useEffect, useCallback } from 'react'
-import { TrayData, DieReaderData, DieReaderDetails } from "./TrayDataTypes";
+import { useState, useEffect, useCallback, memo } from 'react'
+import { TrayData, DieReaderData, DieReaderDetails, spreadReaderDetails } from "./TrayDataTypes";
 import { DieReader } from "./DieReader";
 import { AnimatePresence, motion } from "motion/react";
 import { DiceAllocatorHandle } from '../pkg/dice_wasm';
+import { toSafeNumberArray } from './Utility';
+import { DiceAction, ReaderRequest } from './DieDataTypes';
 
 interface TrayProps {
     trayData: TrayData,
     appHandle: DiceAllocatorHandle,
-    rollTray: (trayId: string) => void,
-    removeFromTray: (trayId : string) => void,
     toggleTraySelection: (trayId: string) => void,
-    toggleReaderSelection: (trayId: string, readerId: number) => void,
-    onTrayRollComplete: (trayId: string, readerId: number) => void
 }
 
 const trayVariants = {
@@ -23,28 +21,81 @@ const trayVariants = {
     }
 }
 
-export function DiceTray(props: TrayProps){
-    //Add the tray ID and pass the data up.
-    const toggleDieReaderSelection = useCallback((readerId: number) => {
-        props.toggleReaderSelection(props.trayData.trayId, readerId);
-    }, [props.trayData, props.toggleReaderSelection, props.toggleTraySelection])
-
-    const onReaderRollComplete = useCallback((readerId: number) => {
-        props.onTrayRollComplete(props.trayData.trayId, readerId);
-    }, [props.trayData, props.onTrayRollComplete])
+export function DiceTrayComponent(props: TrayProps){
+    const [dieReaders, setDieReaders] = useState<DieReaderData[]>();
 
     const selectTray = () => {
         props.toggleTraySelection(props.trayData.trayId);
     }
 
     const triggerTrayRoll = () => {
-        props.rollTray(props.trayData.trayId);
+        setDieReaders((prevReaders) => {
+            const selectedReaderIds = (prevReaders ?? []).filter(reader => reader.isSelected).map(reader => reader.readerDetails.reader_id);
+            const newReaderDetails = props.appHandle.roll_in_tray(props.trayData.trayId, toSafeNumberArray(selectedReaderIds), "face").tray_dice as DieReaderDetails[];
+            return spreadReaderDetails((prevReaders ?? []), newReaderDetails, selectedReaderIds);
+        });
     }
 
+    useEffect(() => {
+        setDieReaders((prevReaders) => {
+            const newRollRequests : ReaderRequest[] = props.trayData.readerRequest;
+            newRollRequests.forEach((request) => {
+                props.appHandle.roll_to_tray(props.trayData.trayId, request.dieId, request.dieCount);
+            } );
+
+            const newReaderDetails = props.appHandle.get_tray_summary(props.trayData.trayId, "result").tray_dice as DieReaderDetails[];
+            const oldReaderIds = prevReaders?.map(reader => reader.readerDetails.reader_id); 
+            const rolledReaderIds = newReaderDetails.filter(detail => !oldReaderIds?.includes(detail.reader_id)).map(detail => detail.reader_id);
+            
+            return spreadReaderDetails((prevReaders ?? []), newReaderDetails, rolledReaderIds);
+        }); 
+    }, [props.trayData.readerRequest])
+
     const triggerTrayRemoval = () => {
-        console.log("readers slated for removal.")
-        props.removeFromTray(props.trayData.trayId);
+        setDieReaders((prevReaders) => {
+            const selectedReaderIds = (prevReaders ?? []).filter(reader => reader.isSelected).map(reader => reader.readerDetails.reader_id);
+            props.appHandle.clear_tray_readers(toSafeNumberArray(selectedReaderIds), props.trayData.trayId);
+            return prevReaders?.flatMap((prev) =>{
+                if (selectedReaderIds.includes(prev.readerDetails.reader_id)){
+                    return [];
+                }else{
+                    return prev;
+                }
+            })
+        })
     }
+
+    const toggleReaderSelection = useCallback((readerId: number) => {
+        setDieReaders((prevReaders) => {
+            return prevReaders?.map((prev) =>{
+                if (prev.readerDetails.reader_id === readerId){
+                    return {
+                        ...prev,
+                        isSelected: !prev.isSelected
+                    }
+                }
+                else{
+                    return prev;
+                }
+            })
+        })
+    }, [dieReaders, props.appHandle])
+
+    const readerRollComplete = useCallback((readerId: number) => {
+        setDieReaders((prevReaders) => {
+            return prevReaders?.map((prev) => {
+                if (prev.readerDetails.reader_id === readerId){
+                    return {
+                        ...prev,
+                        action: DiceAction.None
+                    }
+                }
+                else{
+                    return prev;
+                }
+            })
+        })
+    }, [dieReaders, props.appHandle])
 
     return (
         <div className='tray-group'>
@@ -67,17 +118,17 @@ export function DiceTray(props: TrayProps){
                 onClick={selectTray}
             >
                 <AnimatePresence mode='popLayout'>
-                    {props.trayData.readerData.map((readerProp) => (
+                    {dieReaders?.map((readerData) => (
                         <motion.div
-                            key={readerProp.readerDetails.reader_id}
+                            key={readerData.readerDetails.reader_id}
                             layout
                             exit={{opacity:0, scale: 0.9}}
                             transition={{ type: "spring", stiffness: 500, damping: 30 }}
                         >
                             <DieReader
-                                readerData={readerProp}
-                                toggleSelection={toggleDieReaderSelection}
-                                onRollComplete={onReaderRollComplete}
+                                readerData={readerData}
+                                toggleSelection={toggleReaderSelection}
+                                onRollComplete={readerRollComplete}
                             />
                         </motion.div>
                     ))}
@@ -99,4 +150,6 @@ export function DiceTray(props: TrayProps){
             </div>
         </div>
     )
-}   
+}
+
+export const DiceTray = memo(DiceTrayComponent);   
