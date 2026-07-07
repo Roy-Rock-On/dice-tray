@@ -20,7 +20,7 @@ const trayVariants = {
         outline: "1px solid #000000",
     }
 }
-
+const trayRef = useRef<HTMLDivElement>(null);
 export function DiceTrayComponent(props: TrayProps){
     //#region DIE READERS
     const [dieReaders, setDieReaders] = useState<DieReaderData[]>();
@@ -100,30 +100,32 @@ export function DiceTrayComponent(props: TrayProps){
 
     //#region GRID TOOLS
     const handleGridReorder = (currentIndex: number, offset: { x: number; y: number }) => {
-    // Width (60px) + Gap (12px) = 72px total slot size
-    const SLOT_SIZE = 72; 
-    
-    // 💡 UPDATE THIS: How many items fit horizontally in your .tray CSS grid?
-    const COLS_PER_ROW = 6; 
+        const SLOT_SIZE = 72; 
+        
+        const trayWidth = trayRef.current?.getBoundingClientRect().width ?? 0;
+        const colsPerRow = Math.max(1, Math.floor(trayWidth / SLOT_SIZE));
 
-    const colOffset = Math.round(offset.x / SLOT_SIZE);
-    const rowOffset = Math.round(offset.y / SLOT_SIZE);
-    
-    let targetIndex = currentIndex + colOffset + (rowOffset * COLS_PER_ROW);
-    targetIndex = Math.max(0, Math.min(targetIndex, (dieReaders?.length ?? 1) - 1));
-    
-    if (targetIndex !== currentIndex && dieReaders) {
-        const updatedList = [...dieReaders];
-        const [movedItem] = updatedList.splice(currentIndex, 1);
-        updatedList.splice(targetIndex, 0, movedItem);
-        setDieReaders(updatedList);
-    }
-};
+        const colOffset = Math.round(offset.x / SLOT_SIZE);
+        const rowOffset = Math.round(offset.y / SLOT_SIZE);
+        
+        let targetIndex = currentIndex + colOffset + (rowOffset * colsPerRow);
+        targetIndex = Math.max(0, Math.min(targetIndex, (dieReaders?.length ?? 1) - 1));
+        
+        if (targetIndex !== currentIndex && dieReaders) {
+            const updatedList = [...dieReaders];
+            const [movedItem] = updatedList.splice(currentIndex, 1);
+            updatedList.splice(targetIndex, 0, movedItem);
+            setDieReaders(updatedList);
+        }
+    };
+    //#endregion
 
+    //#region COMPONENT RETURN 
     return (
         <div className='tray-group'>
             <LayoutGroup>
                 <motion.div
+                    ref={trayRef}
                     className='tray'
                     style={{ 
                         overflow: 'visible',
@@ -188,6 +190,7 @@ export function DiceTrayComponent(props: TrayProps){
             </div>
         </div>
     )
+    //#endregion
 }
 
 export const DiceTray = memo(DiceTrayComponent);   
